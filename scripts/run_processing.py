@@ -176,8 +176,14 @@ Respond with valid JSON only.
             
             ai_response = response.choices[0].message.content.strip()
             
-            # Parse JSON response
+            # Parse JSON response (handle markdown code blocks)
             try:
+                # Remove markdown code blocks if present
+                if ai_response.startswith('```json'):
+                    ai_response = ai_response.replace('```json', '').replace('```', '').strip()
+                elif ai_response.startswith('```'):
+                    ai_response = ai_response.replace('```', '').strip()
+                
                 analysis = json.loads(ai_response)
                 return analysis
             except json.JSONDecodeError:
@@ -209,22 +215,22 @@ Respond with valid JSON only.
             # Determine processing status
             if confidence >= config.AUTO_APPROVE_THRESHOLD:
                 processing_status = 'completed'
-                review_status = 'auto_approved'
+                review_status = 'approved_download'
             elif confidence >= config.MANUAL_REVIEW_THRESHOLD:
                 processing_status = 'completed'
-                review_status = 'manual_review'
+                review_status = 'pending_review'
             else:
-                processing_status = 'failed'
+                processing_status = 'completed'
                 review_status = 'rejected'
             
             # Log search results
             if search_results:
                 await self.db_pool.execute("""
-                    INSERT INTO website_searches (contractor_id, search_query, search_results, created_at)
-                    VALUES ($1, $2, $3, $4)
+                    INSERT INTO website_searches (contractor_id, search_query, search_results, search_method, results_found, success, attempted_at)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7)
                 """, contractor['id'], 
                 f"{contractor['business_name']} {contractor.get('city', '')} {contractor.get('state', '')}", 
-                json.dumps(search_results), datetime.now())
+                json.dumps(search_results), 'google', len(search_results), True, datetime.now())
             
             # Update contractor record
             update_query = """
@@ -232,15 +238,20 @@ Respond with valid JSON only.
                     processing_status = $1,
                     review_status = $2,
                     confidence_score = $3,
-                    ai_category = $4,
-                    ai_subcategory = $5,
-                    website_url = $6,
-                    enriched_description = $7,
-                    services = $8,
-                    processed_at = $9,
-                    ai_analysis = $10
+                    mailer_category = $4,
+                    website_url = $5,
+                    business_description = $6,
+                    services_offered = $7,
+                    service_categories = $8,
+                    last_processed = $9,
+                    is_home_contractor = $10
                 WHERE id = $11
             """
+            
+            # Prepare service categories array
+            service_categories = [analysis.get('category', 'Unknown')]
+            if analysis.get('subcategory'):
+                service_categories.append(analysis.get('subcategory'))
             
             await self.db_pool.execute(
                 update_query,
@@ -248,20 +259,20 @@ Respond with valid JSON only.
                 review_status,
                 confidence,
                 analysis.get('category'),
-                analysis.get('subcategory'),
                 analysis.get('website'),
                 analysis.get('description'),
-                json.dumps(analysis.get('services', [])),
+                analysis.get('services', []),
+                service_categories,
                 datetime.now(),
-                json.dumps(analysis),
+                True,  # is_home_contractor
                 contractor['id']
             )
             
             # Update statistics
             self.stats['processed'] += 1
-            if review_status == 'auto_approved':
+            if review_status == 'approved_download':
                 self.stats['auto_approved'] += 1
-            elif review_status == 'manual_review':
+            elif review_status == 'pending_review':
                 self.stats['manual_review'] += 1
             else:
                 self.stats['failed'] += 1
