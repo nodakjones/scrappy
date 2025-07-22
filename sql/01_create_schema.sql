@@ -39,9 +39,9 @@ CREATE TABLE contractors (
     is_home_contractor BOOLEAN,
     mailer_category VARCHAR(100),
     priority_category BOOLEAN DEFAULT FALSE,
-    website_url VARCHAR(500),
+    website_url VARCHAR(1000),
     website_status VARCHAR(50), -- 'found', 'not_found', 'error', 'invalid'
-    business_description TEXT,
+    business_description VARCHAR(3000),
     tagline VARCHAR(255),
     established_year INTEGER,
     years_in_business INTEGER,
