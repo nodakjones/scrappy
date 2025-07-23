@@ -163,6 +163,12 @@ Please provide a JSON response with:
 5. "description" - brief business description
 6. "services" - array of main services offered
 7. "verified" - true if search results confirm this is a real business
+8. "is_residential" - true if this contractor primarily serves residential customers (homeowners), false if primarily commercial/industrial
+
+IMPORTANT: For "is_residential", consider:
+- Residential contractors: Home repairs, residential HVAC, house painting, roofing for homes, handyman services, lawn care, pool maintenance, etc.
+- Commercial contractors: Large construction projects, industrial facilities, commercial buildings, infrastructure, heavy equipment, etc.
+- When in doubt, if services could serve both but business name/description suggests residential focus, mark as true.
 
 Respond with valid JSON only.
 """
@@ -192,6 +198,7 @@ Respond with valid JSON only.
                     'category': 'Unknown',
                     'confidence': 0.3,
                     'verified': False,
+                    'is_residential': True,  # Default to residential when uncertain
                     'error': 'Invalid AI response format'
                 }
                 
@@ -201,6 +208,7 @@ Respond with valid JSON only.
                 'category': 'Unknown',
                 'confidence': 0.1,
                 'verified': False,
+                'is_residential': True,  # Default to residential when error occurs
                 'error': str(e)
             }
         
@@ -264,7 +272,7 @@ Respond with valid JSON only.
                 analysis.get('services', []),
                 service_categories,
                 datetime.now(),
-                True,  # is_home_contractor
+                analysis.get('is_residential', True),  # is_home_contractor - default to True if not specified
                 contractor['id']
             )
             
