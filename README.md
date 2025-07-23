@@ -69,8 +69,8 @@ The system uses a comprehensive **5-factor validation framework** to ensure disc
 - No partial credit - either matches completely or gets 0.0
 
 **Factor 4: Principal Name Match (0.25 points)**
-- Business owner names (rarely available on contractor websites)
-- Currently 0.0 - reserved for future enhancement
+- Business owner names found in "About Us" or contact sections
+- Matches against primary_principal_name field from contractor data
 
 **Factor 5: Address Match (0.25 points)**
 - Exact street number match = 1.0 score
@@ -215,19 +215,32 @@ WHERE id = [contractor_id];
 - **Filtering**: Active licenses only (excludes expired, re-licensed, inactive)
 
 ### Service Categories
-- **Plumbing** (faucets, pipes, water heaters)
-- **HVAC** (heating, cooling, ventilation)
-- **Electrical** (wiring, panels, lighting)
-- **Roofing** (installation, repair, gutters)
-- **Handyman** (general repairs, maintenance)
-- **Flooring** (hardwood, carpet, tile)
-- **Painting** (interior, exterior, residential)
-- **Landscaping** (lawn care, gardening, outdoor)
-- **Windows & Doors** (residential installation)
-- **Auto Glass** (windshield repair, mobile service)
-- **Concrete** (driveways, patios, foundations)
-- **Fencing** (residential, commercial, repair)
-- **Kitchen & Bath** (remodeling, fixtures)
+
+**Priority Categories** (High-value residential services):
+- **Plumbing** - Drain cleaning, water heater repair, pipe repair, leak detection, bathroom fixtures
+- **HVAC** - AC repair, furnace installation, duct cleaning, heat pump service
+- **Electrical** - Electrical repairs, panel upgrades, outlet installation, lighting installation
+- **Roofing** - Roof replacement, roof repair, gutter installation, siding repair
+- **Handyman** - General repairs, home maintenance, fixture installation, odd jobs
+- **Flooring** - Hardwood installation, carpet installation, tile work, floor refinishing
+- **Painting** - Interior painting, exterior painting, drywall repair, wallpaper removal
+- **Landscaping** - Lawn maintenance, tree removal, landscape design, irrigation systems
+- **Windows & Doors** - Window replacement, door installation, glass repair, screen repair
+- **Kitchen & Bath** - Kitchen remodel, bathroom renovation, cabinet installation, countertop installation
+
+**Standard Categories** (Additional residential services):
+- **Concrete** - Driveway installation, patio construction, concrete repair, foundation work
+- **Fencing** - Fence installation, gate repair, privacy fencing, fence repair
+- **Insulation** - Attic insulation, wall insulation, weatherproofing, energy audits
+- **Security Systems** - Security system installation, camera systems, alarm monitoring
+- **Pool & Spa** - Pool cleaning, pool repair, hot tub service, pool equipment
+- **Garage Doors** - Garage door installation, opener repair, door maintenance
+- **Septic Systems** - Septic pumping, septic repair, drain field installation
+- **Solar** - Solar panel installation, solar system design, solar maintenance
+- **Demolition** - Structure demolition, debris removal, site clearing
+
+**Filtered Out Categories** (Commercial/Industrial - excluded from residential focus):
+- Commercial Construction, Industrial Services, Municipal Services
 
 ### Geographic Coverage
 - **Included Areas**: Seattle, Tacoma, Bellevue, Everett, Kent, Renton, Federal Way, Kirkland, Olympia, and surrounding Puget Sound cities

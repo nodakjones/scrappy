@@ -239,8 +239,8 @@ def calculate_confidence_score(website_content, contractor):
     # Factor 3: Phone Number Match (0.25 points)  
     phone_score = score_phone_match(website_text, contractor.phone_number)
     
-    # Factor 4: Principal Name Match (0.25 points) - Currently 0.0
-    principal_score = 0.0
+    # Factor 4: Principal Name Match (0.25 points)
+    principal_score = score_principal_match(website_text, contractor.primary_principal_name)
     
     # Factor 5: Address Match (0.25 points)
     address_score = score_address_match(website_text, contractor.address)
