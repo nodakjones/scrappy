@@ -1020,8 +1020,8 @@ Respond with valid JSON only.
     def calculate_geographic_penalty(self, website_text: str, contractor: Dict[str, Any]) -> float:
         """Calculate geographical validation penalty (-0.20 if no local indicators found)"""
         
-        # Washington area codes (all valid WA area codes)
-        wa_area_codes = ['206', '253', '360', '425', '509']
+        # Washington area codes (Puget Sound region focus - excluding 509 eastern WA)
+        wa_area_codes = ['206', '253', '360', '425']
         
         # Check for Washington area codes in various formats
         import re

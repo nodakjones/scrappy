@@ -791,9 +791,9 @@ The system uses a comprehensive 5-factor scoring system to validate that discove
 **CRITICAL ANTI-FRAUD PROTECTION**: If no Washington area code OR local address is found on the website, subtract 0.20 points from total confidence. This prevents accepting contractors with similar names from different states/regions.
 
 **Washington Area Code Detection:**
-- **Valid Codes**: 206, 253, 360, 425, 509 (Washington state area codes)
+- **Valid Codes**: 206, 253, 360, 425 (Puget Sound region area codes - excludes 509 eastern WA)
 - **Format Flexibility**: (206) 555-1234, 206-555-1234, 206.555.1234, etc.
-- **Multiple Numbers**: Any valid WA area code found = no penalty
+- **Multiple Numbers**: Any valid Puget Sound area code found = no penalty
 
 **Local Address Detection:**
 - **Washington Cities**: Seattle, Tacoma, Bellevue, Everett, etc. (Puget Sound region cities only)
@@ -801,9 +801,14 @@ The system uses a comprehensive 5-factor scoring system to validate that discove
 - **Service Area**: "Serving Seattle area", "Puget Sound region", etc.
 
 **Penalty Application:**
-- **No WA area codes found** AND **no local addresses found** = -0.20 penalty
-- **Any WA area code found** OR **any local address found** = no penalty
+- **No Puget Sound area codes found** AND **no local addresses found** = -0.20 penalty
+- **Any Puget Sound area code found** OR **any local address found** = no penalty
+- **Multiple Service Areas**: If contractor serves both included and excluded areas, they PASS (no penalty)
 - **Multiple violations don't stack** = maximum penalty is -0.20
+
+**Multi-Area Service Example:**
+- "Serving Seattle, Tacoma, and Spokane" = ✅ **NO PENALTY** (includes Seattle/Tacoma)
+- "Serving Spokane and Yakima only" = ❌ **-0.20 PENALTY** (no included cities)
 
 #### **Scoring Examples**
 
