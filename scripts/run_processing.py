@@ -696,6 +696,117 @@ Respond with valid JSON only.
         
         return False
 
+    def validate_website_belongs_to_contractor_strict(self, crawled_content: Dict[str, Any], contractor: Dict[str, Any]) -> bool:
+        """STRICT validation that website belongs to contractor - requires exact matches"""
+        website_text = crawled_content.get('full_text', '').upper()
+        contractor_phone = contractor.get('phone_number', '')
+        contractor_city = contractor.get('city', '').upper()
+        contractor_state = contractor.get('state', 'WA').upper()
+        
+        logger.info(f"🔍 STRICT validation for: {contractor['business_name']}")
+        
+        # Extract all phone numbers from website content
+        import re
+        phone_patterns = re.findall(r'\(?(253|206|360|425|509)\)?[-.\s]?(\d{3})[-.\s]?(\d{4})', website_text)
+        
+        if phone_patterns:
+            # Check if ANY phone number has Washington area codes
+            wa_area_codes = {'253', '206', '360', '425', '509'}
+            website_area_codes = [match[0] for match in phone_patterns]
+            
+            if any(code in wa_area_codes for code in website_area_codes):
+                logger.info(f"✅ STRICT validation PASSED: Found WA area code(s): {website_area_codes}")
+                
+                # Additional check: must mention contractor's city or nearby cities
+                if contractor_city in website_text:
+                    logger.info(f"✅ STRICT validation PASSED: Found matching city {contractor_city}")
+                    return True
+                
+                # Check for Puget Sound area cities
+                puget_sound_cities = ['SEATTLE', 'BELLEVUE', 'TACOMA', 'EVERETT', 'SPOKANE', 'KIRKLAND', 'REDMOND', 'BOTHELL', 'LYNNWOOD', 'RENTON', 'KENT', 'FEDERAL WAY', 'BURIEN']
+                if any(city in website_text for city in puget_sound_cities):
+                    found_cities = [city for city in puget_sound_cities if city in website_text]
+                    logger.info(f"✅ STRICT validation PASSED: Found Puget Sound cities: {found_cities}")
+                    return True
+        
+        # Check for Washington-specific service area mentions
+        wa_service_indicators = [
+            'WASHINGTON STATE', 'PUGET SOUND', 'GREATER SEATTLE', 'EASTSIDE', 'SERVING SEATTLE',
+            'KING COUNTY', 'PIERCE COUNTY', 'SNOHOMISH COUNTY', 'THURSTON COUNTY'
+        ]
+        
+        for indicator in wa_service_indicators:
+            if indicator in website_text:
+                logger.info(f"✅ STRICT validation PASSED: Found service area indicator: {indicator}")
+                return True
+        
+        logger.warning(f"❌ STRICT validation FAILED: No clear Washington connection found")
+        return False
+
+    def validate_website_belongs_to_contractor_extra_strict(self, crawled_content: Dict[str, Any], contractor: Dict[str, Any]) -> bool:
+        """EXTRA STRICT validation for domain-guessed results - requires multiple confirmations"""
+        website_text = crawled_content.get('full_text', '').upper()
+        contractor_phone = contractor.get('phone_number', '')
+        contractor_city = contractor.get('city', '').upper()
+        contractor_state = contractor.get('state', 'WA').upper()
+        contractor_name = contractor.get('business_name', '').upper()
+        
+        logger.info(f"🔍 EXTRA STRICT validation for domain guess: {contractor['business_name']}")
+        
+        validation_points = 0
+        required_points = 3  # Need at least 3 confirmation points
+        
+        # 1. Phone number area code match
+        import re
+        phone_patterns = re.findall(r'\(?(253|206|360|425|509)\)?[-.\s]?(\d{3})[-.\s]?(\d{4})', website_text)
+        
+        if phone_patterns:
+            wa_area_codes = {'253', '206', '360', '425', '509'}
+            website_area_codes = [match[0] for match in phone_patterns]
+            
+            if any(code in wa_area_codes for code in website_area_codes):
+                validation_points += 2  # Strong indicator
+                logger.info(f"✅ EXTRA STRICT +2 points: WA area codes {website_area_codes}")
+        
+        # 2. Exact city match
+        if contractor_city in website_text:
+            validation_points += 2  # Strong indicator
+            logger.info(f"✅ EXTRA STRICT +2 points: Exact city match {contractor_city}")
+        
+        # 3. Business name similarity check
+        # Remove common suffixes and check if core name appears
+        core_name = re.sub(r'\s+(LLC|INC|CORP|CO|LTD|COMPANY)\.?$', '', contractor_name)
+        name_words = core_name.split()
+        
+        if len(name_words) >= 2:
+            # Check if at least 2 words from business name appear on website
+            matches = sum(1 for word in name_words if len(word) >= 3 and word in website_text)
+            if matches >= 2:
+                validation_points += 1
+                logger.info(f"✅ EXTRA STRICT +1 point: Business name similarity ({matches} word matches)")
+        
+        # 4. Service area indicators
+        puget_sound_cities = ['SEATTLE', 'BELLEVUE', 'TACOMA', 'EVERETT', 'SPOKANE', 'KIRKLAND', 'REDMOND', 'BOTHELL', 'LYNNWOOD']
+        city_mentions = sum(1 for city in puget_sound_cities if city in website_text)
+        
+        if city_mentions >= 2:
+            validation_points += 1
+            logger.info(f"✅ EXTRA STRICT +1 point: Multiple WA cities mentioned ({city_mentions})")
+        
+        # 5. Washington state references
+        wa_indicators = ['WASHINGTON STATE', 'PUGET SOUND', 'GREATER SEATTLE', 'KING COUNTY', 'PIERCE COUNTY']
+        if any(indicator in website_text for indicator in wa_indicators):
+            validation_points += 1
+            logger.info(f"✅ EXTRA STRICT +1 point: Washington state indicators")
+        
+        # Final validation
+        if validation_points >= required_points:
+            logger.info(f"✅ EXTRA STRICT validation PASSED: {validation_points}/{required_points} points")
+            return True
+        else:
+            logger.warning(f"❌ EXTRA STRICT validation FAILED: {validation_points}/{required_points} points (insufficient)")
+            return False
+
     async def process_contractor(self, contractor: Dict[str, Any]):
         """Process a single contractor"""
         try:
@@ -707,69 +818,74 @@ Respond with valid JSON only.
                 
             logger.info(f"Processing: {contractor['business_name']} ({contractor['city']}, {contractor['state']})")
             
-            # Step 1: Try Clearbit first (free tier)
+            # Step 1: Google Search FIRST (accuracy over cost for data quality)
             website_content = None
             validated_website_url = None
             search_results = []
             
-            free_website = await self.search_free_enrichment(contractor)
-            if free_website:
-                # Filter and validate free enrichment result
-                filtered_url = self.filter_website_url(free_website)
-                if filtered_url:
-                    logger.info(f"🎯 Free enrichment provided legitimate website: {filtered_url}")
-                    crawled_content = await self.crawl_website_content(filtered_url, contractor)
-                    
-                    # Validate that this website actually belongs to the contractor
-                    if crawled_content and self.validate_website_belongs_to_contractor(crawled_content, contractor):
-                        website_content = crawled_content
-                        validated_website_url = filtered_url
-                        logger.info(f"✅ Free enrichment website validated: {filtered_url}")
-                        logger.info("💰 Cost savings: Used free methods instead of paid Google Search!")
-                        self.stats['clearbit_success'] += 1
-                        # Create mock search result for consistency
-                        search_results = [{'link': filtered_url, 'title': f"{contractor['business_name']} - Free Enrichment", 'snippet': 'Found via free enrichment'}]
-                    else:
-                        logger.warning(f"❌ Free enrichment website rejected - doesn't match contractor: {filtered_url}")
-                else:
-                    logger.info(f"⏭️ Free enrichment website skipped (directory/listing): {free_website}")
+            logger.info("🎯 Using Google Search FIRST for maximum accuracy...")
+            logger.info("💸 Prioritizing data quality over cost savings...")
+            self.stats['google_fallback'] += 1
+            search_results = await self.search_contractor_online(contractor)
             
-            # Step 2: Fall back to Google Search if free methods didn't work
-            if not validated_website_url:
-                logger.info("🔄 Free enrichment didn't provide valid website, falling back to Google Search...")
-                logger.info("💸 Using paid Google Search API as fallback...")
-                self.stats['google_fallback'] += 1
-                search_results = await self.search_contractor_online(contractor)
+            if search_results:
+                logger.info(f"🔍 Searching through {len(search_results)} Google results for valid website...")
                 
-                if search_results:
-                    logger.info(f"🔍 Searching through {len(search_results)} Google results for valid website...")
+                # Look for legitimate website URLs (filtered)
+                for i, result in enumerate(search_results, 1):
+                    url = result.get('link', '')
+                    logger.info(f"   📄 Result {i}/{len(search_results)}: {url}")
                     
-                    # Look for legitimate website URLs (filtered)
-                    for i, result in enumerate(search_results, 1):
-                        url = result.get('link', '')
-                        logger.info(f"   📄 Result {i}/{len(search_results)}: {url}")
+                    filtered_url = self.filter_website_url(url)
+                    if filtered_url:  # This is a legitimate website
+                        logger.info(f"🎯 Found legitimate website: {filtered_url}")
+                        crawled_content = await self.crawl_website_content(filtered_url, contractor)
                         
-                        filtered_url = self.filter_website_url(url)
-                        if filtered_url:  # This is a legitimate website
-                            logger.info(f"🎯 Found legitimate website: {filtered_url}")
-                            crawled_content = await self.crawl_website_content(filtered_url, contractor)
-                            
-                            # Validate that this website actually belongs to the contractor
-                            if crawled_content and self.validate_website_belongs_to_contractor(crawled_content, contractor):
-                                website_content = crawled_content
-                                validated_website_url = filtered_url
-                                logger.info(f"✅ Website validated: {filtered_url}")
-                                break
-                            else:
-                                logger.warning(f"❌ Website rejected - doesn't match contractor: {filtered_url}")
-                                logger.info(f"   🔄 Continuing to search remaining {len(search_results) - i} results...")
+                        # Validate that this website actually belongs to the contractor with STRICT validation
+                        if crawled_content and self.validate_website_belongs_to_contractor_strict(crawled_content, contractor):
+                            website_content = crawled_content
+                            validated_website_url = filtered_url
+                            logger.info(f"✅ Website validated with STRICT validation: {filtered_url}")
+                            break
                         else:
-                            logger.info(f"   ⏭️ Skipped (directory/listing): {url}")
-                    
-                    if not validated_website_url:
-                        logger.warning(f"🚫 No valid website found after checking all {len(search_results)} results")
-                else:
-                    logger.warning("🚫 No Google search results found")
+                            logger.warning(f"❌ Website rejected - doesn't match contractor (STRICT): {filtered_url}")
+                            logger.info(f"   🔄 Continuing to search remaining {len(search_results) - i} results...")
+                    else:
+                        logger.info(f"   ⏭️ Skipped (directory/listing): {url}")
+                
+                if not validated_website_url:
+                    logger.warning(f"🚫 No valid website found after checking all {len(search_results)} Google results")
+            else:
+                logger.warning("🚫 No Google search results found")
+            
+            # Step 2: ONLY try free enrichment if Google Search completely failed
+            if not validated_website_url:
+                logger.info("🔄 Google Search found no valid websites, trying free enrichment as last resort...")
+                
+                free_website = await self.search_free_enrichment(contractor)
+                if free_website:
+                    # Filter and validate free enrichment result with EXTRA STRICT validation
+                    filtered_url = self.filter_website_url(free_website)
+                    if filtered_url:
+                        logger.info(f"🎯 Free enrichment provided legitimate website: {filtered_url}")
+                        crawled_content = await self.crawl_website_content(filtered_url, contractor)
+                        
+                        # EXTRA STRICT validation for domain guessed results
+                        if crawled_content and self.validate_website_belongs_to_contractor_extra_strict(crawled_content, contractor):
+                            website_content = crawled_content
+                            validated_website_url = filtered_url
+                            logger.info(f"✅ Free enrichment website validated with EXTRA STRICT validation: {filtered_url}")
+                            logger.info("💰 Cost savings: Used free methods after Google Search failed!")
+                            self.stats['clearbit_success'] += 1
+                            # Create mock search result for consistency
+                            search_results = [{'link': filtered_url, 'title': f"{contractor['business_name']} - Free Enrichment", 'snippet': 'Found via free enrichment (last resort)'}]
+                        else:
+                            logger.warning(f"❌ Free enrichment website rejected - doesn't match contractor (EXTRA STRICT): {filtered_url}")
+                    else:
+                        logger.info(f"⏭️ Free enrichment website skipped (directory/listing): {free_website}")
+                
+                if not validated_website_url:
+                    logger.warning("🚫 Both Google Search and free enrichment failed to find valid website")
             
             # Step 3: AI analysis with website content (only if validated)
             analysis = await self.analyze_with_ai(contractor, search_results or [], website_content)
