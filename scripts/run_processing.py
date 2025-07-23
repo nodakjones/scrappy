@@ -853,7 +853,7 @@ Respond with valid JSON only.
         """Calculate comprehensive 5-factor confidence score for website matching"""
         website_text = crawled_content.get('full_text', '').upper()
         contractor_name = contractor.get('business_name', '').upper()
-        contractor_number = str(contractor.get('uuid', '')).upper()  # Contractor license number
+        contractor_number = str(contractor.get('contractor_license_number', '')).upper()  # Contractor license number
         contractor_phone = contractor.get('phone_number', '').replace('(', '').replace(')', '').replace('-', '').replace(' ', '')
         contractor_address = contractor.get('address1', '').upper()
         
@@ -1151,18 +1151,27 @@ Respond with valid JSON only.
                 if not validated_website_url:
                     logger.warning("🚫 Both Google Search and free enrichment failed to find valid website")
             
-            # Step 3: AI analysis with website content (only if validated)
-            analysis = await self.analyze_with_ai(contractor, search_results or [], website_content)
-            
-            # Step 4: Update database (use validated website URL or None)
-            if website_content and validated_website_url:
+            # Step 3: AI analysis ONLY if we have a validated website
+            if validated_website_url and website_content:
+                logger.info("✅ Found validated website - proceeding with AI analysis")
+                analysis = await self.analyze_with_ai(contractor, search_results or [], website_content)
                 # Update analysis to use validated website URL
                 analysis['website'] = validated_website_url
+                await self.update_contractor_results(contractor, analysis, search_results or [], website_content)
             else:
-                # No valid website found
-                analysis['website'] = None
-                
-            await self.update_contractor_results(contractor, analysis, search_results or [], website_content)
+                # No valid website found - skip AI evaluation as requested
+                logger.info("❌ No validated website found - skipping AI evaluation as requested")
+                analysis = {
+                    'category': 'No Website',
+                    'confidence': 0.0,
+                    'verified': False,
+                    'is_residential': None,
+                    'website': None,
+                    'description': 'No validated website found',
+                    'services': [],
+                    'skipped_reason': 'No website found'
+                }
+                await self.update_contractor_results(contractor, analysis, search_results or [], None)
             
         except Exception as e:
             logger.error(f"Error processing contractor {contractor['business_name']}: {e}")
