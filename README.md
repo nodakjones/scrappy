@@ -216,6 +216,8 @@ WHERE id = [contractor_id];
 
 ### Service Categories
 
+**Complete Taxonomy**: 194 total categories (30 priority + 164 standard) from CRM data
+
 **Priority Categories** (30 High-Value Residential Services):
 1. **Heating and Cooling** - AC repair, furnace installation, duct cleaning, heat pump service, HVAC maintenance
 2. **Plumbing** - Drain cleaning, water heater repair, pipe repair, leak detection, bathroom fixtures
@@ -248,19 +250,19 @@ WHERE id = [contractor_id];
 29. **Foundations** - Foundation repair, basement waterproofing, crawl space encapsulation, structural work
 30. **Exterior Cleaning** - House pressure washing, driveway cleaning, deck cleaning, exterior surface cleaning
 
-**Standard Categories** (Additional residential services):
-- **Flooring** - Hardwood installation, carpet installation, tile work, floor refinishing
-- **Roofing** - Roof replacement, roof repair, shingle installation, roof inspection
-- **Painting** - Interior painting, exterior painting, drywall repair, color consultation
-- **Pools and Spas** - Pool installation, spa service, pool maintenance, hot tub repair
-- **Security Systems** - Security system installation, camera systems, alarm monitoring, smart locks
-- **Insulation** - Attic insulation, wall insulation, weatherproofing, energy audits
-- **Septic Systems** - Septic pumping, septic repair, drain field installation, septic inspection
-- **Pest Control** - Pest elimination, rodent control, insect treatment, preventive pest control
-- **Mold Remediation** - Mold removal, mold testing, water damage restoration, air quality testing
+**Standard Categories** (164 Additional Services - Complete Taxonomy):
+Includes comprehensive coverage of all business types from your CRM:
+- **Home Improvement**: Flooring, Roofing, Painting, Siding, Skylights, Doors, Cabinets, Countertops, ADU Contractors, etc.
+- **Home Services**: Appliance Repair, Pest Control, Pressure Washing, Mold Remediation, Septic, BBQ Cleaning, etc.
+- **Professional Services**: Legal, Financial Planning, Real Estate, Insurance, Marketing, Consulting, Accounting, etc.
+- **Personal Services**: Healthcare, Dental, Fitness, Beauty, Education, Photography, Massage, Life Coaching, etc.
+- **Retail & Commerce**: Auto Sales, Furniture, Appliances, Sporting Goods, Clothing, Mattress, Jewelry, etc.
+- **Experience & Travel**: Dining, Entertainment, Hotels, Travel Planning, Recreation, Golf, Events, etc.
 
-**Filtered Out Categories** (Commercial/Industrial - excluded from residential focus):
-- Commercial Construction, Industrial Services
+**System Processing Focus**: 
+- **Primary targeting**: 30 priority categories (highest ROI residential services)
+- **Complete classification**: All 194 categories for comprehensive contractor taxonomy
+- **AI categorization**: Uses full database for accurate business type identification
 
 ### Geographic Coverage
 - **Included Areas**: Seattle, Tacoma, Bellevue, Everett, Kent, Renton, Federal Way, Kirkland, Olympia, and surrounding Puget Sound cities
