@@ -76,7 +76,7 @@ class ContractorProcessor:
         
         # Filter out expired and inactive contractors
         license_filter = """
-            AND contractor_license_status NOT IN ('EXPIRED', 'OUT OF BUSINESS', 'PASSED AWAY', 'REVOKED DUE DEPT ERR', 'INACTIVE')
+            AND contractor_license_status NOT IN ('EXPIRED', 'RE-LICENSED', 'OUT OF BUSINESS', 'PASSED AWAY', 'REVOKED DUE DEPT ERR', 'INACTIVE', 'SUSPENDED')
             AND contractor_license_status IS NOT NULL
         """
         
@@ -536,10 +536,26 @@ Respond with valid JSON only.
             
         return website_url
     
-    async def update_contractor_results(self, contractor: Dict[str, Any], analysis: Dict[str, Any], search_results: List[Dict]):
+    async def update_contractor_results(self, contractor: Dict[str, Any], analysis: Dict[str, Any], search_results: List[Dict], website_content: Dict[str, Any] = None):
         """Update contractor with processing results"""
         try:
-            confidence = analysis.get('confidence', 0.0)
+            # Get AI classification confidence
+            ai_confidence = analysis.get('confidence', 0.0)
+            
+            # Get website confidence if available
+            website_confidence = 0.0
+            if website_content and 'website_confidence' in website_content:
+                website_confidence = website_content['website_confidence']
+            
+            # Calculate combined confidence score
+            # If we have a website, weight it 60% website + 40% AI classification
+            # If no website, use 100% AI classification
+            if website_confidence > 0:
+                confidence = (website_confidence * 0.6) + (ai_confidence * 0.4)
+                logger.info(f"📊 Combined Confidence: Website({website_confidence:.2f}) × 0.6 + AI({ai_confidence:.2f}) × 0.4 = {confidence:.2f}")
+            else:
+                confidence = ai_confidence
+                logger.info(f"📊 AI-Only Confidence: {confidence:.2f} (no validated website)")
             
             # Determine processing status
             if confidence >= config.AUTO_APPROVE_THRESHOLD:
@@ -567,14 +583,16 @@ Respond with valid JSON only.
                     processing_status = $1,
                     review_status = $2,
                     confidence_score = $3,
-                    mailer_category = $4,
-                    website_url = $5,
-                    business_description = $6,
-                    services_offered = $7,
-                    service_categories = $8,
-                    last_processed = $9,
-                    is_home_contractor = $10
-                WHERE id = $11
+                    website_confidence = $4,
+                    classification_confidence = $5,
+                    mailer_category = $6,
+                    website_url = $7,
+                    business_description = $8,
+                    services_offered = $9,
+                    service_categories = $10,
+                    last_processed = $11,
+                    is_home_contractor = $12
+                WHERE id = $13
             """
             
             # Prepare service categories array
@@ -594,6 +612,8 @@ Respond with valid JSON only.
                 processing_status,
                 review_status,
                 confidence,
+                website_confidence if website_confidence > 0 else None,
+                ai_confidence,
                 analysis.get('category'),
                 filtered_website,
                 analysis.get('description'),
@@ -829,6 +849,154 @@ Respond with valid JSON only.
         logger.warning(f"❌ No WA location indicators found")
         return False
 
+    def calculate_website_confidence_score(self, crawled_content: Dict[str, Any], contractor: Dict[str, Any]) -> float:
+        """Calculate comprehensive 5-factor confidence score for website matching"""
+        website_text = crawled_content.get('full_text', '').upper()
+        contractor_name = contractor.get('business_name', '').upper()
+        contractor_number = str(contractor.get('uuid', '')).upper()  # Contractor license number
+        contractor_phone = contractor.get('phone_number', '').replace('(', '').replace(')', '').replace('-', '').replace(' ', '')
+        contractor_address = contractor.get('address1', '').upper()
+        
+        confidence_factors = []
+        
+        # Factor 1: Contractor Name Match (0.2 points)
+        name_score = self.score_name_match(website_text, contractor_name)
+        confidence_factors.append(('Name Match', name_score, 0.2))
+        
+        # Factor 2: Contractor Number Match (0.2 points)  
+        number_score = self.score_contractor_number_match(website_text, contractor_number)
+        confidence_factors.append(('License Number Match', number_score, 0.2))
+        
+        # Factor 3: Phone Number Match (0.2 points)
+        phone_score = self.score_phone_match(website_text, contractor_phone)
+        confidence_factors.append(('Phone Match', phone_score, 0.2))
+        
+        # Factor 4: Principal Name Match (0.2 points) - Not available in current data
+        principal_score = 0.0  # TODO: Add when principal name data available
+        confidence_factors.append(('Principal Match', principal_score, 0.2))
+        
+        # Factor 5: Address Match (0.2 points)
+        address_score = self.score_address_match(website_text, contractor_address)
+        confidence_factors.append(('Address Match', address_score, 0.2))
+
+        # Calculate total confidence
+        total_confidence = sum(score * weight for _, score, weight in confidence_factors)
+        
+        # Log confidence breakdown
+        logger.info(f"🎯 Website Confidence Breakdown for {contractor['business_name']}:")
+        for factor_name, score, weight in confidence_factors:
+            contribution = score * weight
+            logger.info(f"   {factor_name}: {score:.1f}/1.0 × {weight} = {contribution:.2f}")
+        logger.info(f"   📊 Total Confidence: {total_confidence:.2f}/1.0")
+        
+        return total_confidence
+    
+    def score_name_match(self, website_text: str, contractor_name: str) -> float:
+        """Score business name match (0.0 to 1.0)"""
+        if not contractor_name:
+            return 0.0
+            
+        # Clean contractor name (remove LLC, INC, etc.)
+        import re
+        clean_name = re.sub(r'\s+(LLC|INC|CORP|CO|LTD|COMPANY)\s*$', '', contractor_name)
+        name_parts = clean_name.split()
+        
+        # Check for exact business name match
+        if clean_name in website_text:
+            return 1.0
+            
+        # Check for partial matches
+        significant_words = [word for word in name_parts if len(word) > 2 and word not in ['THE', 'AND', 'OR', 'OF']]
+        if len(significant_words) == 0:
+            return 0.0
+            
+        matches = sum(1 for word in significant_words if word in website_text)
+        match_ratio = matches / len(significant_words)
+        
+        # High standards for name matching
+        if match_ratio >= 0.8:
+            return 1.0
+        elif match_ratio >= 0.6:
+            return 0.6
+        elif match_ratio >= 0.4:
+            return 0.3
+        else:
+            return 0.0
+    
+    def score_contractor_number_match(self, website_text: str, contractor_number: str) -> float:
+        """Score contractor license number match (0.0 to 1.0)"""
+        if not contractor_number or len(contractor_number) < 6:
+            return 0.0
+            
+        # Look for exact contractor number match
+        if contractor_number in website_text:
+            return 1.0
+            
+        # Look for license number patterns (common formats)
+        import re
+        license_patterns = [
+            contractor_number.replace('*', ''),  # Remove asterisks
+            contractor_number[:8],  # First 8 characters
+            contractor_number[-8:],  # Last 8 characters
+        ]
+        
+        for pattern in license_patterns:
+            if len(pattern) >= 6 and pattern in website_text:
+                return 1.0
+                
+        return 0.0
+    
+    def score_phone_match(self, website_text: str, contractor_phone: str) -> float:
+        """Score phone number match (0.0 to 1.0)"""
+        if not contractor_phone or len(contractor_phone) < 10:
+            return 0.0
+            
+        # Clean phone number
+        clean_phone = ''.join(char for char in contractor_phone if char.isdigit())
+        if len(clean_phone) != 10:
+            return 0.0
+            
+        # Check various phone formats
+        phone_formats = [
+            clean_phone,  # 2065551234
+            f"({clean_phone[:3]}) {clean_phone[3:6]}-{clean_phone[6:]}",  # (206) 555-1234
+            f"{clean_phone[:3]}-{clean_phone[3:6]}-{clean_phone[6:]}",  # 206-555-1234
+            f"{clean_phone[:3]}.{clean_phone[3:6]}.{clean_phone[6:]}",  # 206.555.1234
+            f"{clean_phone[:3]} {clean_phone[3:6]} {clean_phone[6:]}",  # 206 555 1234
+        ]
+        
+        for phone_format in phone_formats:
+            if phone_format in website_text:
+                return 1.0
+                
+        return 0.0
+    
+    def score_address_match(self, website_text: str, contractor_address: str) -> float:
+        """Score address match (0.0 to 1.0)"""
+        if not contractor_address:
+            return 0.0
+            
+        # Extract address components
+        import re
+        
+        # Look for street number
+        street_number_match = re.search(r'^(\d+)', contractor_address.strip())
+        if street_number_match:
+            street_number = street_number_match.group(1)
+            if street_number in website_text:
+                return 1.0
+                
+        # Look for street name (remove numbers and common words)
+        street_parts = contractor_address.split()
+        street_words = [word for word in street_parts if not word.isdigit() and len(word) > 3 and word not in ['ST', 'AVE', 'RD', 'BLVD', 'LN', 'WAY', 'PL', 'CT']]
+        
+        if street_words:
+            matches = sum(1 for word in street_words if word in website_text)
+            if matches > 0:
+                return matches / len(street_words)
+                
+        return 0.0
+
     def validate_website_belongs_to_contractor_extra_strict(self, crawled_content: Dict[str, Any], contractor: Dict[str, Any]) -> bool:
         """EXTRA STRICT validation for domain-guessed results - requires multiple confirmations"""
         website_text = crawled_content.get('full_text', '').upper()
@@ -929,10 +1097,20 @@ Respond with valid JSON only.
                         
                         # Validate that this website actually belongs to the contractor with STRICT validation
                         if crawled_content and self.validate_website_belongs_to_contractor_strict(crawled_content, contractor):
-                            website_content = crawled_content
-                            validated_website_url = filtered_url
-                            logger.info(f"✅ Website validated with STRICT validation: {filtered_url}")
-                            break
+                            # Calculate comprehensive 5-factor confidence score
+                            website_confidence = self.calculate_website_confidence_score(crawled_content, contractor)
+                            
+                            # Only accept websites with confidence >= 0.4 (at least 2 of 5 factors must match)
+                            if website_confidence >= 0.4:
+                                website_content = crawled_content
+                                validated_website_url = filtered_url
+                                # Store the website confidence for later use
+                                website_content['website_confidence'] = website_confidence
+                                logger.info(f"✅ Website accepted with confidence {website_confidence:.2f}: {filtered_url}")
+                                break
+                            else:
+                                logger.warning(f"❌ Website confidence too low ({website_confidence:.2f} < 0.4): {filtered_url}")
+                                logger.info(f"   🔄 Continuing to search remaining {len(search_results) - i} results...")
                         else:
                             logger.warning(f"❌ Website rejected - doesn't match contractor (STRICT): {filtered_url}")
                             logger.info(f"   🔄 Continuing to search remaining {len(search_results) - i} results...")
@@ -984,7 +1162,7 @@ Respond with valid JSON only.
                 # No valid website found
                 analysis['website'] = None
                 
-            await self.update_contractor_results(contractor, analysis, search_results or [])
+            await self.update_contractor_results(contractor, analysis, search_results or [], website_content)
             
         except Exception as e:
             logger.error(f"Error processing contractor {contractor['business_name']}: {e}")
