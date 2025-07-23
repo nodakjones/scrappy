@@ -859,35 +859,44 @@ Respond with valid JSON only.
         
         confidence_factors = []
         
-        # Factor 1: Contractor Name Match (0.2 points)
+        # Factor 1: Contractor Name Match (0.25 points)
         name_score = self.score_name_match(website_text, contractor_name)
-        confidence_factors.append(('Name Match', name_score, 0.2))
+        confidence_factors.append(('Name Match', name_score, 0.25))
         
-        # Factor 2: Contractor Number Match (0.2 points)  
+        # Factor 2: Contractor Number Match (0.25 points)  
         number_score = self.score_contractor_number_match(website_text, contractor_number)
-        confidence_factors.append(('License Number Match', number_score, 0.2))
+        confidence_factors.append(('License Number Match', number_score, 0.25))
         
-        # Factor 3: Phone Number Match (0.2 points)
+        # Factor 3: Phone Number Match (0.25 points)
         phone_score = self.score_phone_match(website_text, contractor_phone)
-        confidence_factors.append(('Phone Match', phone_score, 0.2))
+        confidence_factors.append(('Phone Match', phone_score, 0.25))
         
-        # Factor 4: Principal Name Match (0.2 points) - Not available in current data
+        # Factor 4: Principal Name Match (0.25 points) - Not available in current data
         principal_score = 0.0  # TODO: Add when principal name data available
-        confidence_factors.append(('Principal Match', principal_score, 0.2))
+        confidence_factors.append(('Principal Match', principal_score, 0.25))
         
-        # Factor 5: Address Match (0.2 points)
+        # Factor 5: Address Match (0.25 points)
         address_score = self.score_address_match(website_text, contractor_address)
-        confidence_factors.append(('Address Match', address_score, 0.2))
+        confidence_factors.append(('Address Match', address_score, 0.25))
 
         # Calculate total confidence
         total_confidence = sum(score * weight for _, score, weight in confidence_factors)
         
+        # Cap maximum confidence at 1.0 (even if all 5 factors match = 1.25)
+        total_confidence = min(total_confidence, 1.0)
+        
         # Log confidence breakdown
+        raw_confidence = sum(score * weight for _, score, weight in confidence_factors)
         logger.info(f"🎯 Website Confidence Breakdown for {contractor['business_name']}:")
         for factor_name, score, weight in confidence_factors:
             contribution = score * weight
             logger.info(f"   {factor_name}: {score:.1f}/1.0 × {weight} = {contribution:.2f}")
-        logger.info(f"   📊 Total Confidence: {total_confidence:.2f}/1.0")
+        
+        if raw_confidence > 1.0:
+            logger.info(f"   📊 Raw Total: {raw_confidence:.2f}/1.0 (capped at 1.0)")
+            logger.info(f"   📊 Final Confidence: {total_confidence:.2f}/1.0")
+        else:
+            logger.info(f"   📊 Total Confidence: {total_confidence:.2f}/1.0")
         
         return total_confidence
     
@@ -1100,7 +1109,7 @@ Respond with valid JSON only.
                             # Calculate comprehensive 5-factor confidence score
                             website_confidence = self.calculate_website_confidence_score(crawled_content, contractor)
                             
-                            # Only accept websites with confidence >= 0.4 (at least 2 of 5 factors must match)
+                            # Only accept websites with confidence >= 0.4 (at least 2 of 4 practical factors must match at 0.25 each)
                             if website_confidence >= 0.4:
                                 website_content = crawled_content
                                 validated_website_url = filtered_url
