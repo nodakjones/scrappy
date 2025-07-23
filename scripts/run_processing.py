@@ -1044,16 +1044,15 @@ Respond with valid JSON only.
             if area_code_found:
                 break
         
-        # Check for Washington cities and local references
+        # Check for Washington cities and local references (Puget Sound region focus)
         washington_indicators = [
             'WASHINGTON', 'WA ', ' WA,', ' WA.', 'WASHINGTON STATE',
-            'SEATTLE', 'TACOMA', 'SPOKANE', 'BELLEVUE', 'EVERETT', 'KENT', 'RENTON',
-            'FEDERAL WAY', 'KIRKLAND', 'BELLINGHAM', 'KENNEWICK', 'AUBURN', 'PASCO',
+            'SEATTLE', 'TACOMA', 'BELLEVUE', 'EVERETT', 'KENT', 'RENTON',
+            'FEDERAL WAY', 'KIRKLAND', 'BELLINGHAM', 'KENNEWICK', 'AUBURN',
             'MARYSVILLE', 'LAKEWOOD', 'REDMOND', 'SHORELINE', 'RICHLAND', 'OLYMPIA',
             'LACEY', 'EDMONDS', 'BURIEN', 'BOTHELL', 'LYNNWOOD', 'LONGVIEW',
-            'WALLA WALLA', 'PULLMAN', 'WENATCHEE', 'MOUNT VERNON', 'YAKIMA',
-            'CENTRALIA', 'ANACORTES', 'UNIVERSITY PLACE', 'MUKILTEO', 'TUKWILA',
-            'BREMERTON', 'MOSES LAKE', 'CHEHALIS', 'ELLENSBURG', 'PORT ORCHARD',
+            'WENATCHEE', 'MOUNT VERNON', 'CENTRALIA', 'ANACORTES', 'UNIVERSITY PLACE', 
+            'MUKILTEO', 'TUKWILA', 'BREMERTON', 'CHEHALIS', 'PORT ORCHARD',
             'MAPLE VALLEY', 'OAK HARBOR', 'FERNDALE', 'MOUNTLAKE TERRACE',
             'PUGET SOUND', 'KING COUNTY', 'PIERCE COUNTY', 'SNOHOMISH COUNTY',
             'SERVING SEATTLE', 'SERVING TACOMA', 'SERVING BELLEVUE',

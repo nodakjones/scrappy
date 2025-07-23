@@ -796,7 +796,7 @@ The system uses a comprehensive 5-factor scoring system to validate that discove
 - **Multiple Numbers**: Any valid WA area code found = no penalty
 
 **Local Address Detection:**
-- **Washington Cities**: Seattle, Tacoma, Spokane, Bellevue, Everett, etc. (100+ cities)
+- **Washington Cities**: Seattle, Tacoma, Bellevue, Everett, etc. (Puget Sound region cities only)
 - **State References**: "Washington", "WA", "Washington State"
 - **Service Area**: "Serving Seattle area", "Puget Sound region", etc.
 
