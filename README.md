@@ -207,16 +207,16 @@ EXCLUDED_DOMAINS = [
     'bing.com', 'yahoo.com', 'directories.com'
 ]
 
-# Website Confidence Scoring Algorithm:
-# - Business name exact match in title/URL: +40 points
-# - Business name partial match: +20 points  
-# - City match in content: +15 points
-# - State match in content: +10 points
-# - Phone number match: +25 points (strong indicator)
-# - Domain contains business keywords: +15 points
-# - Contains contractor/service keywords: +5 points
-# - Professional website indicators: +5 points
-# Maximum score: 100 points (converted to 0.0-1.0 scale)
+# 5-Factor Website Confidence Scoring System:
+# Each factor contributes 0.25 points (25% weight) with 1.0 maximum cap
+# - Factor 1 - Business Name Match: 0.25 points (exact/partial name matching)
+# - Factor 2 - License Number Match: 0.25 points (contractor license number on site)
+# - Factor 3 - Phone Number Match: 0.25 points (phone number in multiple formats)
+# - Factor 4 - Principal Name Match: 0.25 points (business owner name - rarely found)
+# - Factor 5 - Address Match: 0.25 points (street number/name matching)
+# 
+# Minimum Threshold: 0.4 (requires 2+ factors to match for website acceptance)
+# Maximum Score: 1.0 (even if all 5 factors match = 1.25, capped at 1.0)
 ```
 
 ### Resource Management for Virtual Server
@@ -748,6 +748,120 @@ No additional information needed - the system is fully specified!
 - **Confidence Score Calculation**: 50% website confidence + 50% classification confidence
 - **Review Thresholds**: ≥0.80 (auto-approve), 0.60-0.79 (review), <0.60 (required review)
 - **Quality Metrics**: data completeness, consistency, business legitimacy indicators
+
+## Phase 2.5: Website Confidence Scoring System
+
+### 5-Factor Validation Framework
+
+The system uses a comprehensive 5-factor scoring system to validate that discovered websites actually belong to the correct contractor. This prevents false matches like pottery websites being matched to painting contractors.
+
+#### **Factor Breakdown (0.25 points each, 1.0 maximum)**
+
+**Factor 1: Business Name Match (0.25 points)**
+- **Exact Match**: Full business name found on website = 1.0 score
+- **Partial Match**: 80%+ significant words match = 1.0, 60%+ = 0.6, 40%+ = 0.3
+- **Exclusions**: Generic words like "THE", "AND", "OR", "OF" ignored
+- **Cleaning**: Removes LLC, INC, CORP suffixes for better matching
+
+**Factor 2: License Number Match (0.25 points)**  
+- **Exact Match**: Contractor license number found anywhere on website = 1.0 score
+- **Pattern Matching**: Handles various formats (with/without asterisks, partial numbers)
+- **Minimum Length**: Requires 6+ character license numbers for validation
+- **High Confidence**: This is the strongest validation factor when present
+
+**Factor 3: Phone Number Match (0.25 points)**
+- **Format Flexibility**: Matches (206) 555-1234, 206-555-1234, 206.555.1234, 2065551234, etc.
+- **Area Code Validation**: Prioritizes Washington area codes (206, 253, 360, 425, 509)
+- **Exact Match Only**: Requires complete 10-digit phone number match = 1.0 score
+- **No Partial Credit**: Either matches completely or gets 0.0
+
+**Factor 4: Principal Name Match (0.25 points)**
+- **Rarely Available**: Business owner names seldom appear on contractor websites
+- **Currently 0.0**: Not implemented until principal data becomes available
+- **Future Enhancement**: Will search for owner names in "About Us" sections
+
+**Factor 5: Address Match (0.25 points)**
+- **Street Number Priority**: Exact street number match = 1.0 score
+- **Street Name Matching**: Significant words from address (3+ chars, excluding ST/AVE/RD)
+- **Partial Credit**: Proportional to number of address components found
+- **Urban Focus**: Most effective for contractors with physical storefronts
+
+#### **Scoring Examples**
+
+**Example 1: Best Plumbing (Perfect Match)**
+```
+Contractor: BEST PLUMBING, License: BESTPGL973CD, Phone: (206) 123-4567, Address: 123 Main St
+Website Content: "BEST PLUMBING - License #BESTPGL973CD - Call (206) 123-4567 - 123 Main St, Seattle"
+
+Factor 1 - Business Name: "BEST PLUMBING" exact match = 1.0 × 0.25 = 0.25
+Factor 2 - License Number: "BESTPGL973CD" exact match = 1.0 × 0.25 = 0.25  
+Factor 3 - Phone Match: "(206) 123-4567" exact match = 1.0 × 0.25 = 0.25
+Factor 4 - Principal Name: Not available = 0.0 × 0.25 = 0.00
+Factor 5 - Address Match: "123 Main St" exact match = 1.0 × 0.25 = 0.25
+
+Total Confidence: 1.00/1.0 ✅ ACCEPTED (Above 0.4 threshold)
+```
+
+**Example 2: Partial Match (Borderline)**
+```
+Contractor: SEATTLE ROOFING LLC, License: SEATRF456B, Phone: (206) 987-6543, Address: 456 Oak Ave
+Website Content: "Seattle Roofing - Professional roofing services - Different phone/address"
+
+Factor 1 - Business Name: "SEATTLE ROOFING" match = 1.0 × 0.25 = 0.25
+Factor 2 - License Number: Not found = 0.0 × 0.25 = 0.00
+Factor 3 - Phone Match: Different number = 0.0 × 0.25 = 0.00  
+Factor 4 - Principal Name: Not available = 0.0 × 0.25 = 0.00
+Factor 5 - Address Match: No match = 0.0 × 0.25 = 0.00
+
+Total Confidence: 0.25/1.0 ❌ REJECTED (Below 0.4 threshold)
+```
+
+**Example 3: Strong Match (License + Phone)**
+```  
+Contractor: PREMIER PLUMBING, License: PREMPL789X, Phone: (425) 555-0199, Address: 789 Pine St
+Website Content: "Premier Plumbing Services - WA License PREMPL789X - Call 425-555-0199"
+
+Factor 1 - Business Name: "PREMIER PLUMBING" match = 1.0 × 0.25 = 0.25
+Factor 2 - License Number: "PREMPL789X" exact match = 1.0 × 0.25 = 0.25
+Factor 3 - Phone Match: "425-555-0199" format match = 1.0 × 0.25 = 0.25
+Factor 4 - Principal Name: Not available = 0.0 × 0.25 = 0.00  
+Factor 5 - Address Match: No street number found = 0.0 × 0.25 = 0.00
+
+Total Confidence: 0.75/1.0 ✅ ACCEPTED (Above 0.4 threshold)
+```
+
+**Example 4: Hypothetical Perfect Score (Capped at 1.0)**
+```
+All 5 factors match perfectly = 5 × 0.25 = 1.25
+Raw Total: 1.25/1.0 (would exceed maximum)
+Final Confidence: 1.00/1.0 ✅ ACCEPTED (Capped at 1.0)
+```
+
+#### **Decision Thresholds**
+
+- **≥ 0.4 Confidence**: Website accepted, proceed to AI analysis
+- **< 0.4 Confidence**: Website rejected, continue searching other results
+- **0.0 Confidence**: No matches found, likely wrong business entirely
+
+#### **Validation Logic Flow**
+
+1. **Google Search**: Find potential contractor websites (10 results max)
+2. **Website Filtering**: Remove directories, social media, listings  
+3. **Content Crawling**: Extract full website text content
+4. **5-Factor Scoring**: Calculate confidence for each website candidate
+5. **Threshold Check**: Accept first website with ≥ 0.4 confidence
+6. **Continue Search**: If all websites < 0.4, try free enrichment methods
+7. **Final Decision**: If no websites meet threshold, skip AI analysis
+
+#### **Anti-Fraud Protection**
+
+- **Strict Validation**: Prevents wrong business matches (pottery → painting contractor)
+- **Multi-Factor Requirement**: Minimum 2 factors must align for acceptance
+- **License Verification**: Contractor license numbers provide strongest validation
+- **Washington Focus**: Prioritizes WA area codes and local business patterns
+- **Directory Filtering**: Excludes Yelp, HomeAdvisor, social media results
+
+This scoring system ensures high-quality website matches while preventing the data corruption issues identified in initial testing.
 
 ## Phase 3: Manual Review System
 
