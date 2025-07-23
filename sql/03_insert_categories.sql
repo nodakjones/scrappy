@@ -22,85 +22,82 @@ INSERT INTO mailer_categories (category_name, priority, afb_name, category, keyw
  ARRAY['Roof replacement', 'Roof repair', 'Gutter installation', 'Siding repair'],
  4),
 
-('General Contractor', TRUE, 'General Construction', 'Home Services',
- ARRAY['general contractor', 'construction', 'remodeling', 'renovation', 'building'],
- ARRAY['Home remodeling', 'Room additions', 'Kitchen renovation', 'Bathroom remodel'],
- 5),
+
 
 ('Handyman', TRUE, 'Handyman Services', 'Home Services',
  ARRAY['handyman', 'repair', 'maintenance', 'odd jobs', 'fix', 'installation'],
  ARRAY['General repairs', 'Home maintenance', 'Fixture installation', 'Odd jobs'],
- 6),
+ 5),
 
 ('Flooring', TRUE, 'Flooring Installation', 'Home Services',
  ARRAY['flooring', 'hardwood', 'carpet', 'tile', 'laminate', 'vinyl', 'floor installation'],
  ARRAY['Hardwood installation', 'Carpet installation', 'Tile work', 'Floor refinishing'],
- 7),
+ 6),
 
 ('Painting', TRUE, 'Painting Services', 'Home Services',
  ARRAY['painter', 'painting', 'interior painting', 'exterior painting', 'drywall'],
  ARRAY['Interior painting', 'Exterior painting', 'Drywall repair', 'Wallpaper removal'],
- 8),
+ 7),
 
 ('Landscaping', TRUE, 'Landscaping Services', 'Home Services',
  ARRAY['landscaping', 'lawn care', 'tree service', 'gardening', 'irrigation', 'landscape design'],
  ARRAY['Lawn maintenance', 'Tree removal', 'Landscape design', 'Irrigation systems'],
- 9),
+ 8),
 
 ('Windows & Doors', TRUE, 'Window & Door Installation', 'Home Services',
  ARRAY['windows', 'doors', 'window installation', 'door replacement', 'glass'],
  ARRAY['Window replacement', 'Door installation', 'Glass repair', 'Screen repair'],
- 10),
+ 9),
 
 ('Concrete', FALSE, 'Concrete Services', 'Home Services',
  ARRAY['concrete', 'driveway', 'patio', 'sidewalk', 'foundation', 'cement'],
  ARRAY['Driveway installation', 'Patio construction', 'Concrete repair', 'Foundation work'],
- 11),
+ 10),
 
 ('Fencing', FALSE, 'Fencing Contractors', 'Home Services',
  ARRAY['fence', 'fencing', 'gate', 'privacy fence', 'chain link'],
  ARRAY['Fence installation', 'Gate repair', 'Privacy fencing', 'Fence repair'],
- 12),
+ 11),
 
 ('Kitchen & Bath', TRUE, 'Kitchen & Bathroom Remodeling', 'Home Services',
  ARRAY['kitchen', 'bathroom', 'cabinets', 'countertops', 'vanity', 'backsplash'],
  ARRAY['Kitchen remodel', 'Bathroom renovation', 'Cabinet installation', 'Countertop installation'],
- 13),
+ 12),
 
 ('Insulation', FALSE, 'Insulation Services', 'Home Services',
  ARRAY['insulation', 'attic insulation', 'weatherization', 'energy efficiency'],
  ARRAY['Attic insulation', 'Wall insulation', 'Weatherproofing', 'Energy audits'],
- 14),
+ 13),
 
 ('Security Systems', FALSE, 'Security Services', 'Home Services',
  ARRAY['security', 'alarm', 'camera', 'monitoring', 'access control'],
  ARRAY['Security system installation', 'Camera systems', 'Alarm monitoring'],
- 15),
+ 14),
 
 ('Pool & Spa', FALSE, 'Pool Services', 'Home Services',
  ARRAY['pool', 'spa', 'hot tub', 'pool maintenance', 'pool repair'],
  ARRAY['Pool cleaning', 'Pool repair', 'Hot tub service', 'Pool equipment'],
- 16),
+ 15),
 
 ('Garage Doors', FALSE, 'Garage Door Services', 'Home Services',
  ARRAY['garage door', 'opener', 'garage door repair', 'overhead door'],
  ARRAY['Garage door installation', 'Opener repair', 'Door maintenance'],
- 17),
+ 16),
 
 ('Septic Systems', FALSE, 'Septic Services', 'Home Services',
  ARRAY['septic', 'septic tank', 'drain field', 'septic pumping'],
  ARRAY['Septic pumping', 'Septic repair', 'Drain field installation'],
- 18),
+ 17),
 
 ('Solar', FALSE, 'Solar Installation', 'Home Services',
  ARRAY['solar', 'solar panels', 'renewable energy', 'solar installation'],
  ARRAY['Solar panel installation', 'Solar system design', 'Solar maintenance'],
- 19),
+ 18),
 
 ('Demolition', FALSE, 'Demolition Services', 'Construction',
  ARRAY['demolition', 'removal', 'tear down', 'debris removal'],
  ARRAY['Structure demolition', 'Debris removal', 'Site clearing'],
- 20);
+ 19);
 
 -- Insert some commercial/non-home contractor categories for filtering
 INSERT INTO mailer_categories (category_name, priority, afb_name, category, keywords, typical_services, sort_order) VALUES

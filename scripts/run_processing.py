@@ -214,6 +214,52 @@ Respond with valid JSON only.
         
         # Rate limiting
         await asyncio.sleep(config.LLM_DELAY)
+
+    def filter_website_url(self, website_url: Optional[str]) -> Optional[str]:
+        """Filter out directory and listing websites, return None if it's a directory site"""
+        if not website_url:
+            return None
+        
+        # Convert to lowercase for case-insensitive matching
+        url_lower = website_url.lower()
+        
+        # Directory and listing sites to filter out
+        directory_sites = [
+            'yelp.com',
+            'bbb.org',
+            'better business bureau',
+            'angieslist.com',
+            'angi.com',
+            'homeadvisor.com',
+            'thumbtack.com',
+            'porch.com',
+            'yellowpages.com',
+            'superpages.com',
+            'manta.com',
+            'foursquare.com',
+            'facebook.com',
+            'linkedin.com',
+            'indeed.com',
+            'glassdoor.com',
+            'google.com/maps',
+            'maps.google.com',
+            'google.com/search',
+            'directory',
+            'listings',
+            'find_desc=',  # Google search URLs
+            'find_loc=',   # Google search URLs
+        ]
+        
+        # Check if URL contains any directory site patterns
+        for directory_pattern in directory_sites:
+            if directory_pattern in url_lower:
+                return None
+        
+        # Additional checks for search result URLs
+        if any(pattern in url_lower for pattern in ['search?', 'results?', 'find?']):
+            return None
+            
+        return website_url
     
     async def update_contractor_results(self, contractor: Dict[str, Any], analysis: Dict[str, Any], search_results: List[Dict]):
         """Update contractor with processing results"""
@@ -261,13 +307,17 @@ Respond with valid JSON only.
             if analysis.get('subcategory'):
                 service_categories.append(analysis.get('subcategory'))
             
+            # Filter website URL to exclude directories and listings
+            raw_website = analysis.get('website')
+            filtered_website = self.filter_website_url(raw_website)
+            
             await self.db_pool.execute(
                 update_query,
                 processing_status,
                 review_status,
                 confidence,
                 analysis.get('category'),
-                analysis.get('website'),
+                filtered_website,
                 analysis.get('description'),
                 analysis.get('services', []),
                 service_categories,
