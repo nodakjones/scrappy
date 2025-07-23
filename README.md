@@ -786,9 +786,28 @@ The system uses a comprehensive 5-factor scoring system to validate that discove
 - **Partial Credit**: Proportional to number of address components found
 - **Urban Focus**: Most effective for contractors with physical storefronts
 
+#### **Geographical Validation Penalty (-0.20 points)**
+
+**CRITICAL ANTI-FRAUD PROTECTION**: If no Washington area code OR local address is found on the website, subtract 0.20 points from total confidence. This prevents accepting contractors with similar names from different states/regions.
+
+**Washington Area Code Detection:**
+- **Valid Codes**: 206, 253, 360, 425, 509 (Washington state area codes)
+- **Format Flexibility**: (206) 555-1234, 206-555-1234, 206.555.1234, etc.
+- **Multiple Numbers**: Any valid WA area code found = no penalty
+
+**Local Address Detection:**
+- **Washington Cities**: Seattle, Tacoma, Spokane, Bellevue, Everett, etc. (100+ cities)
+- **State References**: "Washington", "WA", "Washington State"
+- **Service Area**: "Serving Seattle area", "Puget Sound region", etc.
+
+**Penalty Application:**
+- **No WA area codes found** AND **no local addresses found** = -0.20 penalty
+- **Any WA area code found** OR **any local address found** = no penalty
+- **Multiple violations don't stack** = maximum penalty is -0.20
+
 #### **Scoring Examples**
 
-**Example 1: Best Plumbing (Perfect Match)**
+**Example 1: Best Plumbing (Perfect Match - Local)**
 ```
 Contractor: BEST PLUMBING, License: BESTPGL973CD, Phone: (206) 123-4567, Address: 123 Main St
 Website Content: "BEST PLUMBING - License #BESTPGL973CD - Call (206) 123-4567 - 123 Main St, Seattle"
@@ -798,41 +817,59 @@ Factor 2 - License Number: "BESTPGL973CD" exact match = 1.0 × 0.25 = 0.25
 Factor 3 - Phone Match: "(206) 123-4567" exact match = 1.0 × 0.25 = 0.25
 Factor 4 - Principal Name: Not available = 0.0 × 0.25 = 0.00
 Factor 5 - Address Match: "123 Main St" exact match = 1.0 × 0.25 = 0.25
+Geographical Penalty: WA area code (206) + Seattle found = 0.00
 
 Total Confidence: 1.00/1.0 ✅ ACCEPTED (Above 0.4 threshold)
 ```
 
-**Example 2: Partial Match (Borderline)**
+**Example 2: Name Match but Out-of-State (FRAUD PREVENTION)**
 ```
 Contractor: SEATTLE ROOFING LLC, License: SEATRF456B, Phone: (206) 987-6543, Address: 456 Oak Ave
-Website Content: "Seattle Roofing - Professional roofing services - Different phone/address"
+Website Content: "Seattle Roofing - Professional roofing services in Texas - Call (713) 555-1234"
 
 Factor 1 - Business Name: "SEATTLE ROOFING" match = 1.0 × 0.25 = 0.25
 Factor 2 - License Number: Not found = 0.0 × 0.25 = 0.00
 Factor 3 - Phone Match: Different number = 0.0 × 0.25 = 0.00  
 Factor 4 - Principal Name: Not available = 0.0 × 0.25 = 0.00
 Factor 5 - Address Match: No match = 0.0 × 0.25 = 0.00
+Geographical Penalty: No WA area codes + Texas location = -0.20
 
-Total Confidence: 0.25/1.0 ❌ REJECTED (Below 0.4 threshold)
+Total Confidence: 0.05/1.0 ❌ REJECTED (Well below 0.4 threshold)
 ```
 
-**Example 3: Strong Match (License + Phone)**
+**Example 3: Name + License Match (Passes Despite Geographic Penalty)**
 ```  
 Contractor: PREMIER PLUMBING, License: PREMPL789X, Phone: (425) 555-0199, Address: 789 Pine St
-Website Content: "Premier Plumbing Services - WA License PREMPL789X - Call 425-555-0199"
+Website Content: "Premier Plumbing Services - WA License PREMPL789X - Serving Oregon customers"
 
 Factor 1 - Business Name: "PREMIER PLUMBING" match = 1.0 × 0.25 = 0.25
 Factor 2 - License Number: "PREMPL789X" exact match = 1.0 × 0.25 = 0.25
-Factor 3 - Phone Match: "425-555-0199" format match = 1.0 × 0.25 = 0.25
+Factor 3 - Phone Match: Different phone = 0.0 × 0.25 = 0.00
 Factor 4 - Principal Name: Not available = 0.0 × 0.25 = 0.00  
 Factor 5 - Address Match: No street number found = 0.0 × 0.25 = 0.00
+Geographical Penalty: "WA License" found (local reference) = 0.00
 
-Total Confidence: 0.75/1.0 ✅ ACCEPTED (Above 0.4 threshold)
+Total Confidence: 0.50/1.0 ✅ ACCEPTED (Above 0.4 threshold)
 ```
 
-**Example 4: Hypothetical Perfect Score (Capped at 1.0)**
+**Example 4: Borderline Case (Name + License - Geographic Penalty)**
 ```
-All 5 factors match perfectly = 5 × 0.25 = 1.25
+Contractor: NORTHWEST HEATING, License: NWHEAT123A, Phone: (253) 555-7890, Address: 555 Cedar Dr
+Website Content: "Northwest Heating - License NWHEAT123A - Serving Idaho and Montana"
+
+Factor 1 - Business Name: "NORTHWEST HEATING" match = 1.0 × 0.25 = 0.25
+Factor 2 - License Number: "NWHEAT123A" exact match = 1.0 × 0.25 = 0.25
+Factor 3 - Phone Match: Different phone = 0.0 × 0.25 = 0.00
+Factor 4 - Principal Name: Not available = 0.0 × 0.25 = 0.00
+Factor 5 - Address Match: No match = 0.0 × 0.25 = 0.00
+Geographical Penalty: No WA area codes + Idaho/Montana only = -0.20
+
+Total Confidence: 0.30/1.0 ❌ REJECTED (Below 0.4 threshold)
+```
+
+**Example 5: Perfect Score with Geographic Validation (Capped at 1.0)**
+```
+All 5 factors match + WA area code found = (5 × 0.25) + 0.00 = 1.25
 Raw Total: 1.25/1.0 (would exceed maximum)
 Final Confidence: 1.00/1.0 ✅ ACCEPTED (Capped at 1.0)
 ```
@@ -840,18 +877,177 @@ Final Confidence: 1.00/1.0 ✅ ACCEPTED (Capped at 1.0)
 #### **Decision Thresholds**
 
 - **≥ 0.4 Confidence**: Website accepted, proceed to AI analysis
-- **< 0.4 Confidence**: Website rejected, continue searching other results
-- **0.0 Confidence**: No matches found, likely wrong business entirely
+- **< 0.4 Confidence**: Website rejected, continue searching other results  
+- **≤ 0.1 Confidence**: Likely wrong business entirely (name match but out-of-state)
+- **0.0 Confidence**: No matches found
 
-#### **Validation Logic Flow**
+**Geographic Penalty Impact on Common Scenarios:**
+- **Name Only Match**: 0.25 - 0.20 = 0.05 ❌ (Prevents out-of-state false matches)
+- **Name + License**: 0.50 - 0.20 = 0.30 ❌ (Still requires local presence)  
+- **Name + License + Phone**: 0.75 - 0.00 = 0.75 ✅ (Phone provides WA area code)
+- **Name + License + Local Address**: 0.50 - 0.00 = 0.50 ✅ (Address confirms locality)
 
-1. **Google Search**: Find potential contractor websites (10 results max)
-2. **Website Filtering**: Remove directories, social media, listings  
-3. **Content Crawling**: Extract full website text content
-4. **5-Factor Scoring**: Calculate confidence for each website candidate
-5. **Threshold Check**: Accept first website with ≥ 0.4 confidence
-6. **Continue Search**: If all websites < 0.4, try free enrichment methods
-7. **Final Decision**: If no websites meet threshold, skip AI analysis
+#### **Detailed 7-Step Implementation Flow**
+
+**Step 1: Google Custom Search API Query**
+```python
+# Build search query with contractor information
+query = f'"{contractor.business_name}" {contractor.city} {contractor.state} contractor'
+params = {
+    'key': GOOGLE_API_KEY,
+    'cx': SEARCH_ENGINE_ID, 
+    'q': query,
+    'num': 10  # Maximum 10 results per query
+}
+search_results = google_custom_search_api.get(params)
+```
+
+**Step 2: Directory & Listing Website Filtering**
+```python
+EXCLUDED_DOMAINS = [
+    'yelp.com', 'bbb.org', 'angieslist.com', 'angi.com', 'homeadvisor.com',
+    'thumbtack.com', 'yellowpages.com', 'facebook.com', 'linkedin.com',
+    'google.com/maps', 'zillow.com', 'buildzoom.com'
+]
+
+filtered_results = []
+for result in search_results:
+    url = result.get('link', '')
+    if not any(excluded in url.lower() for excluded in EXCLUDED_DOMAINS):
+        if not any(pattern in url.lower() for pattern in ['search?', 'results?', 'find?']):
+            filtered_results.append(result)
+```
+
+**Step 3: Website Content Crawling**
+```python
+for result in filtered_results:
+    url = result.get('link')
+    try:
+        response = await aiohttp_session.get(url, timeout=30)
+        if response.status == 200:
+            html_content = await response.text()
+            
+            # Extract meaningful content using BeautifulSoup
+            soup = BeautifulSoup(html_content, 'html.parser')
+            # Remove script, style, nav, footer elements
+            for tag in soup(["script", "style", "nav", "footer", "header"]):
+                tag.decompose()
+            
+            website_content = {
+                'title': soup.title.string if soup.title else '',
+                'full_text': soup.get_text().upper(),
+                'meta_description': soup.find('meta', {'name': 'description'})
+            }
+    except Exception as e:
+        continue  # Skip failed crawls, try next result
+```
+
+**Step 4: 5-Factor + Geographic Confidence Scoring**
+```python
+def calculate_confidence_score(website_content, contractor):
+    website_text = website_content.get('full_text', '').upper()
+    
+    # Factor 1: Business Name Match (0.25 points)
+    name_score = score_name_match(website_text, contractor.business_name)
+    
+    # Factor 2: License Number Match (0.25 points)
+    license_score = score_license_match(website_text, contractor.license_number)
+    
+    # Factor 3: Phone Number Match (0.25 points)  
+    phone_score = score_phone_match(website_text, contractor.phone_number)
+    
+    # Factor 4: Principal Name Match (0.25 points) - Currently 0.0
+    principal_score = 0.0
+    
+    # Factor 5: Address Match (0.25 points)
+    address_score = score_address_match(website_text, contractor.address)
+    
+    # Calculate base confidence
+    base_confidence = (name_score + license_score + phone_score + 
+                      principal_score + address_score) * 0.25
+    
+    # Apply geographical penalty if needed
+    geographic_penalty = calculate_geographic_penalty(website_text)
+    
+    final_confidence = min(base_confidence + geographic_penalty, 1.0)
+    return final_confidence
+```
+
+**Step 5: Confidence Threshold Validation**
+```python
+for website_result in filtered_results:
+    crawled_content = crawl_website(website_result['link'])
+    if crawled_content:
+        confidence = calculate_confidence_score(crawled_content, contractor)
+        
+        if confidence >= 0.4:  # Minimum threshold met
+            logger.info(f"✅ Website accepted: {website_result['link']} (confidence: {confidence:.2f})")
+            validated_website = {
+                'url': website_result['link'],
+                'content': crawled_content,
+                'confidence': confidence
+            }
+            break  # Stop searching, use first valid website
+        else:
+            logger.info(f"❌ Website rejected: {website_result['link']} (confidence: {confidence:.2f})")
+            continue  # Try next website
+```
+
+**Step 6: Free Enrichment Fallback (If No Valid Websites Found)**
+```python
+if not validated_website:
+    logger.info("🔄 No valid websites found via Google Search, trying free enrichment...")
+    
+    # Try Clearbit API (free tier)
+    clearbit_domain = await try_clearbit_enrichment(contractor.business_name)
+    if clearbit_domain:
+        clearbit_url = f"https://{clearbit_domain}"
+        crawled_content = crawl_website(clearbit_url)
+        if crawled_content:
+            # Use EXTRA STRICT validation for domain-guessed results
+            confidence = calculate_confidence_score(crawled_content, contractor)
+            if confidence >= 0.6:  # Higher threshold for guessed domains
+                validated_website = {'url': clearbit_url, 'content': crawled_content}
+    
+    # Try domain name guessing as last resort
+    if not validated_website:
+        guessed_domains = generate_domain_guesses(contractor.business_name)
+        for domain in guessed_domains:
+            # Similar validation process with even stricter requirements
+```
+
+**Step 7: AI Analysis Decision**
+```python
+if validated_website:
+    logger.info("✅ Validated website found - proceeding with AI analysis")
+    ai_analysis = await analyze_with_openai_gpt4_mini(
+        contractor_data=contractor,
+        website_content=validated_website['content'],
+        search_results=search_results
+    )
+    
+    # Combine website confidence (60%) + AI classification confidence (40%)
+    final_confidence = (validated_website['confidence'] * 0.6) + (ai_analysis['confidence'] * 0.4)
+    
+    await update_contractor_database(contractor.id, {
+        'website_url': validated_website['url'],
+        'website_confidence': validated_website['confidence'],
+        'classification_confidence': ai_analysis['confidence'],
+        'confidence_score': final_confidence,
+        'processing_status': 'completed' if final_confidence >= 0.8 else 'manual_review'
+    })
+else:
+    logger.info("❌ No validated website found - skipping AI analysis")
+    await update_contractor_database(contractor.id, {
+        'website_url': None,
+        'confidence_score': 0.0,
+        'processing_status': 'completed',
+        'category': 'No Website',
+        'skipped_reason': 'No validated website found'
+    })
+```
+
+This 7-step process ensures thorough validation while preventing false matches and maintaining high data quality standards.
 
 #### **Anti-Fraud Protection**
 

@@ -879,21 +879,32 @@ Respond with valid JSON only.
         address_score = self.score_address_match(website_text, contractor_address)
         confidence_factors.append(('Address Match', address_score, 0.25))
 
-        # Calculate total confidence
-        total_confidence = sum(score * weight for _, score, weight in confidence_factors)
+        # Calculate base confidence from 5 factors
+        base_confidence = sum(score * weight for _, score, weight in confidence_factors)
         
-        # Cap maximum confidence at 1.0 (even if all 5 factors match = 1.25)
+        # Apply geographical validation penalty
+        geographic_penalty = self.calculate_geographic_penalty(website_text, contractor)
+        confidence_factors.append(('Geographic Validation', geographic_penalty, 1.0))
+        
+        # Calculate total confidence and cap at 1.0
+        total_confidence = base_confidence + geographic_penalty
         total_confidence = min(total_confidence, 1.0)
         
         # Log confidence breakdown
-        raw_confidence = sum(score * weight for _, score, weight in confidence_factors)
         logger.info(f"🎯 Website Confidence Breakdown for {contractor['business_name']}:")
         for factor_name, score, weight in confidence_factors:
-            contribution = score * weight
-            logger.info(f"   {factor_name}: {score:.1f}/1.0 × {weight} = {contribution:.2f}")
+            if factor_name == 'Geographic Validation':
+                if score < 0:
+                    logger.info(f"   {factor_name}: PENALTY {score:.2f} (no WA area code or local address found)")
+                else:
+                    logger.info(f"   {factor_name}: PASS {score:.2f} (WA area code or local address found)")
+            else:
+                contribution = score * weight
+                logger.info(f"   {factor_name}: {score:.1f}/1.0 × {weight} = {contribution:.2f}")
         
-        if raw_confidence > 1.0:
-            logger.info(f"   📊 Raw Total: {raw_confidence:.2f}/1.0 (capped at 1.0)")
+        raw_total = base_confidence + geographic_penalty
+        if raw_total > 1.0:
+            logger.info(f"   📊 Raw Total: {raw_total:.2f}/1.0 (capped at 1.0)")
             logger.info(f"   📊 Final Confidence: {total_confidence:.2f}/1.0")
         else:
             logger.info(f"   📊 Total Confidence: {total_confidence:.2f}/1.0")
@@ -1005,6 +1016,62 @@ Respond with valid JSON only.
                 return matches / len(street_words)
                 
         return 0.0
+    
+    def calculate_geographic_penalty(self, website_text: str, contractor: Dict[str, Any]) -> float:
+        """Calculate geographical validation penalty (-0.20 if no local indicators found)"""
+        
+        # Washington area codes (all valid WA area codes)
+        wa_area_codes = ['206', '253', '360', '425', '509']
+        
+        # Check for Washington area codes in various formats
+        import re
+        area_code_found = False
+        for area_code in wa_area_codes:
+            # Check multiple phone number formats
+            patterns = [
+                f'\\({area_code}\\)',      # (206)
+                f'{area_code}-',           # 206-
+                f'{area_code}\\.', 	       # 206.
+                f' {area_code} ',          # space 206 space
+                f'{area_code}\\d{{7}}',    # 2065551234 (10-digit)
+            ]
+            
+            for pattern in patterns:
+                if re.search(pattern, website_text):
+                    area_code_found = True
+                    break
+            
+            if area_code_found:
+                break
+        
+        # Check for Washington cities and local references
+        washington_indicators = [
+            'WASHINGTON', 'WA ', ' WA,', ' WA.', 'WASHINGTON STATE',
+            'SEATTLE', 'TACOMA', 'SPOKANE', 'BELLEVUE', 'EVERETT', 'KENT', 'RENTON',
+            'FEDERAL WAY', 'KIRKLAND', 'BELLINGHAM', 'KENNEWICK', 'AUBURN', 'PASCO',
+            'MARYSVILLE', 'LAKEWOOD', 'REDMOND', 'SHORELINE', 'RICHLAND', 'OLYMPIA',
+            'LACEY', 'EDMONDS', 'BURIEN', 'BOTHELL', 'LYNNWOOD', 'LONGVIEW',
+            'WALLA WALLA', 'PULLMAN', 'WENATCHEE', 'MOUNT VERNON', 'YAKIMA',
+            'CENTRALIA', 'ANACORTES', 'UNIVERSITY PLACE', 'MUKILTEO', 'TUKWILA',
+            'BREMERTON', 'MOSES LAKE', 'CHEHALIS', 'ELLENSBURG', 'PORT ORCHARD',
+            'MAPLE VALLEY', 'OAK HARBOR', 'FERNDALE', 'MOUNTLAKE TERRACE',
+            'PUGET SOUND', 'KING COUNTY', 'PIERCE COUNTY', 'SNOHOMISH COUNTY',
+            'SERVING SEATTLE', 'SERVING TACOMA', 'SERVING BELLEVUE',
+            'SEATTLE AREA', 'TACOMA AREA', 'GREATER SEATTLE',
+            'PACIFIC NORTHWEST', 'PNW ', 'NORTHWESTERN', 'WA LICENSE'
+        ]
+        
+        local_reference_found = False
+        for indicator in washington_indicators:
+            if indicator in website_text:
+                local_reference_found = True
+                break
+        
+        # Apply penalty if NEITHER area codes NOR local references found
+        if not area_code_found and not local_reference_found:
+            return -0.20  # Geographic penalty
+        else:
+            return 0.0   # No penalty
 
     def validate_website_belongs_to_contractor_extra_strict(self, crawled_content: Dict[str, Any], contractor: Dict[str, Any]) -> bool:
         """EXTRA STRICT validation for domain-guessed results - requires multiple confirmations"""
