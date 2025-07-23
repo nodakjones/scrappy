@@ -156,7 +156,7 @@ Search Results:
 {json.dumps(context['search_results'], indent=2)}
 
 Please provide a JSON response with:
-1. "category" - primary business category (Plumbing, HVAC, Electrical, Roofing, Construction, etc.)
+1. "category" - primary business category - USE SPECIFIC CATEGORIES ONLY: Plumbing, HVAC, Electrical, Roofing, Handyman, Flooring, Painting, Landscaping, Windows & Doors, Concrete, Fencing, Kitchen & Bath, etc. AVOID generic terms like "Construction"
 2. "subcategory" - specific service type
 3. "confidence" - confidence score 0-1 (1 = very confident)
 4. "website" - business website if found
@@ -164,6 +164,17 @@ Please provide a JSON response with:
 6. "services" - array of main services offered
 7. "verified" - true if search results confirm this is a real business
 8. "is_residential" - true if this contractor primarily serves residential customers (homeowners), false if primarily commercial/industrial
+
+IMPORTANT: For "category", be SPECIFIC:
+- Use "Handyman" for general repair services
+- Use "Roofing" for roofing contractors
+- Use "Plumbing" for plumbing services
+- Use "Electrical" for electrical work
+- Use "HVAC" for heating/cooling
+- Use "Painting" for painting services
+- Use "Flooring" for flooring installation
+- Use "Landscaping" for outdoor work
+- DO NOT use generic "Construction" - be more specific
 
 IMPORTANT: For "is_residential", consider:
 - Residential contractors: Home repairs, residential HVAC, house painting, roofing for homes, handyman services, lawn care, pool maintenance, etc.
@@ -244,6 +255,12 @@ Respond with valid JSON only.
             'google.com/maps',
             'maps.google.com',
             'google.com/search',
+            'zillow.com',        # Real estate listings
+            'buildzoom.com',     # Contractor directory
+            'mapquest.com',      # Map/directory service
+            'bloomberg.com',     # Business directory
+            'instagram.com',     # Social media
+            'twitter.com',       # Social media
             'directory',
             'listings',
             'find_desc=',  # Google search URLs
