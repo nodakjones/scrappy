@@ -11,6 +11,7 @@ import json
 import time
 import aiohttp
 import openai
+import re
 from datetime import datetime
 from pathlib import Path
 from typing import List, Dict, Any, Optional
@@ -49,6 +50,8 @@ class ContractorProcessor:
             'auto_approved': 0,
             'manual_review': 0,
             'failed': 0,
+            'clearbit_success': 0,
+            'google_fallback': 0,
             'start_time': None
         }
     
@@ -92,8 +95,81 @@ class ContractorProcessor:
         result = await self.db_pool.fetch(query)
         return [dict(row) for row in result]
     
+    async def search_free_enrichment(self, contractor: Dict[str, Any]) -> Optional[str]:
+        """Search for contractor website using free methods before paid APIs"""
+        try:
+            # Build company name for search
+            company_name = contractor['business_name'].strip()
+            
+            # Clean up common business suffixes that might confuse search
+            clean_name = re.sub(r'\s+(LLC|INC|CORP|CO|LTD|COMPANY)\.?$', '', company_name, flags=re.IGNORECASE)
+            
+            logger.info(f"🔍 Trying free enrichment for: {clean_name}")
+            
+            # Step 1: Try Clearbit (when available)
+            try:
+                clearbit_url = "https://company.clearbit.com/v1/domains/find"
+                params = {'name': clean_name}
+                
+                async with self.session.get(clearbit_url, params=params, timeout=5) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        domain = data.get('domain')
+                        if domain:
+                            website_url = f"https://{domain}"
+                            logger.info(f"✅ Clearbit found website: {website_url}")
+                            return website_url
+                    elif response.status == 401:
+                        logger.info(f"🔒 Clearbit requires authentication - skipping")
+                    elif response.status != 404:  # 404 is normal "not found"
+                        logger.info(f"⚠️ Clearbit API status {response.status}")
+            except Exception as e:
+                logger.info(f"⚠️ Clearbit unavailable: {e}")
+            
+            # Step 2: Try common domain patterns (completely free)
+            logger.info(f"🎯 Trying domain guessing for: {clean_name}")
+            
+            # Generate potential domains from company name
+            # Remove special chars, convert to lowercase, replace spaces with hyphens/nothing
+            domain_base = re.sub(r'[^\w\s]', '', clean_name.lower())
+            domain_variations = [
+                re.sub(r'\s+', '', domain_base),           # nospaces: "abccompany"
+                re.sub(r'\s+', '-', domain_base),          # hyphens: "abc-company"  
+                domain_base.split()[0] if ' ' in domain_base else domain_base,  # first word: "abc"
+            ]
+            
+            # Common TLDs to try
+            tlds = ['.com', '.net', '.org']
+            
+            for domain_part in domain_variations:
+                if len(domain_part) >= 3:  # Only try reasonable domain names
+                    for tld in tlds:
+                        potential_domain = f"{domain_part}{tld}"
+                        potential_url = f"https://{potential_domain}"
+                        
+                        try:
+                            # Quick HEAD request to check if domain exists
+                            async with self.session.head(potential_url, timeout=3) as response:
+                                if response.status in [200, 301, 302]:  # Success or redirect
+                                    logger.info(f"✅ Domain guess successful: {potential_url}")
+                                    return potential_url
+                        except:
+                            continue  # Try next variation
+                        
+                        await asyncio.sleep(0.1)  # Small delay between attempts
+            
+            logger.info(f"❌ No free enrichment found for: {company_name}")
+            return None
+                    
+        except Exception as e:
+            logger.warning(f"⚠️ Free enrichment error for {contractor['business_name']}: {e}")
+            return None
+        
+        # Rate limiting
+        await asyncio.sleep(0.5)
+    
     async def search_contractor_online(self, contractor: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-        """Search for contractor information using Google Custom Search"""
+        """Search for contractor information using Google Custom Search (fallback)"""
         try:
             # Build search query
             query_parts = [contractor['business_name']]
@@ -631,39 +707,69 @@ Respond with valid JSON only.
                 
             logger.info(f"Processing: {contractor['business_name']} ({contractor['city']}, {contractor['state']})")
             
-            # Step 1: Search online
-            search_results = await self.search_contractor_online(contractor)
-            
-            # Step 2: Find legitimate website and crawl content
+            # Step 1: Try Clearbit first (free tier)
             website_content = None
             validated_website_url = None
-            if search_results:
-                logger.info(f"🔍 Searching through {len(search_results)} Google results for valid website...")
-                
-                # Look for legitimate website URLs (filtered)
-                for i, result in enumerate(search_results, 1):
-                    url = result.get('link', '')
-                    logger.info(f"   📄 Result {i}/{len(search_results)}: {url}")
+            search_results = []
+            
+            free_website = await self.search_free_enrichment(contractor)
+            if free_website:
+                # Filter and validate free enrichment result
+                filtered_url = self.filter_website_url(free_website)
+                if filtered_url:
+                    logger.info(f"🎯 Free enrichment provided legitimate website: {filtered_url}")
+                    crawled_content = await self.crawl_website_content(filtered_url, contractor)
                     
-                    filtered_url = self.filter_website_url(url)
-                    if filtered_url:  # This is a legitimate website
-                        logger.info(f"🎯 Found legitimate website: {filtered_url}")
-                        crawled_content = await self.crawl_website_content(filtered_url, contractor)
-                        
-                        # Validate that this website actually belongs to the contractor
-                        if crawled_content and self.validate_website_belongs_to_contractor(crawled_content, contractor):
-                            website_content = crawled_content
-                            validated_website_url = filtered_url
-                            logger.info(f"✅ Website validated: {filtered_url}")
-                            break
-                        else:
-                            logger.warning(f"❌ Website rejected - doesn't match contractor: {filtered_url}")
-                            logger.info(f"   🔄 Continuing to search remaining {len(search_results) - i} results...")
+                    # Validate that this website actually belongs to the contractor
+                    if crawled_content and self.validate_website_belongs_to_contractor(crawled_content, contractor):
+                        website_content = crawled_content
+                        validated_website_url = filtered_url
+                        logger.info(f"✅ Free enrichment website validated: {filtered_url}")
+                        logger.info("💰 Cost savings: Used free methods instead of paid Google Search!")
+                        self.stats['clearbit_success'] += 1
+                        # Create mock search result for consistency
+                        search_results = [{'link': filtered_url, 'title': f"{contractor['business_name']} - Free Enrichment", 'snippet': 'Found via free enrichment'}]
                     else:
-                        logger.info(f"   ⏭️ Skipped (directory/listing): {url}")
+                        logger.warning(f"❌ Free enrichment website rejected - doesn't match contractor: {filtered_url}")
+                else:
+                    logger.info(f"⏭️ Free enrichment website skipped (directory/listing): {free_website}")
+            
+            # Step 2: Fall back to Google Search if free methods didn't work
+            if not validated_website_url:
+                logger.info("🔄 Free enrichment didn't provide valid website, falling back to Google Search...")
+                logger.info("💸 Using paid Google Search API as fallback...")
+                self.stats['google_fallback'] += 1
+                search_results = await self.search_contractor_online(contractor)
                 
-                if not validated_website_url:
-                    logger.warning(f"🚫 No valid website found after checking all {len(search_results)} results")
+                if search_results:
+                    logger.info(f"🔍 Searching through {len(search_results)} Google results for valid website...")
+                    
+                    # Look for legitimate website URLs (filtered)
+                    for i, result in enumerate(search_results, 1):
+                        url = result.get('link', '')
+                        logger.info(f"   📄 Result {i}/{len(search_results)}: {url}")
+                        
+                        filtered_url = self.filter_website_url(url)
+                        if filtered_url:  # This is a legitimate website
+                            logger.info(f"🎯 Found legitimate website: {filtered_url}")
+                            crawled_content = await self.crawl_website_content(filtered_url, contractor)
+                            
+                            # Validate that this website actually belongs to the contractor
+                            if crawled_content and self.validate_website_belongs_to_contractor(crawled_content, contractor):
+                                website_content = crawled_content
+                                validated_website_url = filtered_url
+                                logger.info(f"✅ Website validated: {filtered_url}")
+                                break
+                            else:
+                                logger.warning(f"❌ Website rejected - doesn't match contractor: {filtered_url}")
+                                logger.info(f"   🔄 Continuing to search remaining {len(search_results) - i} results...")
+                        else:
+                            logger.info(f"   ⏭️ Skipped (directory/listing): {url}")
+                    
+                    if not validated_website_url:
+                        logger.warning(f"🚫 No valid website found after checking all {len(search_results)} results")
+                else:
+                    logger.warning("🚫 No Google search results found")
             
             # Step 3: AI analysis with website content (only if validated)
             analysis = await self.analyze_with_ai(contractor, search_results or [], website_content)
@@ -705,6 +811,8 @@ Respond with valid JSON only.
                    f"{self.stats['manual_review']} manual review, "
                    f"{self.stats['failed']} failed "
                    f"({rate:.2f} contractors/sec)")
+        logger.info(f"💰 Cost: {self.stats['clearbit_success']} Clearbit (free), "
+                   f"{self.stats['google_fallback']} Google (paid)")
     
     async def run(self, max_contractors: Optional[int] = None, reprocess_no_website: bool = False):
         """Main processing loop"""
@@ -747,6 +855,10 @@ Respond with valid JSON only.
             
             # Final statistics
             elapsed = (datetime.now() - self.stats['start_time']).total_seconds()
+            total_processed = self.stats['processed']
+            clearbit_success_rate = (self.stats['clearbit_success'] / total_processed * 100) if total_processed > 0 else 0
+            google_fallback_rate = (self.stats['google_fallback'] / total_processed * 100) if total_processed > 0 else 0
+            
             logger.info(f"""
 🎯 PROCESSING COMPLETE!
 ═══════════════════════
@@ -754,6 +866,11 @@ Total Processed: {self.stats['processed']}
 Auto-approved: {self.stats['auto_approved']}
 Manual Review: {self.stats['manual_review']}  
 Failed: {self.stats['failed']}
+
+💰 COST OPTIMIZATION:
+Clearbit Success: {self.stats['clearbit_success']} ({clearbit_success_rate:.1f}%)
+Google Fallback: {self.stats['google_fallback']} ({google_fallback_rate:.1f}%)
+
 Processing Time: {elapsed:.1f} seconds
 Average Rate: {self.stats['processed'] / elapsed if elapsed > 0 else 0:.2f} contractors/sec
 """)
