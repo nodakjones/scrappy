@@ -1,13 +1,13 @@
 -- Complete mailer categories for contractor enrichment system
--- Based on actual CRM data with 30 priority categories
+-- Based on actual CRM data with complete taxonomy (62 total categories)
 
 -- Clear existing data
 DELETE FROM mailer_categories;
 
--- Insert all 30 PRIORITY categories (priority = TRUE)
+-- Insert ALL 30 PRIORITY categories (priority = TRUE)
 INSERT INTO mailer_categories (category_name, priority, afb_name, category, keywords, typical_services, sort_order) VALUES
 
--- Priority Categories (30 total)
+-- Priority Categories (30 total - high-value residential services)
 ('Heating and Cooling', TRUE, 'HOME-HVAC', 'Home Improvement', 
  ARRAY['hvac', 'heating', 'cooling', 'air conditioning', 'furnace', 'heat pump', 'duct work'],
  ARRAY['AC repair', 'Furnace installation', 'Duct cleaning', 'Heat pump service', 'HVAC maintenance'],
@@ -158,61 +158,184 @@ INSERT INTO mailer_categories (category_name, priority, afb_name, category, keyw
  ARRAY['House pressure washing', 'Driveway cleaning', 'Deck cleaning', 'Exterior surface cleaning'],
  30);
 
--- Insert STANDARD categories (priority = FALSE) - key ones for comprehensive coverage
+-- Insert ALL 32 STANDARD categories (priority = FALSE) - complete taxonomy coverage
 INSERT INTO mailer_categories (category_name, priority, afb_name, category, keywords, typical_services, sort_order) VALUES
+
+-- Home Improvement & Services (not priority but important for complete taxonomy)
+('BBQ Cleaning', FALSE, 'SERVICE-Other', 'Home Services',
+ ARRAY['bbq cleaning', 'grill cleaning', 'barbecue', 'outdoor kitchen'],
+ ARRAY['BBQ deep cleaning', 'Grill maintenance', 'Outdoor kitchen cleaning'],
+ 31),
+
+('Window Film', FALSE, 'SERVICE-Other', 'Home Improvement',
+ ARRAY['window film', 'window tinting', 'privacy film', 'security film'],
+ ARRAY['Window tinting', 'Privacy film installation', 'Security window film'],
+ 32),
 
 ('Flooring', FALSE, 'HOME-Flooring', 'Home Improvement',
  ARRAY['flooring', 'hardwood', 'carpet', 'tile', 'laminate', 'vinyl'],
  ARRAY['Hardwood installation', 'Carpet installation', 'Tile work', 'Floor refinishing'],
- 31),
-
-('Roofing', FALSE, 'HOME-Roofing', 'Home Improvement',
- ARRAY['roofing', 'roof repair', 'shingles', 'roof replacement', 'gutters'],
- ARRAY['Roof replacement', 'Roof repair', 'Shingle installation', 'Roof inspection'],
- 32),
-
-('Painting', FALSE, 'HOME-Painting', 'Home Services',
- ARRAY['painting', 'interior painting', 'exterior painting', 'painter', 'drywall'],
- ARRAY['Interior painting', 'Exterior painting', 'Drywall repair', 'Color consultation'],
  33),
+
+('Media Systems', FALSE, 'RETAIL-Other', 'Home Services',
+ ARRAY['media systems', 'home theater', 'audio visual', 'entertainment'],
+ ARRAY['Home theater installation', 'Audio system setup', 'TV mounting'],
+ 34),
 
 ('Pools and Spas', FALSE, 'HOME-Pool/Spa Builders', 'Home Improvement',
  ARRAY['pool', 'spa', 'hot tub', 'pool maintenance', 'pool repair'],
  ARRAY['Pool installation', 'Spa service', 'Pool maintenance', 'Hot tub repair'],
- 34),
-
-('Security Systems', FALSE, 'SERVICE-Security Serv/Equip.', 'Home Improvement',
- ARRAY['security', 'alarm', 'camera', 'monitoring', 'access control'],
- ARRAY['Security system installation', 'Camera systems', 'Alarm monitoring', 'Smart locks'],
  35),
 
-('Insulation', FALSE, 'HOME-Other', 'Home Services',
- ARRAY['insulation', 'attic insulation', 'weatherization', 'energy efficiency'],
- ARRAY['Attic insulation', 'Wall insulation', 'Weatherproofing', 'Energy audits'],
+('Roofing', FALSE, 'HOME-Roofing', 'Home Improvement',
+ ARRAY['roofing', 'roof repair', 'shingles', 'roof replacement'],
+ ARRAY['Roof replacement', 'Roof repair', 'Shingle installation', 'Roof inspection'],
  36),
 
-('Septic Systems', FALSE, 'SERVICE-Other', 'Home Services',
- ARRAY['septic', 'septic tank', 'drain field', 'septic pumping'],
- ARRAY['Septic pumping', 'Septic repair', 'Drain field installation', 'Septic inspection'],
+('Exterior Solutions', FALSE, 'HOME-Other', 'Home Improvement',
+ ARRAY['exterior', 'siding', 'exterior renovation', 'home exterior'],
+ ARRAY['Siding installation', 'Exterior renovation', 'Home weatherization'],
  37),
+
+('Security Screens & Doors', FALSE, 'SERVICE-Security Serv/Equip.', 'Home Improvement',
+ ARRAY['security screens', 'security doors', 'screen doors', 'door security'],
+ ARRAY['Security screen installation', 'Security door installation'],
+ 38),
+
+('Security Systems', FALSE, 'SERVICE-Security Serv/Equip.', 'Home Improvement',
+ ARRAY['security systems', 'alarm', 'camera', 'monitoring', 'access control'],
+ ARRAY['Security system installation', 'Camera systems', 'Alarm monitoring', 'Smart locks'],
+ 39),
+
+('Sheds and Storage', FALSE, 'HOME-Other', 'Home Improvement',
+ ARRAY['sheds', 'storage buildings', 'outdoor storage', 'storage solutions'],
+ ARRAY['Shed installation', 'Storage building construction', 'Outdoor storage solutions'],
+ 40),
+
+('Shelving', FALSE, 'SERVICE-Closet/Organization', 'Home Improvement',
+ ARRAY['shelving', 'custom shelves', 'wall shelves', 'storage shelves'],
+ ARRAY['Custom shelving installation', 'Wall-mounted shelves', 'Storage solutions'],
+ 41),
+
+('Siding', FALSE, 'HOME-Other', 'Home Improvement',
+ ARRAY['siding', 'vinyl siding', 'exterior siding', 'house siding'],
+ ARRAY['Siding installation', 'Siding repair', 'Vinyl siding replacement'],
+ 42),
+
+('Skylights', FALSE, 'HOME-Windows', 'Home Improvement',
+ ARRAY['skylights', 'roof windows', 'natural light', 'solar tubes'],
+ ARRAY['Skylight installation', 'Roof window installation', 'Solar tube installation'],
+ 43),
+
+('Water Systems', FALSE, 'HOME-Landscaping', 'Home Improvement',
+ ARRAY['water systems', 'water filtration', 'well systems', 'water treatment'],
+ ARRAY['Water filtration systems', 'Well installation', 'Water treatment solutions'],
+ 44),
+
+('Attic & Crawl Space', FALSE, 'HOME-Other', 'Home Services',
+ ARRAY['attic', 'crawl space', 'attic insulation', 'crawl space encapsulation'],
+ ARRAY['Attic insulation', 'Crawl space cleaning', 'Attic ventilation'],
+ 45),
+
+('Cabinet Refinishing', FALSE, 'HOME-Kitchen', 'Home Services',
+ ARRAY['cabinet refinishing', 'cabinet painting', 'kitchen cabinets', 'cabinet restoration'],
+ ARRAY['Cabinet refinishing', 'Cabinet painting', 'Kitchen cabinet restoration'],
+ 46),
+
+('Countertops', FALSE, 'HOME-Kitchen', 'Home Services',
+ ARRAY['countertops', 'granite', 'quartz', 'kitchen counters', 'bathroom counters'],
+ ARRAY['Countertop installation', 'Granite countertops', 'Quartz countertops'],
+ 47),
+
+('Gutter Cleaning', FALSE, 'HOME-Gutters', 'Home Services',
+ ARRAY['gutter cleaning', 'gutter maintenance', 'downspout cleaning'],
+ ARRAY['Professional gutter cleaning', 'Downspout cleaning', 'Gutter maintenance'],
+ 48),
+
+('Rug Cleaning', FALSE, 'SERVICE-Carpet/Floor Cleaning', 'Home Services',
+ ARRAY['rug cleaning', 'area rug cleaning', 'oriental rug cleaning'],
+ ARRAY['Area rug cleaning', 'Oriental rug cleaning', 'Rug restoration'],
+ 49),
+
+('Painting', FALSE, 'HOME-Painting', 'Home Services',
+ ARRAY['painting', 'interior painting', 'exterior painting', 'house painting'],
+ ARRAY['Interior painting', 'Exterior painting', 'Drywall repair', 'Color consultation'],
+ 50),
 
 ('Pest Control', FALSE, 'SERVICE-Pest Control', 'Home Services',
  ARRAY['pest control', 'exterminator', 'bug control', 'rodent control'],
  ARRAY['Pest elimination', 'Rodent control', 'Insect treatment', 'Preventive pest control'],
- 38),
+ 51),
 
-('Mold Remediation', FALSE, 'SERVICE-Mold Remediation', 'Home Services',
- ARRAY['mold', 'mold removal', 'mold remediation', 'water damage'],
- ARRAY['Mold removal', 'Mold testing', 'Water damage restoration', 'Air quality testing'],
- 39),
+('Pressure Washing', FALSE, 'SERVICE-Pressure Washing', 'Home Services',
+ ARRAY['pressure washing', 'power washing', 'house washing', 'driveway cleaning'],
+ ARRAY['House pressure washing', 'Driveway cleaning', 'Deck cleaning'],
+ 52),
 
--- Commercial/Industrial categories (filtered out in residential processing)
+('Roof Cleaning & Repair', FALSE, 'HOME-Roofing', 'Home Services',
+ ARRAY['roof cleaning', 'roof repair', 'moss removal', 'roof maintenance'],
+ ARRAY['Roof cleaning', 'Moss removal', 'Minor roof repairs'],
+ 53),
+
+('Hardscaping', FALSE, 'HOME-Landscaping', 'Home Improvement',
+ ARRAY['hardscaping', 'retaining walls', 'stone work', 'landscape construction'],
+ ARRAY['Retaining walls', 'Stone patios', 'Landscape construction'],
+ 54),
+
+('Railings', FALSE, 'HOME-Fencing', 'Home Improvement',
+ ARRAY['railings', 'handrails', 'deck railings', 'stair railings'],
+ ARRAY['Deck railings', 'Stair railings', 'Custom railing installation'],
+ 55),
+
+('Grout Cleaning', FALSE, 'SERVICE-Carpet/Floor Cleaning', 'Home Improvement',
+ ARRAY['grout cleaning', 'tile cleaning', 'grout restoration'],
+ ARRAY['Grout cleaning', 'Tile restoration', 'Grout sealing'],
+ 56),
+
+('Septic', FALSE, 'SERVICE-Other', 'Home Services',
+ ARRAY['septic', 'septic tank', 'drain field', 'septic pumping'],
+ ARRAY['Septic pumping', 'Septic repair', 'Drain field installation', 'Septic inspection'],
+ 57),
+
+('ADU Contractor', FALSE, 'HOME-Construction', 'Home Improvement',
+ ARRAY['adu', 'accessory dwelling unit', 'granny flat', 'backyard cottage'],
+ ARRAY['ADU construction', 'Accessory dwelling units', 'Backyard cottages'],
+ 58),
+
+('Tile', FALSE, 'HOME-Flooring', 'Home Improvement',
+ ARRAY['tile', 'ceramic tile', 'porcelain tile', 'tile installation'],
+ ARRAY['Tile installation', 'Ceramic tile work', 'Bathroom tile'],
+ 59),
+
+('Kitchen Remodel', FALSE, 'HOME-Kitchen', 'Home Improvement',
+ ARRAY['kitchen remodel', 'kitchen renovation', 'kitchen design'],
+ ARRAY['Kitchen renovation', 'Kitchen design', 'Cabinet installation'],
+ 60),
+
+('Home Improvement', FALSE, 'HOME-Other', 'Home Improvement',
+ ARRAY['home improvement', 'home renovation', 'remodeling'],
+ ARRAY['General home improvement', 'Home renovation', 'Property upgrades'],
+ 61),
+
+('Restoration Cleaning', FALSE, 'SERVICE-Maid/Cleaning', 'Home Services',
+ ARRAY['restoration cleaning', 'damage restoration', 'cleanup'],
+ ARRAY['Water damage cleanup', 'Fire damage restoration', 'Emergency cleanup'],
+ 62);
+
+-- Insert Commercial/Industrial categories for complete taxonomy (will be filtered in processing)
+INSERT INTO mailer_categories (category_name, priority, afb_name, category, keywords, typical_services, sort_order) VALUES
+
+('Auto Glass/Repair', FALSE, 'PROFESSIONAL-Other', 'Personal & Professional Services',
+ ARRAY['auto glass', 'windshield repair', 'car glass', 'automotive glass'],
+ ARRAY['Windshield replacement', 'Auto glass repair', 'Car window repair'],
+ 100),
+
 ('Commercial Construction', FALSE, 'HOME-Construction', 'Commercial',
  ARRAY['commercial construction', 'office building', 'retail construction'],
  ARRAY['Office construction', 'Retail buildouts', 'Commercial renovation'],
- 50),
+ 101),
 
 ('Industrial Services', FALSE, 'PROFESSIONAL-Other', 'Industrial',
  ARRAY['industrial', 'manufacturing', 'factory maintenance'],
  ARRAY['Industrial maintenance', 'Factory services', 'Equipment installation'],
- 51);
+ 102);
