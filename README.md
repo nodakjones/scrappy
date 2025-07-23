@@ -216,31 +216,51 @@ WHERE id = [contractor_id];
 
 ### Service Categories
 
-**Priority Categories** (High-value residential services):
-- **Plumbing** - Drain cleaning, water heater repair, pipe repair, leak detection, bathroom fixtures
-- **HVAC** - AC repair, furnace installation, duct cleaning, heat pump service
-- **Electrical** - Electrical repairs, panel upgrades, outlet installation, lighting installation
-- **Roofing** - Roof replacement, roof repair, gutter installation, siding repair
-- **Handyman** - General repairs, home maintenance, fixture installation, odd jobs
-- **Flooring** - Hardwood installation, carpet installation, tile work, floor refinishing
-- **Painting** - Interior painting, exterior painting, drywall repair, wallpaper removal
-- **Landscaping** - Lawn maintenance, tree removal, landscape design, irrigation systems
-- **Windows & Doors** - Window replacement, door installation, glass repair, screen repair
-- **Kitchen & Bath** - Kitchen remodel, bathroom renovation, cabinet installation, countertop installation
+**Priority Categories** (30 High-Value Residential Services):
+1. **Heating and Cooling** - AC repair, furnace installation, duct cleaning, heat pump service, HVAC maintenance
+2. **Plumbing** - Drain cleaning, water heater repair, pipe repair, leak detection, bathroom fixtures
+3. **Sprinklers** - Sprinkler installation, irrigation repair, watering system design, sprinkler maintenance
+4. **Blinds** - Blind installation, custom window treatments, shade repair, shutter installation
+5. **Window/Door** - Window replacement, door installation, glass repair, entry door replacement
+6. **Awning/Patio/Carport** - Awning installation, patio covers, carport construction, outdoor shade structures
+7. **Bathroom/Kitchen Remodel** - Bathroom renovation, kitchen remodel, countertop installation, cabinet upgrade
+8. **Storage & Closets** - Closet organization, storage solutions, custom shelving, pantry systems
+9. **Decks & Patios** - Deck construction, patio installation, outdoor living spaces, deck repair
+10. **Electrician** - Electrical repairs, panel upgrades, outlet installation, lighting installation
+11. **Fence** - Fence installation, gate installation, privacy fencing, fence repair
+12. **Fireplace** - Fireplace installation, chimney cleaning, gas fireplace repair, hearth construction
+13. **Garage Floors** - Epoxy garage floors, garage floor coating, concrete floor finishing, floor resurfacing
+14. **Gutters** - Gutter installation, gutter cleaning, downspout repair, gutter guards
+15. **Handyman** - General repairs, home maintenance, fixture installation, odd jobs
+16. **Junk Removal** - Junk hauling, debris removal, estate cleanout, construction cleanup
+17. **Landscaping** - Landscape design, lawn maintenance, garden installation, yard cleanup
+18. **Lighting** - Light fixture installation, outdoor lighting design, LED upgrades, landscape lighting
+19. **Tree Service** - Tree removal, tree trimming, stump grinding, tree pruning
+20. **Window Cleaning** - Residential window cleaning, pressure washing windows, glass cleaning service
+21. **Window/Glass Repair** - Window glass replacement, screen repair, window hardware repair, glass restoration
+22. **House Cleaning** - Regular house cleaning, deep cleaning, move-in cleaning, post-construction cleanup
+23. **Garage Doors** - Garage door installation, opener repair, garage door maintenance, door replacement
+24. **Solar** - Solar panel installation, solar system design, solar maintenance, energy storage
+25. **Duct Cleaning** - Air duct cleaning, HVAC system cleaning, dryer vent cleaning, ventilation maintenance
+26. **Carpet Cleaning** - Professional carpet cleaning, upholstery cleaning, stain removal, steam cleaning
+27. **Closets** - Custom closet systems, closet organization, walk-in closets, storage design
+28. **Concrete** - Concrete driveways, patio construction, sidewalk installation, foundation work
+29. **Foundations** - Foundation repair, basement waterproofing, crawl space encapsulation, structural work
+30. **Exterior Cleaning** - House pressure washing, driveway cleaning, deck cleaning, exterior surface cleaning
 
 **Standard Categories** (Additional residential services):
-- **Concrete** - Driveway installation, patio construction, concrete repair, foundation work
-- **Fencing** - Fence installation, gate repair, privacy fencing, fence repair
+- **Flooring** - Hardwood installation, carpet installation, tile work, floor refinishing
+- **Roofing** - Roof replacement, roof repair, shingle installation, roof inspection
+- **Painting** - Interior painting, exterior painting, drywall repair, color consultation
+- **Pools and Spas** - Pool installation, spa service, pool maintenance, hot tub repair
+- **Security Systems** - Security system installation, camera systems, alarm monitoring, smart locks
 - **Insulation** - Attic insulation, wall insulation, weatherproofing, energy audits
-- **Security Systems** - Security system installation, camera systems, alarm monitoring
-- **Pool & Spa** - Pool cleaning, pool repair, hot tub service, pool equipment
-- **Garage Doors** - Garage door installation, opener repair, door maintenance
-- **Septic Systems** - Septic pumping, septic repair, drain field installation
-- **Solar** - Solar panel installation, solar system design, solar maintenance
-- **Demolition** - Structure demolition, debris removal, site clearing
+- **Septic Systems** - Septic pumping, septic repair, drain field installation, septic inspection
+- **Pest Control** - Pest elimination, rodent control, insect treatment, preventive pest control
+- **Mold Remediation** - Mold removal, mold testing, water damage restoration, air quality testing
 
 **Filtered Out Categories** (Commercial/Industrial - excluded from residential focus):
-- Commercial Construction, Industrial Services, Municipal Services
+- Commercial Construction, Industrial Services
 
 ### Geographic Coverage
 - **Included Areas**: Seattle, Tacoma, Bellevue, Everett, Kent, Renton, Federal Way, Kirkland, Olympia, and surrounding Puget Sound cities
