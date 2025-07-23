@@ -526,7 +526,7 @@ Respond with valid JSON only.
     def is_local_contractor(self, contractor: Dict[str, Any]) -> bool:
         """Check if contractor is in local service area based on phone number and location"""
         # Define local Washington area codes
-        local_area_codes = ['206', '253', '360', '425', '564']  # Added 425 (Eastside) and 564 (overlay for 360)
+        local_area_codes = ['206', '253', '360', '425', '509', '564']  # 206/Seattle, 253/Tacoma, 360/Olympia, 425/Eastside, 509/Spokane, 564/overlay
         
         phone = contractor.get('phone_number', '')
         city = contractor.get('city', '').upper()
@@ -561,6 +561,56 @@ Respond with valid JSON only.
             
         return False
 
+    def validate_website_belongs_to_contractor(self, website_content: Dict[str, Any], contractor: Dict[str, Any]) -> bool:
+        """Validate that the crawled website actually belongs to the contractor"""
+        if not website_content:
+            return False
+            
+        contractor_phone = contractor.get('phone_number', '').strip()
+        contractor_city = contractor.get('city', '').upper().strip()
+        contractor_state = contractor.get('state', '').upper().strip()
+        
+        # Extract contractor's area code for comparison
+        contractor_area_code = None
+        if contractor_phone and contractor_phone.startswith('(') and ')' in contractor_phone:
+            contractor_area_code = contractor_phone[1:4]
+        
+        # Search website content for phone numbers
+        website_text = website_content.get('full_text', '') + ' ' + website_content.get('contact_info', '')
+        
+        # Look for phone patterns in website
+        import re
+        phone_patterns = re.findall(r'\((\d{3})\)\s*\d{3}[-\s]*\d{4}', website_text)
+        
+        # Check if contractor's area code appears on website
+        if contractor_area_code and contractor_area_code in phone_patterns:
+            logger.info(f"✅ Website validation PASSED: Found matching area code {contractor_area_code}")
+            return True
+            
+        # Look for city/location matches
+        if contractor_city and contractor_city in website_text.upper():
+            logger.info(f"✅ Website validation PASSED: Found matching city {contractor_city}")
+            return True
+            
+        # Look for state mentions
+        if contractor_state and (contractor_state in website_text.upper() or 'WASHINGTON' in website_text.upper()):
+            logger.info(f"✅ Website validation PASSED: Found matching state reference")
+            return True
+            
+        # Check for Washington-specific keywords
+        wa_keywords = ['SEATTLE', 'TACOMA', 'SPOKANE', 'WASHINGTON STATE', 'PUGET SOUND', 'KING COUNTY', 'PIERCE COUNTY']
+        for keyword in wa_keywords:
+            if keyword in website_text.upper():
+                logger.info(f"✅ Website validation PASSED: Found Washington keyword {keyword}")
+                return True
+        
+        # If no matches found, website likely doesn't belong to this contractor
+        logger.warning(f"❌ Website validation FAILED: No matching contact info found")
+        logger.warning(f"   Contractor: {contractor_phone} in {contractor_city}, {contractor_state}")
+        logger.warning(f"   Website area codes found: {phone_patterns}")
+        
+        return False
+
     async def process_contractor(self, contractor: Dict[str, Any]):
         """Process a single contractor"""
         try:
@@ -577,6 +627,7 @@ Respond with valid JSON only.
             
             # Step 2: Find legitimate website and crawl content
             website_content = None
+            validated_website_url = None
             if search_results:
                 # Look for legitimate website URLs (filtered)
                 for result in search_results:
@@ -584,13 +635,29 @@ Respond with valid JSON only.
                     filtered_url = self.filter_website_url(url)
                     if filtered_url:  # This is a legitimate website
                         logger.info(f"🎯 Found legitimate website: {filtered_url}")
-                        website_content = await self.crawl_website_content(filtered_url, contractor)
-                        break  # Use first legitimate website found
+                        crawled_content = await self.crawl_website_content(filtered_url, contractor)
+                        
+                        # Validate that this website actually belongs to the contractor
+                        if crawled_content and self.validate_website_belongs_to_contractor(crawled_content, contractor):
+                            website_content = crawled_content
+                            validated_website_url = filtered_url
+                            logger.info(f"✅ Website validated: {filtered_url}")
+                            break
+                        else:
+                            logger.warning(f"❌ Website rejected - doesn't match contractor: {filtered_url}")
+                            # Continue searching for a valid website
             
-            # Step 3: AI analysis with website content
+            # Step 3: AI analysis with website content (only if validated)
             analysis = await self.analyze_with_ai(contractor, search_results or [], website_content)
             
-            # Step 4: Update database
+            # Step 4: Update database (use validated website URL or None)
+            if website_content and validated_website_url:
+                # Update analysis to use validated website URL
+                analysis['website'] = validated_website_url
+            else:
+                # No valid website found
+                analysis['website'] = None
+                
             await self.update_contractor_results(contractor, analysis, search_results or [])
             
         except Exception as e:
