@@ -8,6 +8,7 @@ import sys
 import os
 import logging
 import json
+import time
 import aiohttp
 import openai
 from datetime import datetime
@@ -122,7 +123,156 @@ class ContractorProcessor:
         # Rate limiting
         await asyncio.sleep(config.SEARCH_DELAY)
     
-    async def analyze_with_ai(self, contractor: Dict[str, Any], search_results: List[Dict]) -> Dict[str, Any]:
+    async def crawl_website_content(self, url: str, contractor: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Crawl website content for deeper analysis"""
+        try:
+            logger.info(f"🕷️ Crawling website: {url}")
+            
+            # Set reasonable timeout and headers
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.5',
+                'Accept-Encoding': 'gzip, deflate',
+                'Connection': 'keep-alive',
+            }
+            
+            start_time = time.time()
+            
+            async with self.session.get(url, headers=headers, timeout=10) as response:
+                crawl_duration = time.time() - start_time
+                
+                # Log crawl attempt
+                await self.db_pool.execute("""
+                    INSERT INTO website_crawls (contractor_id, url, crawl_status, response_code, crawl_duration_seconds, attempted_at)
+                    VALUES ($1, $2, $3, $4, $5, $6)
+                """, contractor['id'], url, 'success' if response.status == 200 else 'error', 
+                response.status, crawl_duration, datetime.now())
+                
+                if response.status == 200:
+                    content = await response.text()
+                    content_length = len(content)
+                    
+                    # Update crawl record with content info
+                    await self.db_pool.execute("""
+                        UPDATE website_crawls SET content_length = $1, raw_content = $2 
+                        WHERE contractor_id = $3 AND url = $4 AND attempted_at = (
+                            SELECT MAX(attempted_at) FROM website_crawls WHERE contractor_id = $3 AND url = $4
+                        )
+                    """, content_length, content[:50000], contractor['id'], url)  # Limit stored content to 50k chars
+                    
+                    # Extract meaningful content using simple text processing
+                    website_content = self.extract_website_content(content)
+                    
+                    logger.info(f"✅ Successfully crawled {url} ({content_length} chars)")
+                    return website_content
+                else:
+                    logger.warning(f"❌ Failed to crawl {url}: HTTP {response.status}")
+                    return None
+                    
+        except asyncio.TimeoutError:
+            logger.warning(f"⏰ Timeout crawling {url}")
+            await self.db_pool.execute("""
+                INSERT INTO website_crawls (contractor_id, url, crawl_status, response_code, attempted_at)
+                VALUES ($1, $2, 'timeout', 0, $3)
+            """, contractor['id'], url, datetime.now())
+            return None
+        except Exception as e:
+            logger.error(f"❌ Error crawling {url}: {e}")
+            await self.db_pool.execute("""
+                INSERT INTO website_crawls (contractor_id, url, crawl_status, response_code, attempted_at)
+                VALUES ($1, $2, 'error', 0, $3)
+            """, contractor['id'], url, datetime.now())
+            return None
+        
+        # Rate limiting for crawling
+        await asyncio.sleep(config.CRAWL_DELAY)
+    
+    def extract_website_content(self, html_content: str) -> Dict[str, Any]:
+        """Extract meaningful content from HTML for AI analysis"""
+        from bs4 import BeautifulSoup
+        import re
+        
+        try:
+            soup = BeautifulSoup(html_content, 'html.parser')
+            
+            # Remove script and style elements
+            for script in soup(["script", "style", "nav", "footer", "header"]):
+                script.decompose()
+            
+            # Extract key content sections
+            content = {
+                'title': '',
+                'about_us': '',
+                'services': '',
+                'description': '',
+                'full_text': '',
+                'contact_info': '',
+                'keywords': []
+            }
+            
+            # Get page title
+            if soup.title:
+                content['title'] = soup.title.string.strip() if soup.title.string else ''
+            
+            # Look for meta description
+            meta_desc = soup.find('meta', attrs={'name': 'description'})
+            if meta_desc and meta_desc.get('content'):
+                content['description'] = meta_desc['content'].strip()
+            
+            # Extract text from key sections
+            text_content = soup.get_text()
+            content['full_text'] = ' '.join(text_content.split())[:5000]  # Limit to 5k chars
+            
+            # Look for specific sections
+            about_sections = soup.find_all(['div', 'section', 'p'], 
+                string=re.compile(r'about|who we are|our story|our company', re.IGNORECASE))
+            for section in about_sections[:2]:  # Limit to first 2 matches
+                parent = section.find_parent(['div', 'section', 'article'])
+                if parent:
+                    about_text = parent.get_text().strip()
+                    content['about_us'] += about_text[:1000] + ' '  # Limit per section
+            
+            # Look for services sections
+            service_sections = soup.find_all(['div', 'section', 'ul'], 
+                string=re.compile(r'services|what we do|our services|specialties', re.IGNORECASE))
+            for section in service_sections[:2]:
+                parent = section.find_parent(['div', 'section', 'article'])
+                if parent:
+                    service_text = parent.get_text().strip()
+                    content['services'] += service_text[:1000] + ' '
+            
+            # Extract contact information
+            contact_patterns = [
+                r'residential|homeowner|home|house|family',
+                r'commercial|business|corporate|industrial|office',
+                r'emergency|24/7|available',
+                r'licensed|insured|bonded'
+            ]
+            
+            for pattern in contact_patterns:
+                matches = re.findall(pattern, text_content, re.IGNORECASE)
+                content['keywords'].extend(matches[:5])  # Limit matches per pattern
+            
+            # Clean up content
+            for key in ['about_us', 'services', 'contact_info']:
+                content[key] = ' '.join(content[key].split())[:2000]  # Clean whitespace and limit
+            
+            return content
+            
+        except Exception as e:
+            logger.error(f"Error extracting website content: {e}")
+            return {
+                'title': '',
+                'about_us': '',
+                'services': '',
+                'description': '',
+                'full_text': html_content[:1000] if html_content else '',
+                'contact_info': '',
+                'keywords': []
+            }
+    
+    async def analyze_with_ai(self, contractor: Dict[str, Any], search_results: List[Dict], website_content: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Analyze contractor using OpenAI"""
         try:
             # Prepare context for AI analysis
@@ -143,6 +293,9 @@ class ContractorProcessor:
                         'link': result.get('link', '')
                     })
             
+            # Add website content if available
+            context['website_content'] = website_content if website_content else {}
+            
             # AI analysis prompt
             prompt = f"""
 Analyze this contractor business and provide categorization:
@@ -154,6 +307,9 @@ Phone: {context['phone']}
 
 Search Results:
 {json.dumps(context['search_results'], indent=2)}
+
+Website Content (if available):
+{json.dumps(context['website_content'], indent=2) if context['website_content'] else 'No website content available'}
 
 Please provide a JSON response with:
 1. "category" - primary business category - USE SPECIFIC CATEGORIES ONLY: Plumbing, HVAC, Electrical, Roofing, Handyman, Flooring, Painting, Landscaping, Windows & Doors, Concrete, Fencing, Kitchen & Bath, etc. AVOID generic terms like "Construction"
@@ -176,14 +332,17 @@ IMPORTANT: For "category", be SPECIFIC:
 - Use "Landscaping" for outdoor work
 - DO NOT use generic "Construction" - be more specific
 
-IMPORTANT: For "is_residential", be EXTREMELY CONSERVATIVE:
-- ONLY mark "true" if business name explicitly contains "Home", "Residential", "House" OR website/search results explicitly mention "homeowners", "residential customers", "house calls"
-- ONLY mark "false" if business name explicitly contains "Commercial", "Industrial", "Corporate" OR website/search results explicitly mention "commercial clients", "industrial services", "office buildings"
-- If there's ANY uncertainty, missing website, or generic business name (like "Elite Plumbing", "ABC Construction"), mark as null
-- Do NOT assume trade type indicates residential vs commercial - many plumbers, electricians, HVAC serve BOTH markets
-- REQUIRE explicit evidence in name or web content - business type alone is insufficient
-- Examples requiring EXPLICIT evidence: "Smith HOME Repair" (has "home"), "RESIDENTIAL HVAC Services" (has "residential"), "COMMERCIAL Construction Corp" (has "commercial")
-- Examples that should be null: "Elite Plumbing" (could serve either), "ABC Construction" (unclear), "Best HVAC Services" (no market specified)
+IMPORTANT: For "is_residential", be EVIDENCE-BASED with website content priority:
+- IF website content is available, analyze "about_us", "services", and "full_text" sections for clear market indicators
+- Mark "true" if website mentions: "homeowners", "residential services", "home repair", "house calls", "serving families", "your home"
+- Mark "false" if website mentions: "commercial clients", "business services", "industrial", "corporate", "office buildings", "serving businesses"
+- If website content is NOT available, use EXTREMELY CONSERVATIVE approach:
+  - ONLY mark "true" if business name explicitly contains "Home", "Residential", "House"
+  - ONLY mark "false" if business name explicitly contains "Commercial", "Industrial", "Corporate"
+  - Otherwise mark as null (uncertain)
+- PRIORITIZE website content over business name when both available
+- Examples with website content: website says "serving homeowners since 1995" → residential, website says "commercial building solutions" → commercial
+- Examples without website: "Smith HOME Repair" → residential, "Elite Plumbing" → null (uncertain)
 
 Respond with valid JSON only.
 """
@@ -372,10 +531,22 @@ Respond with valid JSON only.
             # Step 1: Search online
             search_results = await self.search_contractor_online(contractor)
             
-            # Step 2: AI analysis
-            analysis = await self.analyze_with_ai(contractor, search_results or [])
+            # Step 2: Find legitimate website and crawl content
+            website_content = None
+            if search_results:
+                # Look for legitimate website URLs (filtered)
+                for result in search_results:
+                    url = result.get('link', '')
+                    filtered_url = self.filter_website_url(url)
+                    if filtered_url:  # This is a legitimate website
+                        logger.info(f"🎯 Found legitimate website: {filtered_url}")
+                        website_content = await self.crawl_website_content(filtered_url, contractor)
+                        break  # Use first legitimate website found
             
-            # Step 3: Update database
+            # Step 3: AI analysis with website content
+            analysis = await self.analyze_with_ai(contractor, search_results or [], website_content)
+            
+            # Step 4: Update database
             await self.update_contractor_results(contractor, analysis, search_results or [])
             
         except Exception as e:
