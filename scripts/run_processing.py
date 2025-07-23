@@ -176,10 +176,14 @@ IMPORTANT: For "category", be SPECIFIC:
 - Use "Landscaping" for outdoor work
 - DO NOT use generic "Construction" - be more specific
 
-IMPORTANT: For "is_residential", consider:
-- Residential contractors: Home repairs, residential HVAC, house painting, roofing for homes, handyman services, lawn care, pool maintenance, etc.
-- Commercial contractors: Large construction projects, industrial facilities, commercial buildings, infrastructure, heavy equipment, etc.
-- When in doubt, if services could serve both but business name/description suggests residential focus, mark as true.
+IMPORTANT: For "is_residential", be EXTREMELY CONSERVATIVE:
+- ONLY mark "true" if business name explicitly contains "Home", "Residential", "House" OR website/search results explicitly mention "homeowners", "residential customers", "house calls"
+- ONLY mark "false" if business name explicitly contains "Commercial", "Industrial", "Corporate" OR website/search results explicitly mention "commercial clients", "industrial services", "office buildings"
+- If there's ANY uncertainty, missing website, or generic business name (like "Elite Plumbing", "ABC Construction"), mark as null
+- Do NOT assume trade type indicates residential vs commercial - many plumbers, electricians, HVAC serve BOTH markets
+- REQUIRE explicit evidence in name or web content - business type alone is insufficient
+- Examples requiring EXPLICIT evidence: "Smith HOME Repair" (has "home"), "RESIDENTIAL HVAC Services" (has "residential"), "COMMERCIAL Construction Corp" (has "commercial")
+- Examples that should be null: "Elite Plumbing" (could serve either), "ABC Construction" (unclear), "Best HVAC Services" (no market specified)
 
 Respond with valid JSON only.
 """
@@ -209,7 +213,7 @@ Respond with valid JSON only.
                     'category': 'Unknown',
                     'confidence': 0.3,
                     'verified': False,
-                    'is_residential': True,  # Default to residential when uncertain
+                    'is_residential': None,  # Don't guess - mark as unknown when uncertain
                     'error': 'Invalid AI response format'
                 }
                 
@@ -219,7 +223,7 @@ Respond with valid JSON only.
                 'category': 'Unknown',
                 'confidence': 0.1,
                 'verified': False,
-                'is_residential': True,  # Default to residential when error occurs
+                'is_residential': None,  # Don't guess - mark as unknown when error occurs
                 'error': str(e)
             }
         
@@ -328,6 +332,9 @@ Respond with valid JSON only.
             raw_website = analysis.get('website')
             filtered_website = self.filter_website_url(raw_website)
             
+            # Get residential status - be conservative, don't guess
+            is_residential = analysis.get('is_residential')  # None if uncertain, True/False if confident
+            
             await self.db_pool.execute(
                 update_query,
                 processing_status,
@@ -339,7 +346,7 @@ Respond with valid JSON only.
                 analysis.get('services', []),
                 service_categories,
                 datetime.now(),
-                analysis.get('is_residential', True),  # is_home_contractor - default to True if not specified
+                is_residential,  # is_home_contractor - can be None (unknown), True (residential), False (commercial)
                 contractor['id']
             )
             
