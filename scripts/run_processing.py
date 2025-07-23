@@ -71,21 +71,28 @@ class ContractorProcessor:
         logger.info("✅ Processor cleanup completed")
     
     async def get_pending_contractors(self, limit: int = None, reprocess_no_website: bool = False) -> List[Dict[str, Any]]:
-        """Get contractors pending processing"""
+        """Get contractors pending processing (EXCLUDES expired/inactive contractors)"""
         limit_clause = f"LIMIT {limit}" if limit else ""
         
+        # Filter out expired and inactive contractors
+        license_filter = """
+            AND contractor_license_status NOT IN ('EXPIRED', 'OUT OF BUSINESS', 'PASSED AWAY', 'REVOKED DUE DEPT ERR', 'INACTIVE')
+            AND contractor_license_status IS NOT NULL
+        """
+        
         if reprocess_no_website:
-            # Include contractors that were processed but have no website
-            where_clause = """
+            # Include contractors that were processed but have no website (and are active)
+            where_clause = f"""
                 WHERE (processing_status = 'pending' 
                     OR (processing_status = 'completed' AND website_url IS NULL))
+                {license_filter}
             """
         else:
-            where_clause = "WHERE processing_status = 'pending'"
+            where_clause = f"WHERE processing_status = 'pending' {license_filter}"
         
         query = f"""
             SELECT id, uuid, business_name, city, state, phone_number, 
-                   address1, contractor_license_type_code_desc, website_url
+                   address1, contractor_license_type_code_desc, contractor_license_status, website_url
             FROM contractors 
             {where_clause}
             ORDER BY id
@@ -93,6 +100,7 @@ class ContractorProcessor:
         """
         
         result = await self.db_pool.fetch(query)
+        logger.info(f"🔍 Active contractors found: {len(result)} (filtered out expired/inactive)")
         return [dict(row) for row in result]
     
     async def search_free_enrichment(self, contractor: Dict[str, Any]) -> Optional[str]:
@@ -397,7 +405,7 @@ Website Content (if available):
 {json.dumps(context['website_content'], indent=2) if context['website_content'] else 'No website content available'}
 
 Please provide a JSON response with:
-1. "category" - primary business category - USE SPECIFIC CATEGORIES ONLY: Plumbing, HVAC, Electrical, Roofing, Handyman, Flooring, Painting, Landscaping, Windows & Doors, Concrete, Fencing, Kitchen & Bath, etc. AVOID generic terms like "Construction"
+1. "category" - primary business category - USE SPECIFIC CATEGORIES ONLY: Plumbing, HVAC, Electrical, Roofing, Handyman, Flooring, Painting, Landscaping, Windows & Doors, Auto Glass, Concrete, Fencing, Kitchen & Bath, etc. AVOID generic terms like "Construction"
 2. "subcategory" - specific service type
 3. "confidence" - confidence score 0-1 (1 = very confident)
 4. "website" - business website if found
@@ -415,6 +423,8 @@ IMPORTANT: For "category", be SPECIFIC:
 - Use "Painting" for painting services
 - Use "Flooring" for flooring installation
 - Use "Landscaping" for outdoor work
+- Use "Auto Glass" for windshield repair, auto glass replacement, mobile glass service
+- Use "Windows & Doors" for residential window/door installation, NOT auto glass
 - DO NOT use generic "Construction" - be more specific
 
 IMPORTANT: For "is_residential", be EVIDENCE-BASED with website content priority:
@@ -697,16 +707,92 @@ Respond with valid JSON only.
         return False
 
     def validate_website_belongs_to_contractor_strict(self, crawled_content: Dict[str, Any], contractor: Dict[str, Any]) -> bool:
-        """STRICT validation that website belongs to contractor - requires exact matches"""
+        """ULTRA STRICT validation - requires business name, contractor services, AND location match"""
         website_text = crawled_content.get('full_text', '').upper()
         contractor_phone = contractor.get('phone_number', '')
         contractor_city = contractor.get('city', '').upper()
         contractor_state = contractor.get('state', 'WA').upper()
+        contractor_name = contractor.get('business_name', '').upper()
         
-        logger.info(f"🔍 STRICT validation for: {contractor['business_name']}")
+        logger.info(f"🔍 ULTRA STRICT validation for: {contractor['business_name']}")
+        
+        # STEP 1: Business Name Verification (CRITICAL)
+        business_name_match = self.verify_business_name_match(website_text, contractor_name)
+        if not business_name_match:
+            logger.warning(f"❌ ULTRA STRICT validation FAILED: No business name match found")
+            return False
+        
+        # STEP 2: Contractor Service Verification (CRITICAL)  
+        contractor_service_match = self.verify_contractor_services(website_text)
+        if not contractor_service_match:
+            logger.warning(f"❌ ULTRA STRICT validation FAILED: No contractor services found")
+            return False
+            
+        # STEP 3: Location Verification (CRITICAL)
+        location_match = self.verify_wa_location(website_text, contractor_city)
+        if not location_match:
+            logger.warning(f"❌ ULTRA STRICT validation FAILED: No Washington location match")
+            return False
+        
+        logger.info(f"✅ ULTRA STRICT validation PASSED: All requirements met!")
+        return True
+    
+    def verify_business_name_match(self, website_text: str, contractor_name: str) -> bool:
+        """Verify that business name or close derivative appears on website"""
+        import re
+        
+        # Extract key words from business name (remove common suffixes)
+        clean_name = re.sub(r'\s+(LLC|INC|CORP|CO|LTD|COMPANY)\s*$', '', contractor_name)
+        name_words = clean_name.split()
+        
+        # Must match at least 2 significant words (ignore numbers and common words)
+        significant_words = [word for word in name_words if len(word) > 2 and word not in ['THE', 'AND', 'OR']]
+        
+        if len(significant_words) < 2:
+            # For single word companies, need exact match
+            return clean_name in website_text
+        
+        # Check if at least 2 significant words appear on the website
+        matches = sum(1 for word in significant_words if word in website_text)
+        match_ratio = matches / len(significant_words)
+        
+        if match_ratio >= 0.6:  # At least 60% of significant words must match
+            logger.info(f"✅ Business name match: {matches}/{len(significant_words)} words matched")
+            return True
+        
+        logger.warning(f"❌ Business name mismatch: Only {matches}/{len(significant_words)} words matched")
+        return False
+    
+    def verify_contractor_services(self, website_text: str) -> bool:
+        """Verify website shows residential contractor services"""
+        contractor_keywords = [
+            # Construction services
+            'CONSTRUCTION', 'CONTRACTOR', 'BUILDING', 'REMODELING', 'RENOVATION', 'REPAIR',
+            # Specific trades
+            'PLUMBING', 'ELECTRICAL', 'HVAC', 'ROOFING', 'FLOORING', 'TILE', 'CONCRETE',
+            'PAINTING', 'DRYWALL', 'CARPENTRY', 'LANDSCAPING', 'FENCING', 'SIDING', 
+            'WINDOWS', 'DOORS', 'KITCHEN', 'BATHROOM', 'BASEMENT', 'DECK', 'PATIO',
+            # Service indicators  
+            'HOME IMPROVEMENT', 'RESIDENTIAL', 'INSTALLATION', 'REPLACEMENT', 'MAINTENANCE',
+            'HANDYMAN', 'GENERAL CONTRACTOR', 'SPECIALTY CONTRACTOR', 'LICENSED', 'INSURED',
+            # Glass/Auto specific
+            'GLASS REPAIR', 'WINDSHIELD', 'AUTO GLASS', 'GLASS REPLACEMENT', 'MOBILE GLASS'
+        ]
+        
+        matches = sum(1 for keyword in contractor_keywords if keyword in website_text)
+        
+        if matches >= 2:  # Must find at least 2 contractor-related keywords
+            logger.info(f"✅ Contractor services verified: Found {matches} service keywords")
+            return True
+        
+        logger.warning(f"❌ No contractor services found: Only {matches} service keywords")
+        return False
+    
+    def verify_wa_location(self, website_text: str, contractor_city: str) -> bool:
+        """Verify Washington state location indicators"""
+        import re
         
         # Extract all phone numbers from website content
-        import re
         phone_patterns = re.findall(r'\(?(253|206|360|425|509)\)?[-.\s]?(\d{3})[-.\s]?(\d{4})', website_text)
         
         if phone_patterns:
@@ -715,18 +801,18 @@ Respond with valid JSON only.
             website_area_codes = [match[0] for match in phone_patterns]
             
             if any(code in wa_area_codes for code in website_area_codes):
-                logger.info(f"✅ STRICT validation PASSED: Found WA area code(s): {website_area_codes}")
+                logger.info(f"✅ WA location verified: Found area code(s): {website_area_codes}")
                 
                 # Additional check: must mention contractor's city or nearby cities
                 if contractor_city in website_text:
-                    logger.info(f"✅ STRICT validation PASSED: Found matching city {contractor_city}")
+                    logger.info(f"✅ City match verified: {contractor_city}")
                     return True
                 
                 # Check for Puget Sound area cities
                 puget_sound_cities = ['SEATTLE', 'BELLEVUE', 'TACOMA', 'EVERETT', 'SPOKANE', 'KIRKLAND', 'REDMOND', 'BOTHELL', 'LYNNWOOD', 'RENTON', 'KENT', 'FEDERAL WAY', 'BURIEN']
                 if any(city in website_text for city in puget_sound_cities):
                     found_cities = [city for city in puget_sound_cities if city in website_text]
-                    logger.info(f"✅ STRICT validation PASSED: Found Puget Sound cities: {found_cities}")
+                    logger.info(f"✅ WA cities verified: {found_cities}")
                     return True
         
         # Check for Washington-specific service area mentions
@@ -737,10 +823,10 @@ Respond with valid JSON only.
         
         for indicator in wa_service_indicators:
             if indicator in website_text:
-                logger.info(f"✅ STRICT validation PASSED: Found service area indicator: {indicator}")
+                logger.info(f"✅ WA service area verified: {indicator}")
                 return True
         
-        logger.warning(f"❌ STRICT validation FAILED: No clear Washington connection found")
+        logger.warning(f"❌ No WA location indicators found")
         return False
 
     def validate_website_belongs_to_contractor_extra_strict(self, crawled_content: Dict[str, Any], contractor: Dict[str, Any]) -> bool:
