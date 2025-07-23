@@ -523,9 +523,53 @@ Respond with valid JSON only.
         except Exception as e:
             logger.error(f"Error updating contractor {contractor['business_name']}: {e}")
     
+    def is_local_contractor(self, contractor: Dict[str, Any]) -> bool:
+        """Check if contractor is in local service area based on phone number and location"""
+        # Define local Washington area codes
+        local_area_codes = ['206', '253', '360', '425', '564']  # Added 425 (Eastside) and 564 (overlay for 360)
+        
+        phone = contractor.get('phone_number', '')
+        city = contractor.get('city', '').upper()
+        state = contractor.get('state', '').upper()
+        
+        # Must be Washington state
+        if state != 'WA':
+            return False
+            
+        # Check if phone number has local area code
+        if phone:
+            # Extract area code from phone number like (425) 772-8264
+            phone_clean = phone.strip()
+            if phone_clean.startswith('(') and ')' in phone_clean:
+                area_code = phone_clean[1:4]
+                if area_code in local_area_codes:
+                    return True
+                    
+        # Also check for specific local cities if no valid phone
+        local_cities = [
+            'SEATTLE', 'TACOMA', 'SPOKANE', 'VANCOUVER', 'BELLEVUE', 'KENT', 'EVERETT',
+            'RENTON', 'YAKIMA', 'FEDERAL WAY', 'SPOKANE VALLEY', 'BELLINGHAM', 'KENNEWICK',
+            'AUBURN', 'PASCO', 'MARYSVILLE', 'LAKEWOOD', 'REDMOND', 'SHORELINE', 'RICHLAND',
+            'KIRKLAND', 'BURIEN', 'LACEY', 'OLYMPIA', 'EDMONDS', 'LYNNWOOD', 'BOTHELL',
+            'PUYALLUP', 'BREMERTON', 'SAMMAMISH', 'GIG HARBOR', 'ISSAQUAH', 'TUMWATER',
+            'MERCER ISLAND', 'MOSES LAKE', 'MUKILTEO', 'UNIVERSITY PLACE', 'WENATCHEE',
+            'LONGVIEW', 'PULLMAN', 'DES MOINES'
+        ]
+        
+        if city in local_cities:
+            return True
+            
+        return False
+
     async def process_contractor(self, contractor: Dict[str, Any]):
         """Process a single contractor"""
         try:
+            # Step 0: Validate location first
+            if not self.is_local_contractor(contractor):
+                logger.info(f"⏭️ Skipping non-local contractor: {contractor['business_name']} ({contractor.get('city', 'Unknown')}, {contractor.get('state', 'Unknown')}) - Phone: {contractor.get('phone_number', 'None')}")
+                self.stats['failed'] += 1
+                return
+                
             logger.info(f"Processing: {contractor['business_name']} ({contractor['city']}, {contractor['state']})")
             
             # Step 1: Search online
