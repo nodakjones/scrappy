@@ -67,15 +67,24 @@ class ContractorProcessor:
         await self.db_pool.close()
         logger.info("✅ Processor cleanup completed")
     
-    async def get_pending_contractors(self, limit: int = None) -> List[Dict[str, Any]]:
+    async def get_pending_contractors(self, limit: int = None, reprocess_no_website: bool = False) -> List[Dict[str, Any]]:
         """Get contractors pending processing"""
         limit_clause = f"LIMIT {limit}" if limit else ""
         
+        if reprocess_no_website:
+            # Include contractors that were processed but have no website
+            where_clause = """
+                WHERE (processing_status = 'pending' 
+                    OR (processing_status = 'completed' AND website_url IS NULL))
+            """
+        else:
+            where_clause = "WHERE processing_status = 'pending'"
+        
         query = f"""
             SELECT id, uuid, business_name, city, state, phone_number, 
-                   address1, contractor_license_type_code_desc
+                   address1, contractor_license_type_code_desc, website_url
             FROM contractors 
-            WHERE processing_status = 'pending'
+            {where_clause}
             ORDER BY id
             {limit_clause}
         """
@@ -101,7 +110,7 @@ class ContractorProcessor:
                 'key': self.google_api_key,
                 'cx': self.google_search_engine_id,
                 'q': search_query,
-                'num': 5
+                'num': 10  # Increased from 5 to 10 for better coverage
             }
             
             async with self.session.get(search_url, params=params) as response:
@@ -629,9 +638,13 @@ Respond with valid JSON only.
             website_content = None
             validated_website_url = None
             if search_results:
+                logger.info(f"🔍 Searching through {len(search_results)} Google results for valid website...")
+                
                 # Look for legitimate website URLs (filtered)
-                for result in search_results:
+                for i, result in enumerate(search_results, 1):
                     url = result.get('link', '')
+                    logger.info(f"   📄 Result {i}/{len(search_results)}: {url}")
+                    
                     filtered_url = self.filter_website_url(url)
                     if filtered_url:  # This is a legitimate website
                         logger.info(f"🎯 Found legitimate website: {filtered_url}")
@@ -645,7 +658,12 @@ Respond with valid JSON only.
                             break
                         else:
                             logger.warning(f"❌ Website rejected - doesn't match contractor: {filtered_url}")
-                            # Continue searching for a valid website
+                            logger.info(f"   🔄 Continuing to search remaining {len(search_results) - i} results...")
+                    else:
+                        logger.info(f"   ⏭️ Skipped (directory/listing): {url}")
+                
+                if not validated_website_url:
+                    logger.warning(f"🚫 No valid website found after checking all {len(search_results)} results")
             
             # Step 3: AI analysis with website content (only if validated)
             analysis = await self.analyze_with_ai(contractor, search_results or [], website_content)
@@ -688,7 +706,7 @@ Respond with valid JSON only.
                    f"{self.stats['failed']} failed "
                    f"({rate:.2f} contractors/sec)")
     
-    async def run(self, max_contractors: Optional[int] = None):
+    async def run(self, max_contractors: Optional[int] = None, reprocess_no_website: bool = False):
         """Main processing loop"""
         logger.info("🚀 Starting contractor processing...")
         
@@ -702,7 +720,7 @@ Respond with valid JSON only.
                 remaining = max_contractors - processed_count if max_contractors else None
                 batch_size = min(config.BATCH_SIZE, remaining or config.BATCH_SIZE)
                 
-                contractors = await self.get_pending_contractors(batch_size)
+                contractors = await self.get_pending_contractors(batch_size, reprocess_no_website=reprocess_no_website)
                 
                 if not contractors:
                     logger.info("✅ No more contractors to process")
@@ -747,6 +765,7 @@ async def main():
     parser = argparse.ArgumentParser(description='Process contractor records')
     parser.add_argument('--max', type=int, help='Maximum number of contractors to process')
     parser.add_argument('--test', action='store_true', help='Process only 5 records for testing')
+    parser.add_argument('--reprocess-no-website', action='store_true', help='Reprocess contractors that have no website')
     
     args = parser.parse_args()
     
@@ -761,7 +780,7 @@ async def main():
         logger.info("♾️ FULL MODE: Processing all pending contractors")
     
     processor = ContractorProcessor()
-    await processor.run(max_contractors)
+    await processor.run(max_contractors, reprocess_no_website=args.reprocess_no_website)
 
 if __name__ == "__main__":
     asyncio.run(main())
