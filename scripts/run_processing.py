@@ -83,6 +83,10 @@ class ContractorProcessor:
             if domain.startswith('www.'):
                 domain = domain[4:]
             
+            # Exclude all government domains (.gov)
+            if domain.endswith('.gov'):
+                return True, f"Government domain: {domain}"
+            
             # Check against excluded domains list
             if domain in EXCLUDED_DOMAINS:
                 return True, f"Excluded domain: {domain}"
@@ -347,8 +351,8 @@ class ContractorProcessor:
             text_content = soup.get_text()
             content['full_text'] = ' '.join(text_content.split())[:5000]  # Limit to 5k chars
             
-            # INDUSTRY ASSOCIATION DETECTION
-            # Check for industry association language patterns
+            # INDUSTRY ASSOCIATION & UNION DETECTION
+            # Check for industry association and labor union language patterns
             association_patterns = [
                 # Generic association language
                 r'supports?\s+professionals?\s+across',
@@ -368,6 +372,21 @@ class ContractorProcessor:
                 r'building\s+contractors?\s+association',
                 r'home\s+builders?\s+association',
                 
+                # Labor union patterns
+                r'international\s+brotherhood',
+                r'electrical\s+workers',
+                r'local\s+\d+',  # Local 46, Local 123, etc.
+                r'ibew',  # International Brotherhood of Electrical Workers
+                r'united\s+association',
+                r'plumbers?\s+and\s+pipefitters?',
+                r'laborers?\s+international',
+                r'operating\s+engineers?',
+                r'carpenters?\s+union',
+                r'ironworkers?\s+union',
+                r'brotherhood\s+of',
+                r'union\s+local',
+                r'local\s+union',
+                
                 # Membership/collective language
                 r'our\s+members?',
                 r'member\s+contractors?',
@@ -382,13 +401,17 @@ class ContractorProcessor:
                 r'continuing\s+education',
                 r'professional\s+development',
                 r'certification\s+programs?',
+                r'apprenticeship\s+programs?',
+                r'journeyman\s+training',
                 
                 # Advocacy language
                 r'advocates?\s+for',
                 r'promoting\s+the\s+\w+\s+industry',
                 r'advancing\s+the\s+profession',
                 r'union\s+and\s+non.?union',
-                r'both\s+union\s+and\s+non.?union'
+                r'both\s+union\s+and\s+non.?union',
+                r'collective\s+bargaining',
+                r'labor\s+relations'
             ]
             
             association_matches = []
@@ -506,12 +529,17 @@ If the website content shows "is_industry_association": true, or if you detect l
 }}
 
 ASSOCIATION INDICATORS TO WATCH FOR:
-- Language like "supports professionals across", "industry association", "trade association"
-- Text mentioning "our members", "member contractors", "member directory"
-- Phrases like "find a contractor", "contractor directory"
-- Language about "both union and non-union contractors"
-- Mentions of "training programs", "continuing education", "certification programs"
-- Examples: "The Plumbing-Heating-Cooling Contractors of Washington supports professionals..."
+- **Government domains**: Any .gov website (never an individual contractor)
+- **Industry associations**: "supports professionals across", "industry association", "trade association"
+- **Labor unions**: "International Brotherhood", "IBEW", "Local 46", "electrical workers", "united association"
+- **Membership language**: "our members", "member contractors", "member directory"
+- **Directory services**: "find a contractor", "contractor directory"
+- **Collective language**: "both union and non-union contractors", "collective bargaining"
+- **Training focus**: "apprenticeship programs", "journeyman training", "continuing education"
+- **Examples**: 
+  - "The Plumbing-Heating-Cooling Contractors of Washington supports professionals..."
+  - "IBEW Local 46 represents electrical workers in the region"
+  - "city.gov/licensing" or any government licensing site
 
 IF NOT AN ASSOCIATION, proceed with normal analysis:
 
