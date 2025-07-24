@@ -114,6 +114,19 @@ EXCLUDED_DOMAINS = {
     'washingtonstatecontractors.org',  # Washington State specific
     'oregoncontractors.org',  # Oregon specific
     'idahocontractors.org',  # Idaho specific
+    
+    # Labor Union Domains
+    'ibew46.com',  # International Brotherhood of Electrical Workers Local 46
+    'ibew46.org',  # Alternative domain
+    'ibew.org',  # IBEW National
+    'ibewlocal.com',  # Generic IBEW local domains
+    'ibewlocal.org',  # Generic IBEW local domains
+    'ualocal.org',  # United Association (plumbers/pipefitters) locals
+    'ua.org',  # United Association National
+    'liuna.org',  # Laborers International Union
+    'iuoe.org',  # International Union of Operating Engineers
+    'carpenters.org',  # United Brotherhood of Carpenters
+    'ironworkers.org',  # International Association of Bridge, Structural, Ornamental and Reinforcing Iron Workers
 }
 
 # Resource Management for Virtual Server
