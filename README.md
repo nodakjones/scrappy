@@ -304,6 +304,11 @@ Includes comprehensive coverage of all business types from your CRM:
    python scripts/run_processing.py
    ```
 
+6. **Export ready contractors:**
+   ```bash
+   python scripts/export_contractors.py --exported-by "your_name"
+   ```
+
 ### Monitor Progress
 
 **Check processing status:**
@@ -334,6 +339,45 @@ For detailed technical information including:
 - Deployment configurations
 
 **See: [TECHNICAL_SPECIFICATION.md](TECHNICAL_SPECIFICATION.md)**
+
+---
+
+## Export Tracking System
+
+The system tracks all exports to prevent duplicate downloads and maintain audit trails:
+
+### Export Commands
+
+```bash
+# Export all ready contractors (creates new batch even if already exported)
+python scripts/export_contractors.py --exported-by "user_name"
+
+# Export only previously unexported contractors
+python scripts/export_contractors.py --unexported-only --exported-by "user_name"
+
+# Track an existing CSV file retroactively
+python scripts/export_contractors.py --track-existing exports/file.csv --exported-by "user_name"
+
+# Show export summary and statistics
+python scripts/export_contractors.py --summary
+```
+
+### Export Database Fields
+
+Each exported contractor gets marked with:
+- `exported_at` - Timestamp of export
+- `export_batch_id` - Links to export_batches table
+- `marked_for_download` - Boolean flag (TRUE)
+- `marked_for_download_at` - When marked for download
+
+### Export Batches Table
+
+Tracks each export operation:
+- `batch_id` - Unique identifier
+- `export_date` - When export occurred
+- `exported_by` - Who performed the export
+- `contractor_count` - Number of contractors in batch
+- `file_path` - Path to generated CSV file
 
 ---
 
