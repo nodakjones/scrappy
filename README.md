@@ -344,15 +344,17 @@ For detailed technical information including:
 
 ## Export Tracking System
 
-The system tracks all exports to prevent duplicate downloads and maintain audit trails:
+The system tracks all exports to prevent duplicate downloads and maintain audit trails. 
+
+**Exported Statuses**: Both `approved_download` (auto-approved) and `pending_review` (manual review needed) contractors are exported together.
 
 ### Export Commands
 
 ```bash
-# Export all ready contractors (creates new batch even if already exported)
+# Export all ready contractors - both approved_download AND pending_review statuses
 python scripts/export_contractors.py --exported-by "user_name"
 
-# Export only previously unexported contractors
+# Export only previously unexported contractors (approved_download + pending_review)
 python scripts/export_contractors.py --unexported-only --exported-by "user_name"
 
 # Track an existing CSV file retroactively

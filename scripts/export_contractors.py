@@ -58,7 +58,7 @@ class ContractorExporter:
         logger.info(f"Marked {len(contractor_ids)} contractors as exported in batch {batch_id}")
     
     async def get_ready_contractors(self) -> List[Dict[str, Any]]:
-        """Get contractors ready for download (approved_download status)"""
+        """Get contractors ready for download (approved_download AND pending_review status)"""
         contractors = await self.db_pool.fetch("""
             SELECT 
                 id,
@@ -89,14 +89,14 @@ class ContractorExporter:
                 exported_at,
                 export_batch_id
             FROM contractors 
-            WHERE review_status = 'approved_download'
-            ORDER BY business_name
+            WHERE review_status IN ('approved_download', 'pending_review')
+            ORDER BY review_status, business_name
         """)
         
         return [dict(row) for row in contractors]
     
     async def get_unexported_ready_contractors(self) -> List[Dict[str, Any]]:
-        """Get contractors ready for download that haven't been exported yet"""
+        """Get contractors ready for download that haven't been exported yet (approved_download AND pending_review)"""
         contractors = await self.db_pool.fetch("""
             SELECT 
                 id,
@@ -125,8 +125,8 @@ class ContractorExporter:
                 gpt4mini_analysis,
                 created_at
             FROM contractors 
-            WHERE review_status = 'approved_download' AND exported_at IS NULL
-            ORDER BY business_name
+            WHERE review_status IN ('approved_download', 'pending_review') AND exported_at IS NULL
+            ORDER BY review_status, business_name
         """)
         
         return [dict(row) for row in contractors]
@@ -217,7 +217,7 @@ class ContractorExporter:
         contractors = await self.db_pool.fetch("""
             SELECT id, business_name 
             FROM contractors 
-            WHERE business_name = ANY($1) AND review_status = 'approved_download'
+            WHERE business_name = ANY($1) AND review_status IN ('approved_download', 'pending_review')
         """, exported_names)
         
         if not contractors:
