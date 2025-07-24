@@ -87,6 +87,10 @@ class ContractorProcessor:
             if domain.endswith('.gov'):
                 return True, f"Government domain: {domain}"
             
+            # Exclude all educational domains (.edu)
+            if domain.endswith('.edu'):
+                return True, f"Educational domain: {domain}"
+            
             # Check against excluded domains list
             if domain in EXCLUDED_DOMAINS:
                 return True, f"Excluded domain: {domain}"
@@ -528,8 +532,10 @@ If the website content shows "is_industry_association": true, or if you detect l
     "rejection_reason": "Industry association website detected"
 }}
 
-ASSOCIATION INDICATORS TO WATCH FOR:
+WEBSITE EXCLUSION INDICATORS TO WATCH FOR:
 - **Government domains**: Any .gov website (never an individual contractor)
+- **Educational domains**: Any .edu website (colleges, universities, schools)
+- **Real estate sites**: Zillow, Redfin, Realtor.com, Trulia, etc. (property listings, not contractors)
 - **Industry associations**: "supports professionals across", "industry association", "trade association"
 - **Labor unions**: "International Brotherhood", "IBEW", "Local 46", "electrical workers", "united association"
 - **Membership language**: "our members", "member contractors", "member directory"
@@ -540,6 +546,7 @@ ASSOCIATION INDICATORS TO WATCH FOR:
   - "The Plumbing-Heating-Cooling Contractors of Washington supports professionals..."
   - "IBEW Local 46 represents electrical workers in the region"
   - "city.gov/licensing" or any government licensing site
+  - "redfin.com/property-details" or real estate property listings
 
 IF NOT AN ASSOCIATION, proceed with normal analysis:
 
@@ -637,7 +644,7 @@ Respond with valid JSON only.
         # Convert to lowercase for case-insensitive matching
         url_lower = website_url.lower()
         
-        # Directory and listing sites to filter out
+        # Directory and listing sites to filter out (backup to EXCLUDED_DOMAINS)
         directory_sites = [
             'yelp.com',
             'bbb.org',
@@ -658,7 +665,6 @@ Respond with valid JSON only.
             'google.com/maps',
             'maps.google.com',
             'google.com/search',
-            'zillow.com',        # Real estate listings
             'buildzoom.com',     # Contractor directory
             'mapquest.com',      # Map/directory service
             'bloomberg.com',     # Business directory

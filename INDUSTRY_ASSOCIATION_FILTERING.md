@@ -1,8 +1,13 @@
-# 🚫 **Industry Association Filtering - Implementation Complete**
+# 🚫 **Website Filtering System - Implementation Complete**
 
-**Issue**: The system was incorrectly finding industry association websites (like `phccwa.org` for Plumbing-Heating-Cooling Contractors of Washington) as contractor business websites.
+**Issues**: The system was incorrectly matching non-contractor websites to individual contractors:
+- Industry association websites (like `phccwa.org`)
+- Labor union websites (like `ibew46.com`)
+- Government domains (like `*.gov`)
+- Educational institutions (like `*.edu`) 
+- Real estate websites (like `redfin.com`, `zillow.com`)
 
-**Solution**: Implemented comprehensive multi-layer filtering to detect and exclude industry association websites.
+**Solution**: Implemented comprehensive multi-layer filtering to detect and exclude all non-contractor websites.
 
 ---
 
@@ -52,12 +57,28 @@ language indicating this is an industry association, immediately respond with:
 - "training programs", "certification programs"
 - Example text: "The Plumbing-Heating-Cooling Contractors of Washington supports professionals..."
 
-### 3. **Expanded Excluded Domains** (`src/config.py`)
+### 3. **Comprehensive Domain Filtering** (`src/config.py` & `scripts/run_processing.py`)
 
-**Added Industry Association Domains:**
+**Top-Level Domain Exclusions:**
+```python
+# Automatic exclusions by domain type
+if domain.endswith('.gov'):
+    return True, f"Government domain: {domain}"
+
+if domain.endswith('.edu'):
+    return True, f"Educational domain: {domain}"
+```
+
+**Specific Domain Exclusions:**
 ```python
 EXCLUDED_DOMAINS = {
-    # ... existing domains ...
+    # Social Media & Directories
+    'facebook.com', 'linkedin.com', 'instagram.com', 'twitter.com',
+    'yelp.com', 'yellowpages.com', 'angi.com', 'homeadvisor.com',
+    
+    # Real Estate Domains
+    'zillow.com', 'redfin.com', 'realtor.com', 'trulia.com',
+    'homes.com', 'homefinder.com', 'realestate.com', 'apartments.com',
     
     # Industry Association Domains
     'phccwa.org',  # Plumbing-Heating-Cooling Contractors of Washington
@@ -66,12 +87,13 @@ EXCLUDED_DOMAINS = {
     'nrca.net',  # National Roofing Contractors Association
     'abc.org',  # Associated Builders and Contractors
     'nahb.org',  # National Association of Home Builders
-    'nari.org',  # National Association of the Remodeling Industry
-    'contractorsassociation.org',  # Generic contractor associations
-    'buildersassociation.org',  # Generic builders associations
-    'washingtonstatecontractors.org',  # Washington State specific
-    'oregoncontractors.org',  # Oregon specific
-    'idahocontractors.org',  # Idaho specific
+    
+    # Labor Union Domains
+    'ibew46.com',  # International Brotherhood of Electrical Workers Local 46
+    'ibew.org',  # IBEW National
+    'ua.org',  # United Association National
+    'liuna.org',  # Laborers International Union
+    'carpenters.org',  # United Brotherhood of Carpenters
 }
 ```
 
@@ -131,14 +153,32 @@ def filter_website_url(self, website_url: Optional[str]) -> Optional[str]:
 
 ## 🎯 **Detection Examples**
 
-### **Example 1: PHCC Washington**
-**URL**: `phccwa.org`
+### **Example 1: Labor Union (IBEW Local 46)**
+**URL**: `ibew46.com`
 **Detection**: 
-- ✅ Domain filtering: `phccwa.org` in `EXCLUDED_DOMAINS`
-- ✅ Content patterns: "supports professionals across", "both union and non-union"
+- ✅ Domain filtering: `ibew46.com` in `EXCLUDED_DOMAINS`
+- ✅ Content patterns: "International Brotherhood", "electrical workers", "Local 46"
 - ✅ Result: **EXCLUDED** before any processing
 
-### **Example 2: Generic Association**
+### **Example 2: Government Domain**
+**URL**: `seattle.gov/permits`
+**Detection**:
+- ✅ TLD filtering: `.gov` domain automatically excluded
+- ✅ Result: **EXCLUDED** - "Government domain: seattle.gov"
+
+### **Example 3: Real Estate Website**
+**URL**: `redfin.com/property-details/123-main-st`
+**Detection**:
+- ✅ Domain filtering: `redfin.com` in `EXCLUDED_DOMAINS`
+- ✅ Result: **EXCLUDED** - "Excluded domain: redfin.com"
+
+### **Example 4: Educational Institution**
+**URL**: `uw.edu/construction-management`
+**Detection**:
+- ✅ TLD filtering: `.edu` domain automatically excluded
+- ✅ Result: **EXCLUDED** - "Educational domain: uw.edu"
+
+### **Example 5: Industry Association (Content-Based)**
 **URL**: `someassociation.com`
 **Content**: "The Electrical Contractors Association represents contractors throughout the region. Our members include both union and non-union contractors in service, repair, and new construction. Find a contractor in our member directory."
 **Detection**:
@@ -204,4 +244,10 @@ The industry association filtering system is now fully implemented and integrate
 4. **Log exclusions** for monitoring and refinement
 5. **Continue searching** for legitimate contractor websites
 
-**No association websites like `phccwa.org` will be matched to individual contractors anymore.**
+**No non-contractor websites will be matched to individual contractors anymore:**
+- ❌ Industry associations (`phccwa.org`)
+- ❌ Labor unions (`ibew46.com`) 
+- ❌ Government sites (`*.gov`)
+- ❌ Educational institutions (`*.edu`)
+- ❌ Real estate websites (`redfin.com`, `zillow.com`)
+- ❌ Social media & directories (`facebook.com`, `yelp.com`)

@@ -101,6 +101,11 @@ EXCLUDED_DOMAINS = {
     'angi.com', 'homeadvisor.com', 'thumbtack.com', 'google.com',
     'bing.com', 'yahoo.com', 'directories.com',
     
+    # Real Estate Domains
+    'zillow.com', 'redfin.com', 'realtor.com', 'trulia.com',
+    'homes.com', 'homefinder.com', 'realestate.com', 'apartments.com',
+    'rent.com', 'rentals.com', 'padmapper.com', 'hotpads.com',
+    
     # Industry Association Domains
     'phccwa.org',  # Plumbing-Heating-Cooling Contractors of Washington
     'phccnational.org',  # PHCC National
