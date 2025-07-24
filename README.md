@@ -111,7 +111,7 @@ Final Confidence = (Website Confidence × 60%) + (AI Confidence × 40%)
 **When No Website Found (< 0.4 website confidence):**
 - **AI Analysis Skipped** - No further processing
 - Final Confidence = 0.0
-- Status = "No Website"
+- Status = "rejected" (auto-rejected due to no validated website)
 
 ### AI Confidence Component
 
@@ -141,8 +141,7 @@ Each contractor record has two key status fields that track processing progress:
 |---------------|------------------|-------------|-----------------|
 | **`approved_download`** | ≥ 0.8 | **Auto-approved** ✅ | Ready for export |
 | **`pending_review`** | 0.6 - 0.79 | **Manual review needed** ⚠️ | Requires human validation |
-| **`rejected`** | < 0.6 | **Auto-rejected** ❌ | Low quality, filtered out |
-| **`No Website`** | 0.0 | **No validated website** 📋 | Could not verify business |
+| **`rejected`** | < 0.6 | **Auto-rejected** ❌ | Low quality or no website found |
 
 ### Status Workflow Examples
 
@@ -168,7 +167,7 @@ Each contractor record has two key status fields that track processing progress:
 - Website Confidence: 0.0 (no websites passed 0.4 threshold)
 - AI Analysis: Skipped
 - Final Confidence: **0.0**
-- Status: `completed` → `No Website` 📋
+- Status: `completed` → `rejected` ❌
 
 ---
 

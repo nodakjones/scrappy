@@ -312,7 +312,7 @@ else:
         'website_url': None,
         'confidence_score': 0.0,
         'processing_status': 'completed',
-        'category': 'No Website',
+        'category': 'Unknown',
         'skipped_reason': 'No validated website found'
     })
 ```

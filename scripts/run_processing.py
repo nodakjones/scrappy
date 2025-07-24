@@ -1404,12 +1404,12 @@ Respond with valid JSON only.
                 # No valid website found - skip AI evaluation as requested
                 logger.info("❌ No validated website found - skipping AI evaluation as requested")
                 analysis = {
-                    'category': 'No Website',
+                    'category': 'Unknown',
                     'confidence': 0.0,
                     'verified': False,
                     'is_residential': None,
                     'website': None,
-                    'description': 'No validated website found',
+                    'description': 'No validated website found - could not categorize',
                     'services': [],
                     'skipped_reason': 'No website found'
                 }
