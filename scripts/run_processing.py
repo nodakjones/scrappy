@@ -126,11 +126,18 @@ class ContractorProcessor:
         else:
             where_clause = f"WHERE processing_status = 'pending' {license_filter}"
         
+        # Add geographic filter to target Puget Sound area only (exclude Eastern WA)
+        geographic_filter = """
+            AND state = 'WA' 
+            AND phone_number ~ '^\\((?:206|253|360|425|564)\\)'
+        """
+        
         query = f"""
             SELECT id, uuid, business_name, city, state, phone_number, 
                    address1, contractor_license_type_code_desc, contractor_license_status, website_url
             FROM contractors 
             {where_clause}
+            {geographic_filter}
             ORDER BY id
             {limit_clause}
         """
@@ -791,8 +798,8 @@ Respond with valid JSON only.
     
     def is_local_contractor(self, contractor: Dict[str, Any]) -> bool:
         """Check if contractor is in local service area based on phone number and location"""
-        # Define local Washington area codes
-        local_area_codes = ['206', '253', '360', '425', '509', '564']  # 206/Seattle, 253/Tacoma, 360/Olympia, 425/Eastside, 509/Spokane, 564/overlay
+        # Define Puget Sound area codes (excluding Eastern WA)
+        local_area_codes = ['206', '253', '360', '425', '564']  # 206/Seattle, 253/Tacoma, 360/Olympia, 425/Eastside, 564/overlay
         
         phone = contractor.get('phone_number', '')
         city = contractor.get('city', '').upper()
