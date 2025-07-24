@@ -99,7 +99,21 @@ EXCLUDED_DOMAINS = {
     'facebook.com', 'linkedin.com', 'instagram.com', 'twitter.com',
     'yelp.com', 'yellowpages.com', 'whitepages.com', 'bbb.org',
     'angi.com', 'homeadvisor.com', 'thumbtack.com', 'google.com',
-    'bing.com', 'yahoo.com', 'directories.com'
+    'bing.com', 'yahoo.com', 'directories.com',
+    
+    # Industry Association Domains
+    'phccwa.org',  # Plumbing-Heating-Cooling Contractors of Washington
+    'phccnational.org',  # PHCC National
+    'neca.org',  # National Electrical Contractors Association
+    'nrca.net',  # National Roofing Contractors Association
+    'abc.org',  # Associated Builders and Contractors
+    'nahb.org',  # National Association of Home Builders
+    'nari.org',  # National Association of the Remodeling Industry
+    'contractorsassociation.org',  # Generic contractor associations
+    'buildersassociation.org',  # Generic builders associations
+    'washingtonstatecontractors.org',  # Washington State specific
+    'oregoncontractors.org',  # Oregon specific
+    'idahocontractors.org',  # Idaho specific
 }
 
 # Resource Management for Virtual Server

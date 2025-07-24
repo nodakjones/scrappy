@@ -20,7 +20,7 @@ import time
 # Add src to path
 sys.path.append(str(Path(__file__).parent.parent))
 
-from src.config import config
+from src.config import config, EXCLUDED_DOMAINS
 from src.database.connection import DatabasePool
 
 # Setup logging
@@ -69,6 +69,34 @@ class ContractorProcessor:
             await self.session.close()
         await self.db_pool.close()
         logger.info("✅ Processor cleanup completed")
+    
+    def is_excluded_website(self, url: str, website_content: Optional[Dict[str, Any]] = None) -> tuple[bool, str]:
+        """Check if website should be excluded based on domain or industry association detection"""
+        from urllib.parse import urlparse
+        
+        try:
+            # Parse the URL to get the domain
+            parsed = urlparse(url)
+            domain = parsed.netloc.lower()
+            
+            # Remove 'www.' prefix if present
+            if domain.startswith('www.'):
+                domain = domain[4:]
+            
+            # Check against excluded domains list
+            if domain in EXCLUDED_DOMAINS:
+                return True, f"Excluded domain: {domain}"
+            
+            # Check if website content indicates an industry association
+            if website_content and website_content.get('is_industry_association', False):
+                indicators = website_content.get('association_indicators', [])
+                return True, f"Industry association detected: {indicators[:2]}"  # Show first 2 indicators
+            
+            return False, ""
+            
+        except Exception as e:
+            logger.warning(f"Error checking excluded website {url}: {e}")
+            return False, ""
     
     async def get_pending_contractors(self, limit: int = None, reprocess_no_website: bool = False) -> List[Dict[str, Any]]:
         """Get contractors pending processing (EXCLUDES expired/inactive contractors)"""
@@ -301,7 +329,9 @@ class ContractorProcessor:
                 'description': '',
                 'full_text': '',
                 'contact_info': '',
-                'keywords': []
+                'keywords': [],
+                'is_industry_association': False,
+                'association_indicators': []
             }
             
             # Get page title
@@ -316,6 +346,61 @@ class ContractorProcessor:
             # Extract text from key sections
             text_content = soup.get_text()
             content['full_text'] = ' '.join(text_content.split())[:5000]  # Limit to 5k chars
+            
+            # INDUSTRY ASSOCIATION DETECTION
+            # Check for industry association language patterns
+            association_patterns = [
+                # Generic association language
+                r'supports?\s+professionals?\s+across',
+                r'industry\s+association',
+                r'trade\s+association',
+                r'professional\s+association',
+                r'contractors?\s+association',
+                r'membership\s+organization',
+                r'represents?\s+contractors?',
+                r'serves?\s+the\s+\w+\s+industry',
+                r'supports?\s+\w+\s+contractors?',
+                
+                # Specific association indicators
+                r'plumbing.{0,50}heating.{0,50}cooling.{0,50}contractors?.{0,50}washington',
+                r'electrical\s+contractors?\s+association',
+                r'roofing\s+contractors?\s+association',
+                r'building\s+contractors?\s+association',
+                r'home\s+builders?\s+association',
+                
+                # Membership/collective language
+                r'our\s+members?',
+                r'member\s+contractors?',
+                r'member\s+companies',
+                r'certified\s+members?',
+                r'member\s+directory',
+                r'find\s+a\s+contractor',
+                r'contractor\s+directory',
+                
+                # Training/education focus
+                r'training\s+programs?',
+                r'continuing\s+education',
+                r'professional\s+development',
+                r'certification\s+programs?',
+                
+                # Advocacy language
+                r'advocates?\s+for',
+                r'promoting\s+the\s+\w+\s+industry',
+                r'advancing\s+the\s+profession',
+                r'union\s+and\s+non.?union',
+                r'both\s+union\s+and\s+non.?union'
+            ]
+            
+            association_matches = []
+            for pattern in association_patterns:
+                matches = re.findall(pattern, text_content, re.IGNORECASE)
+                if matches:
+                    association_matches.extend(matches)
+            
+            # Set association flag if multiple indicators found
+            if len(association_matches) >= 2:  # Require at least 2 indicators
+                content['is_industry_association'] = True
+                content['association_indicators'] = association_matches[:5]  # Limit stored matches
             
             # Look for specific sections
             about_sections = soup.find_all(['div', 'section', 'p'], 
@@ -362,7 +447,9 @@ class ContractorProcessor:
                 'description': '',
                 'full_text': html_content[:1000] if html_content else '',
                 'contact_info': '',
-                'keywords': []
+                'keywords': [],
+                'is_industry_association': False,
+                'association_indicators': []
             }
     
     async def analyze_with_ai(self, contractor: Dict[str, Any], search_results: List[Dict], website_content: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
@@ -403,6 +490,30 @@ Search Results:
 
 Website Content (if available):
 {json.dumps(context['website_content'], indent=2) if context['website_content'] else 'No website content available'}
+
+CRITICAL FIRST CHECK - INDUSTRY ASSOCIATION DETECTION:
+If the website content shows "is_industry_association": true, or if you detect language indicating this is an industry association (not an individual contractor's business), immediately respond with:
+{{
+    "category": "Industry Association",
+    "subcategory": "Trade Association",
+    "confidence": 0.0,
+    "website": null,
+    "description": "Industry association website, not individual contractor",
+    "services": [],
+    "verified": false,
+    "is_residential": null,
+    "rejection_reason": "Industry association website detected"
+}}
+
+ASSOCIATION INDICATORS TO WATCH FOR:
+- Language like "supports professionals across", "industry association", "trade association"
+- Text mentioning "our members", "member contractors", "member directory"
+- Phrases like "find a contractor", "contractor directory"
+- Language about "both union and non-union contractors"
+- Mentions of "training programs", "continuing education", "certification programs"
+- Examples: "The Plumbing-Heating-Cooling Contractors of Washington supports professionals..."
+
+IF NOT AN ASSOCIATION, proceed with normal analysis:
 
 Please provide a JSON response with:
 1. "category" - primary business category - USE SPECIFIC CATEGORIES ONLY: Plumbing, HVAC, Electrical, Roofing, Handyman, Flooring, Painting, Landscaping, Windows & Doors, Auto Glass, Concrete, Fencing, Kitchen & Bath, etc. AVOID generic terms like "Construction"
@@ -485,8 +596,14 @@ Respond with valid JSON only.
         await asyncio.sleep(config.LLM_DELAY)
 
     def filter_website_url(self, website_url: Optional[str]) -> Optional[str]:
-        """Filter out directory and listing websites, return None if it's a directory site"""
+        """Filter out directory, listing websites, excluded domains, and industry associations"""
         if not website_url:
+            return None
+        
+        # Check against excluded domains first
+        is_excluded, exclusion_reason = self.is_excluded_website(website_url)
+        if is_excluded:
+            logger.debug(f"URL filtered by excluded domains: {exclusion_reason}")
             return None
         
         # Convert to lowercase for case-insensitive matching
@@ -1170,6 +1287,14 @@ Respond with valid JSON only.
                         logger.info(f"🎯 Found legitimate website: {filtered_url}")
                         crawled_content = await self.crawl_website_content(filtered_url, contractor)
                         
+                        # FIRST: Check for industry association before any validation
+                        if crawled_content:
+                            is_excluded, exclusion_reason = self.is_excluded_website(filtered_url, crawled_content)
+                            if is_excluded:
+                                logger.warning(f"🚫 Website excluded: {exclusion_reason} - {filtered_url}")
+                                logger.info(f"   🔄 Continuing to search remaining {len(search_results) - i} results...")
+                                continue
+                        
                         # Validate that this website actually belongs to the contractor with STRICT validation
                         if crawled_content and self.validate_website_belongs_to_contractor_strict(crawled_content, contractor):
                             # Calculate comprehensive 5-factor confidence score
@@ -1208,6 +1333,14 @@ Respond with valid JSON only.
                     if filtered_url:
                         logger.info(f"🎯 Free enrichment provided legitimate website: {filtered_url}")
                         crawled_content = await self.crawl_website_content(filtered_url, contractor)
+                        
+                        # FIRST: Check for industry association before validation
+                        if crawled_content:
+                            is_excluded, exclusion_reason = self.is_excluded_website(filtered_url, crawled_content)
+                            if is_excluded:
+                                logger.warning(f"🚫 Free enrichment website excluded: {exclusion_reason} - {filtered_url}")
+                                logger.warning("🚫 Both Google Search and free enrichment failed to find valid website")
+                                return
                         
                         # EXTRA STRICT validation for domain guessed results
                         if crawled_content and self.validate_website_belongs_to_contractor_extra_strict(crawled_content, contractor):
