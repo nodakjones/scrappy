@@ -2,6 +2,10 @@
 
 *An AI-powered system for automatically validating, categorizing, and enriching contractor business data*
 
+## 🚨 IMPORTANT: READ FIRST
+**Before making ANY changes to this system, read [IMPORTANT_SETUP_NOTES.md](IMPORTANT_SETUP_NOTES.md)**  
+**Never overwrite existing .env files or assume the database is empty!**
+
 ---
 
 ## Overview
