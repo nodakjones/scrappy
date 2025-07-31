@@ -31,21 +31,28 @@ async def check_completion_and_export():
         )
         
         # Check if background process is still running
-        result = subprocess.run(['pgrep', '-f', 'run_processing.py'], 
-                              capture_output=True, text=True)
-        process_running = bool(result.stdout.strip())
+        try:
+            result = subprocess.run(['pgrep', '-f', 'run_processing.py'], 
+                                  capture_output=True, text=True, timeout=10)
+            process_running = bool(result.stdout.strip())
+        except (subprocess.TimeoutExpired, subprocess.SubprocessError):
+            logger.warning("Process check failed, assuming not running")
+            process_running = False
         
         ready_for_export = await db.pool.fetchval('''
             SELECT COUNT(*) FROM contractors 
             WHERE processing_status = 'completed' 
-            AND review_status = 'approved_download'
+            AND review_status IN ('approved_download', 'pending_review')
             AND exported_at IS NULL
         ''')
         
         logger.info(f"Status: {completed}/5000 processed, {ready_for_export} ready for export, process running: {process_running}")
         
         # Export if we have records ready and either completed 5000 or process stopped
-        if ready_for_export > 0 and (completed >= 5000 or not process_running):
+        should_export = ready_for_export > 0 and (completed >= 5000 or not process_running)
+        logger.info(f"Export conditions: ready={ready_for_export > 0}, target_reached={completed >= 5000}, process_stopped={not process_running}, should_export={should_export}")
+        
+        if should_export:
             logger.info(f"🎯 Processing complete! Exporting {ready_for_export} records...")
             
             # Generate export filename
