@@ -240,14 +240,43 @@ class ContractorProcessor:
     async def search_contractor_online(self, contractor: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Search for contractor information using Google Custom Search (fallback)"""
         try:
+            # Clean business name for better search results
+            business_name = contractor['business_name']
+            # Remove special characters and expand common abbreviations
+            business_name = business_name.replace('@', '').replace('&', 'AND')
+            # Expand common contractor abbreviations
+            abbreviations = {
+                ' APPL RPR': ' APPLIANCE REPAIR',
+                ' CONST ': ' CONSTRUCTION ',
+                ' CONSTR ': ' CONSTRUCTION ',
+                ' ELEC ': ' ELECTRICAL ',
+                ' PLMB ': ' PLUMBING ',
+                ' HVAC ': ' HEATING VENTILATION AIR CONDITIONING ',
+                ' RPR ': ' REPAIR ',
+                ' SVC ': ' SERVICE ',
+                ' SVCS ': ' SERVICES ',
+                ' LLC': '',
+                ' INC': '',
+                ' CORP': '',
+                ' CO': ' COMPANY'
+            }
+            
+            for abbrev, full in abbreviations.items():
+                business_name = business_name.replace(abbrev, full)
+            
+            # Clean up extra spaces
+            business_name = ' '.join(business_name.split())
+            
             # Build search query
-            query_parts = [contractor['business_name']]
+            query_parts = [business_name]
             if contractor.get('city'):
                 query_parts.append(contractor['city'])
             if contractor.get('state'):
                 query_parts.append(contractor['state'])
             
             search_query = " ".join(query_parts)
+            if business_name != contractor['business_name']:
+                logger.info(f"🧹 Cleaned business name: '{contractor['business_name']}' -> '{business_name}'")
             logger.info(f"🔍 Google Search Query: '{search_query}'")
             
             # Google Custom Search API call
