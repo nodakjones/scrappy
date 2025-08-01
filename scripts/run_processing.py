@@ -183,27 +183,7 @@ class ContractorProcessor:
             
             logger.info(f"🔍 Trying free enrichment for: {clean_name}")
             
-            # Step 1: Try Clearbit (when available)
-            try:
-                clearbit_url = "https://company.clearbit.com/v1/domains/find"
-                params = {'name': clean_name}
-                
-                async with self.session.get(clearbit_url, params=params, timeout=5) as response:
-                    if response.status == 200:
-                        data = await response.json()
-                        domain = data.get('domain')
-                        if domain:
-                            website_url = f"https://{domain}"
-                            logger.info(f"✅ Clearbit found website: {website_url}")
-                            return website_url
-                    elif response.status == 401:
-                        logger.info(f"🔒 Clearbit requires authentication - skipping")
-                    elif response.status != 404:  # 404 is normal "not found"
-                        logger.info(f"⚠️ Clearbit API status {response.status}")
-            except Exception as e:
-                logger.info(f"⚠️ Clearbit unavailable: {e}")
-            
-            # Step 2: Try common domain patterns (completely free)
+            # Try common domain patterns (completely free)
             logger.info(f"🎯 Trying domain guessing for: {clean_name}")
             
             # Generate potential domains from company name
@@ -290,13 +270,20 @@ class ContractorProcessor:
         try:
             logger.info(f"🕷️ Crawling website: {url}")
             
-            # Set reasonable timeout and headers
+            # Set comprehensive browser-like headers to avoid 403 errors
             headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.5',
-                'Accept-Encoding': 'gzip, deflate',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Accept-Encoding': 'gzip, deflate, br',
                 'Connection': 'keep-alive',
+                'Upgrade-Insecure-Requests': '1',
+                'Sec-Fetch-Dest': 'document',
+                'Sec-Fetch-Mode': 'navigate',
+                'Sec-Fetch-Site': 'none',
+                'Sec-Fetch-User': '?1',
+                'Cache-Control': 'max-age=0',
+                'DNT': '1',
             }
             
             start_time = time.time()
@@ -1368,14 +1355,14 @@ Respond with valid JSON only.
         )
         
         try:
-            # Clear separator for new contractor
-            contractor_logger.info("=" * 80)
-            contractor_logger.info(f"🏢 PROCESSING CONTRACTOR #{contractor.get('id', 'Unknown')}")
-            contractor_logger.info(f"📋 Business: {contractor['business_name']}")
-            contractor_logger.info(f"📍 Location: {contractor.get('city', 'Unknown')}, {contractor.get('state', 'Unknown')}")
-            contractor_logger.info(f"📞 Phone: {contractor.get('phone_number', 'None')}")
-            contractor_logger.info(f"🏗️  License: {contractor.get('contractor_license_type_code_desc', 'Unknown')}")
-            contractor_logger.info("=" * 80)
+            # Clear separator for new contractor - log immediately to show progress
+            logger.info("=" * 80)
+            logger.info(f"🏢 PROCESSING CONTRACTOR #{contractor.get('id', 'Unknown')}")
+            logger.info(f"📋 Business: {contractor['business_name']}")
+            logger.info(f"📍 Location: {contractor.get('city', 'Unknown')}, {contractor.get('state', 'Unknown')}")
+            logger.info(f"📞 Phone: {contractor.get('phone_number', 'None')}")
+            logger.info(f"🏗️  License: {contractor.get('contractor_license_type_code_desc', 'Unknown')}")
+            logger.info("=" * 80)
             
             # Step 0: Validate location first
             if not self.is_local_contractor(contractor):
@@ -1514,16 +1501,16 @@ Respond with valid JSON only.
                 }
                 await self.update_contractor_results(contractor, analysis, search_results or [], None)
             
-            # Completion separator
-            contractor_logger.info("✅ CONTRACTOR PROCESSING COMPLETE")
-            contractor_logger.info("=" * 80)
+            # Completion separator - log immediately
+            logger.info("✅ CONTRACTOR PROCESSING COMPLETE")
+            logger.info("=" * 80)
             
             # Flush all logs for this contractor as a complete group
             contractor_logger.flush_to_main_logger()
             
         except Exception as e:
-            contractor_logger.error(f"❌ ERROR processing contractor {contractor['business_name']}: {e}")
-            contractor_logger.info("=" * 80)
+            logger.error(f"❌ ERROR processing contractor {contractor['business_name']}: {e}")
+            logger.info("=" * 80)
             # Flush logs even on error
             contractor_logger.flush_to_main_logger()
             self.stats['failed'] += 1
