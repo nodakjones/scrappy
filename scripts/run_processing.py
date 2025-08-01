@@ -637,6 +637,42 @@ Respond with valid JSON only.
         # Rate limiting
         await asyncio.sleep(config.LLM_DELAY)
 
+    def _get_url_rejection_reason(self, website_url: Optional[str]) -> str:
+        """Get detailed reason why a URL was rejected"""
+        if not website_url:
+            return "Empty/null URL"
+        
+        # Check against excluded domains first
+        is_excluded, exclusion_reason = self.is_excluded_website(website_url)
+        if is_excluded:
+            return f"Excluded domain ({exclusion_reason})"
+        
+        # Convert to lowercase for case-insensitive matching
+        url_lower = website_url.lower()
+        
+        # Directory and listing sites to filter out (backup to EXCLUDED_DOMAINS)
+        directory_sites = [
+            'yelp.com', 'bbb.org', 'better business bureau', 'angieslist.com', 'angi.com',
+            'homeadvisor.com', 'thumbtack.com', 'porch.com', 'yellowpages.com', 'superpages.com',
+            'manta.com', 'foursquare.com', 'facebook.com', 'linkedin.com', 'indeed.com',
+            'glassdoor.com', 'google.com/maps', 'maps.google.com', 'google.com/search',
+            'buildzoom.com', 'mapquest.com', 'bloomberg.com', 'instagram.com', 'twitter.com',
+            'directory', 'listings', 'find_desc=', 'find_loc='
+        ]
+        
+        # Check if URL contains any directory site patterns
+        for directory_pattern in directory_sites:
+            if directory_pattern in url_lower:
+                return f"Directory/listing site ({directory_pattern})"
+        
+        # Additional checks for search result URLs
+        search_patterns = ['search?', 'results?', 'find?']
+        for pattern in search_patterns:
+            if pattern in url_lower:
+                return f"Search result URL ({pattern})"
+        
+        return "Unknown rejection reason"
+
     def filter_website_url(self, website_url: Optional[str]) -> Optional[str]:
         """Filter out directory, listing websites, excluded domains, and industry associations"""
         if not website_url:
@@ -645,7 +681,6 @@ Respond with valid JSON only.
         # Check against excluded domains first
         is_excluded, exclusion_reason = self.is_excluded_website(website_url)
         if is_excluded:
-            logger.debug(f"URL filtered by excluded domains: {exclusion_reason}")
             return None
         
         # Convert to lowercase for case-insensitive matching
@@ -653,34 +688,12 @@ Respond with valid JSON only.
         
         # Directory and listing sites to filter out (backup to EXCLUDED_DOMAINS)
         directory_sites = [
-            'yelp.com',
-            'bbb.org',
-            'better business bureau',
-            'angieslist.com',
-            'angi.com',
-            'homeadvisor.com',
-            'thumbtack.com',
-            'porch.com',
-            'yellowpages.com',
-            'superpages.com',
-            'manta.com',
-            'foursquare.com',
-            'facebook.com',
-            'linkedin.com',
-            'indeed.com',
-            'glassdoor.com',
-            'google.com/maps',
-            'maps.google.com',
-            'google.com/search',
-            'buildzoom.com',     # Contractor directory
-            'mapquest.com',      # Map/directory service
-            'bloomberg.com',     # Business directory
-            'instagram.com',     # Social media
-            'twitter.com',       # Social media
-            'directory',
-            'listings',
-            'find_desc=',  # Google search URLs
-            'find_loc=',   # Google search URLs
+            'yelp.com', 'bbb.org', 'better business bureau', 'angieslist.com', 'angi.com',
+            'homeadvisor.com', 'thumbtack.com', 'porch.com', 'yellowpages.com', 'superpages.com',
+            'manta.com', 'foursquare.com', 'facebook.com', 'linkedin.com', 'indeed.com',
+            'glassdoor.com', 'google.com/maps', 'maps.google.com', 'google.com/search',
+            'buildzoom.com', 'mapquest.com', 'bloomberg.com', 'instagram.com', 'twitter.com',
+            'directory', 'listings', 'find_desc=', 'find_loc='
         ]
         
         # Check if URL contains any directory site patterns
@@ -1332,19 +1345,25 @@ Respond with valid JSON only.
                     
                     filtered_url = self.filter_website_url(url)
                     if filtered_url:  # This is a legitimate website
-                        logger.info(f"🎯 Found legitimate website: {filtered_url}")
+                        logger.info(f"   ✅ ACCEPTED: Legitimate website URL")
+                        logger.info(f"   🕷️ Crawling website: {filtered_url}")
                         crawled_content = await self.crawl_website_content(filtered_url, contractor)
                         
                         # FIRST: Check for industry association before any validation
                         if crawled_content:
                             is_excluded, exclusion_reason = self.is_excluded_website(filtered_url, crawled_content)
                             if is_excluded:
-                                logger.warning(f"🚫 Website excluded: {exclusion_reason} - {filtered_url}")
+                                logger.warning(f"   🚫 REJECTED: {exclusion_reason}")
                                 logger.info(f"   🔄 Continuing to search remaining {len(search_results) - i} results...")
                                 continue
+                        else:
+                            logger.warning(f"   ❌ REJECTED: Failed to crawl website content")
+                            logger.info(f"   🔄 Continuing to search remaining {len(search_results) - i} results...")
+                            continue
                         
                         # Validate that this website actually belongs to the contractor with STRICT validation
-                        if crawled_content and self.validate_website_belongs_to_contractor_strict(crawled_content, contractor):
+                        logger.info(f"   🔍 Validating website belongs to contractor...")
+                        if self.validate_website_belongs_to_contractor_strict(crawled_content, contractor):
                             # Calculate comprehensive 5-factor confidence score
                             website_confidence = self.calculate_website_confidence_score(crawled_content, contractor)
                             
@@ -1354,19 +1373,23 @@ Respond with valid JSON only.
                                 validated_website_url = filtered_url
                                 # Store the website confidence for later use
                                 website_content['website_confidence'] = website_confidence
-                                logger.info(f"✅ Website accepted with confidence {website_confidence:.2f}: {filtered_url}")
+                                logger.info(f"   ✅ WEBSITE VALIDATED: Confidence {website_confidence:.2f} - USING THIS WEBSITE")
                                 break
                             else:
-                                logger.warning(f"❌ Website confidence too low ({website_confidence:.2f} < 0.4): {filtered_url}")
+                                logger.warning(f"   ❌ REJECTED: Website confidence too low ({website_confidence:.2f} < 0.4)")
                                 logger.info(f"   🔄 Continuing to search remaining {len(search_results) - i} results...")
                         else:
-                            logger.warning(f"❌ Website rejected - doesn't match contractor (STRICT): {filtered_url}")
+                            logger.warning(f"   ❌ REJECTED: Website doesn't match contractor (failed validation)")
                             logger.info(f"   🔄 Continuing to search remaining {len(search_results) - i} results...")
                     else:
-                        logger.info(f"   ⏭️ Skipped (directory/listing): {url}")
+                        # Log why this URL was filtered out
+                        rejection_reason = self._get_url_rejection_reason(url)
+                        logger.info(f"   ⏭️ SKIPPED: {rejection_reason}")
                 
                 if not validated_website_url:
-                    logger.warning(f"🚫 No valid website found after checking all {len(search_results)} Google results")
+                    logger.warning(f"🚫 SEARCH COMPLETE: No valid website found after checking all {len(search_results)} Google results")
+                else:
+                    logger.info(f"🎯 SEARCH COMPLETE: Found and validated website: {validated_website_url}")
             else:
                 logger.warning("🚫 No Google search results found")
             
