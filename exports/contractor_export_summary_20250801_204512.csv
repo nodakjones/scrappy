@@ -1,0 +1,337 @@
+id,business_name,city,state,phone_number,contractor_license_number,is_home_contractor,mailer_category,website_url,confidence_score,processing_status,last_processed
+10,$AVER HARDWOOD FLOORS LLC,RENTON,WA,(206) 372-5166,AVERHHF946CM,True,Flooring,,1.00,completed,2025-07-23 02:35:15
+13,(H)ANDYMAN LLC,SEATTLE,WA,(206) 963-7622,HANDYL*845B8,True,Handyman,,1.00,completed,2025-07-23 03:12:15
+43,1 TOM PLUMBER,KENNEWICK,WA,(509) 727-3413,1TOMPTP773O8,True,Plumbing,https://www.1tomplumber.com/tri-cities/,1.00,completed,2025-07-23 03:17:15
+45,1 WAY ELECTRICAL SERVS LLC,SEATTLE,WA,(206) 694-9024,1WAYEWE761MS,,Electrical,,1.00,completed,2025-07-23 03:17:20
+47,1-2-3 CONSTRUCTION LLC,OAK HARBOR,WA,(360) 720-1125,123COCL847CZ,True,Kitchen & Bath,https://www.1-2-3construction.com/,1.00,completed,2025-07-23 03:17:26
+44,1 TOM PLUMBER STTL & GRTR ES,WOODINVILLE,WA,(425) 256-3408,1TOMPTP761D5,True,Plumbing,https://us.nextdoor.com/pages/1-tom-plumber-woodinville-wa/,1.00,completed,2025-07-23 03:17:26
+49,1-800 PLUMBER & AIR PACIFIC NW,BEAVERTON,OR,(503) 676-3449,1800PPA785KB,True,Plumbing,https://1800plumber.com/portland-or/,1.00,completed,2025-07-23 03:17:35
+48,1-2-3 PLUMBING LLC,TACOMA,WA,(253) 882-4845,123PLPL767OF,,Plumbing,,1.00,completed,2025-07-23 03:17:35
+57,1-800-STRIPER OF BELLEVUE,KIRKLAND,WA,(425) 532-5401,1800SB*767M5,False,Painting,https://1800striper.com/striper-of-bellevue/,1.00,completed,2025-07-23 03:17:58
+56,1-800-PLUMBER + AIR,REDMOND,WA,(425) 298-6969,1800PA*771MU,True,Plumbing,https://1800plumber.com/,1.00,completed,2025-07-23 03:18:06
+77,101 ROOF CLEANING,SEQUIM,WA,(360) 531-3321,101RORC762CZ,True,Roofing,https://nextdoor.com/pages/101-roof-cleaning-port-townsend-wa/,1.00,completed,2025-07-23 03:19:07
+105,12 DECKS & FENCES LLC,Snohomish,WA,(206) 487-6747,12DECDF813MN,True,Fencing,https://12decks.vercel.app/,1.00,completed,2025-07-23 03:20:36
+122,123 Electric Service Inc,Bellevue,WA,(425) 455-2027,123ELES877DA,True,Electrical,https://123electricservice.com/,1.00,completed,2025-07-23 04:54:08
+123,123 Electric Service Inc,Bellevue,WA,(425) 455-2027,123ELES892CP,True,Electrical,https://123electricservice.com/,1.00,completed,2025-07-23 04:54:19
+131,12TH HANDYMAN,SEATTLE,WA,(707) 364-3996,12THHH*787P5,True,Handyman,https://www.12thhandyman.com/,1.00,completed,2025-07-23 04:54:45
+133,12TH MAN FLOORING LLC,YELM,WA,(509) 993-4545,12THMMF845RH,True,Flooring,https://www.thurstoncountywa.gov/departments/public-health-and-social-services/environmental-health/food-safety/food-safety-look-up,1.00,completed,2025-07-23 04:55:26
+145,13THIRTYSEVEN ELECTRIC LLC,EVERETT,WA,(425) 830-7342,13THIEL760KL,,Electrical,https://archive.org/stream/NewsUK1977UKEnglish/Jan%2014%201977%2C%20The%20Times%2C%20%2359907%2C%20UK%20%28en%29_djvu.txt,1.00,completed,2025-07-23 04:55:51
+176,180 ELECTRIC LLC,SPOKANE VALLEY,WA,(509) 475-1350,180ELEL945NW,,Electrical,https://www.spokanevalleyed.org/DocumentCenter/View/2374,1.00,completed,2025-07-23 04:57:53
+200,1LIFE CONSTRUCTION INC,SEATTLE,WA,(206) 676-2192,1LIFECI861M5,True,Plumbing,https://thepipedr.com/12345-lake-city-way-ne-ste-311-seattle-wa-98125/,1.00,completed,2025-07-23 05:17:43
+216,1ST CALL PLUMBING & HTG LLC,TACOMA,WA,(253) 244-4325,1STCACP751LB,,Plumbing,https://1st.net,1.00,completed,2025-07-23 05:27:10
+218,1ST CHANCE ELECTRIC INC,SPOKANE,WA,(509) 475-9175,1STCHCE790ON,,Electrical,https://1st.net,1.00,completed,2025-07-23 05:27:17
+225,1ST CHOICE CONSTRUCTION INC,Algona,WA,(253) 569-4588,1STCHCC921OE,True,Roofing,https://1stchoicehomeconstruction.com/,1.00,completed,2025-07-23 05:27:48
+237,1ST CHOICE LANDSCAPING,ARLINGTON,WA,(360) 999-8926,1STCHCL857MG,True,Landscaping,https://1stchoicelandscapinginc.com/,1.00,completed,2025-07-23 05:28:35
+238,1ST CHOICE LANDSCAPING INC,Marysville,WA,(360) 926-3004,1STCHCL822JK,True,Landscaping,https://1stchoicelandscapinginc.com/,1.00,completed,2025-07-23 05:28:37
+242,1st Choice Plumbing & Rep. LLC,SELAH,WA,(509) 895-4035,1STCHCP796DP,,Plumbing,https://1st.net,1.00,completed,2025-07-23 05:28:49
+241,1ST CHOICE PAINTING LLP,PUYALLUP,WA,(253) 548-6183,1STCHCP807LP,,Painting,https://1st.net,1.00,completed,2025-07-23 05:28:52
+244,1ST CHOICE PLUMBING INC,EVERETT,WA,(425) 876-8015,1STCHCP788O2,True,Plumbing,https://1st-choice-plumbing.com,1.00,completed,2025-07-23 05:29:00
+245,1ST CHOICE PLUMBING INC,EVERETT,WA,(425) 750-7013,1STCHPI011BN,True,Plumbing,https://1st-choice-plumbing.com,1.00,completed,2025-07-23 05:29:09
+250,1ST CHOICE ROOFING & SDNG LLC,PASCO,WA,(509) 845-6908,1STCHCR783PO,,Roofing,https://1st.net,1.00,completed,2025-07-23 05:29:26
+265,1ST GENERATION ELECTRIC LLC,RENTON,WA,(206) 910-1212,1STGEGE782KE,,Electrical,https://1st.net,1.00,completed,2025-07-23 05:30:40
+259,1ST CLASS PAVING,ARLINGTON,WA,(360) 202-5200,1STCLCP812LO,True,Concrete,https://www.a1asphaltpc.com/,1.00,completed,2025-07-23 17:57:30
+271,1ST PLACE STRIPING,EVERETT,WA,(425) 357-8249,1STPLPS948M8,False,Concrete,http://www.1stplacestriping.com/services.cfm,1.00,completed,2025-07-23 18:15:41
+281,1ST RESPONSE PLUMBING,SPOKANE,WA,(509) 847-8372,1STRERP781D8,True,Plumbing,https://1stresponseplumbing.com,1.00,completed,2025-07-23 18:16:03
+298,2 BROTHERS CONCRETE LLC,AUBURN,WA,(206) 941-8858,2BROTBC780DW,True,Concrete,https://www.2brothersconcrete.org/,1.00,completed,2025-07-23 18:17:37
+327,2 GUYS PLUMBING LLC,CASTLE ROCK,WA,(360) 274-3453,2GUYSGP786KB,True,Plumbing,https://www.2guysplumbing.com/drain-cleaning,1.00,completed,2025-07-23 18:18:41
+328,2 GUYS PLUMBING LLC,CASTLE ROCK,WA,(360) 747-9205,2GUYSGP820JD,True,Plumbing,https://www.2guysplumbing.com/drain-cleaning,1.00,completed,2025-07-23 18:18:54
+336,2 PALMS DECORATIVE CNCRT LLC,RIDGEFIELD,WA,(360) 693-7866,2PALMPD840L3,True,Concrete,https://www.2palmsdc.com/,1.00,completed,2025-07-23 18:19:51
+343,2 SONS PLUMBING,PACIFIC,WA,(206) 736-6300,2SONSSP757D5,True,Plumbing,https://www.phccwa.org/find-a-contractor/2-sons-plumbing,1.00,completed,2025-07-23 18:20:34
+344,2 SONS PLUMBING,PACIFIC,WA,(206) 736-6300,2SONSSP759CF,True,Plumbing,https://www.phccwa.org/find-a-contractor/2-sons-plumbing,1.00,completed,2025-07-23 18:20:42
+345,2 SONS PLUMBING,PACIFIC,WA,(206) 736-6300,2SONSSP759TF,True,Plumbing,https://www.phccwa.org/find-a-contractor/2-sons-plumbing,1.00,completed,2025-07-23 18:20:48
+347,2 SONS PLUMBING LLC,HOBART,WA,(206) 736-6300,2SONSSP833OF,True,Plumbing,,1.00,completed,2025-07-23 18:20:56
+356,2-SHEA'S PAINTING LLC,TRACYTON,WA,(360) 649-3783,2SHEAPL937L2,True,Painting,https://www.2sheaspainting.com/,1.00,completed,2025-07-23 18:21:42
+375,206 CREW LLC,SEATTLE,WA,(206) 458-3780,206CRCL775C4,True,Demolition,https://www.sledgeseattle.com/,1.00,completed,2025-07-23 18:23:50
+376,206 ELECTRIC LLC,BOTHELL,WA,(206) 877-2759,206ELEL762NM,,Electrical,https://ibew46.com/resource-library/signatories/,1.00,completed,2025-07-23 18:23:58
+387,20th Century Contracting,VANCOUVER,WA,(360) 606-8451,20THCCC860B4,True,Roofing,https://www.20thcenturyroofing.com/,1.00,completed,2025-07-23 18:25:15
+400,21st Century Electric LLC,EAST WENATCHEE,WA,(509) 670-1724,21STCCE901QA,True,Electrical,https://www.chelanpud.org/environment/solar-power,1.00,completed,2025-07-23 18:28:17
+402,222 ELECTRIC CO,BONNEY LAKE,WA,(253) 222-4605,222ELEC859RN,True,Electrical,https://www.seattlelighting.com/,1.00,completed,2025-07-23 18:28:24
+29,1 EZ SEPTIC SYSTEM INSTLR LLC,MILTON FREEWATER,OR,(509) 520-1586,1EZSEES807OB,True,Septic Services,https://www.1ezseptic.com/,0.95,completed,2025-07-23 03:16:28
+6,#1 SIDING LLC,LONGVIEW,WA,(360) 721-4342,1SIDISL833Q2,,Siding,,0.90,completed,2025-07-23 02:35:15
+9,$100 OVER COST PAINTING CO LLC,SPOKANE,WA,(509) 598-9842,100OVOC791LN,,Painting,,0.90,completed,2025-07-23 02:35:15
+1,# JUAN HANDYMAN,SPOKANE,WA,(509) 847-9082,JUANHH*839MG,,Handyman,,0.90,completed,2025-07-23 03:10:51
+3,#1 AQUA MATTERS,MARYSVILLE,WA,(206) 931-2595,1AQUAAM831PC,,Plumbing,,0.90,completed,2025-07-23 03:10:55
+2,# JUAN HANDYMAN LLC,Medical Lake,WA,(509) 847-9082,JUANHJH803PM,True,Handyman,,0.90,completed,2025-07-23 03:11:07
+5,#1 PRO POWER WASHING SERVICES,SEATTLE,WA,(435) 260-9855,1PROPPP783NT,True,Handyman,,0.90,completed,2025-07-23 03:12:18
+17,+SUN TREE SERVICE LLC,Parkland,WA,(253) 468-0554,SUNTRTS782Q1,True,Landscaping,,0.90,completed,2025-07-23 03:16:09
+19,@ YOUR SERVICE HOME APPL RPR,KIRKLAND,WA,(425) 814-9462,YOURSYS966DH,True,Electrical,,0.90,completed,2025-07-23 03:16:11
+26,1 CROWN FLOORING LLC,Gig Harbor,WA,(253) 301-7276,1CROWCF847OG,True,Flooring,,0.90,completed,2025-07-23 03:16:21
+31,1 HANDY MAN SRVC/DSGN LLC,ARLINGTON,WA,(425) 314-4393,1HANDHM807DF,True,Handyman,,0.90,completed,2025-07-23 03:16:44
+36,1 RV PAINTING & RMDLNG LLC,BURIEN,WA,(206) 602-0148,1RVPARP772OE,True,Painting,,0.90,completed,2025-07-23 03:16:48
+41,1 STRUCTURE LLC,VANCOUVER,WA,(360) 694-2552,1STRUSL792OM,False,Commercial Contractors,https://1structure.com/,0.90,completed,2025-07-23 03:16:58
+39,1 SON MASONRY LLC,ONALASKA,WA,(360) 880-4370,1SONMSM811O6,,Concrete,,0.90,completed,2025-07-23 03:17:09
+42,1 STUMP AT A TIME,Stanwood,WA,(206) 354-9491,1STUMS*784B5,True,Landscaping,,0.90,completed,2025-07-23 03:17:12
+51,1-800-BOARDUP,Bremerton,WA,(206) 522-9570,1800B**917L9,True,Handyman,https://1-800boardup.com/store/seattle/,0.90,completed,2025-07-23 03:17:39
+52,1-800-BOARDUP,CHEHALIS,WA,(360) 345-1095,1800B**929O9,True,Handyman,https://1-800boardup.com/locations/,0.90,completed,2025-07-23 03:17:53
+53,1-800-BOARDUP OF CLARK COUNTY,BIRMINGHAM,MI,(248) 594-1144,1800BCC774M5,True,Handyman,https://1-800boardup.com/locations/,0.90,completed,2025-07-23 03:17:53
+58,1-800-WATERDAMAGE,Vancouver,WA,(360) 737-9812,1800W**955OO,True,Water Damage Restoration,https://www.1800waterdamage.com/vancouver-portland/,0.90,completed,2025-07-23 03:18:13
+61,1-UP CONTRACTING,TUMWATER,WA,(360) 349-6099,1UPCOC*800QB,True,Insulation,,0.90,completed,2025-07-23 03:18:19
+66,10 STAR PAINTING LLC,AUBURN,WA,(206) 914-6434,10STASP821DN,,Painting,,0.90,completed,2025-07-23 03:18:34
+68,100 Oaks Nrsy Lndscp/Grdn Srvs,OLYMPIA,WA,(360) 789-0873,100OAON875M5,True,Landscaping,,0.90,completed,2025-07-23 03:18:45
+69,100 PROOF DRYWALL LLC,SOUTHWORTH,WA,(360) 317-3229,100PRPD823OR,True,Drywall,https://www.100proofdrywall.com/,0.90,completed,2025-07-23 03:18:45
+70,100% PAINTING LLC,TENINO,WA,(360) 878-4206,100PAPL797L3,True,Painting,,0.90,completed,2025-07-23 03:18:51
+73,101 GENERAL CONTRACTING LLC,Port Angeles,WA,(360) 477-6460,101GEGC810PH,True,Concrete,https://101generalcontracting.com/,0.90,completed,2025-07-23 03:18:54
+80,1040WINDOWREMODELING L L C,VANCOUVER,WA,(971) 777-5107,1040WLL806MG,True,Windows & Doors,,0.90,completed,2025-07-23 03:19:25
+78,101 ROOFING LANDSCAPING,POULSBO,WA,(360) 204-3502,101RORL804CD,True,Roofing,,0.90,completed,2025-07-23 03:19:25
+76,101 Pest Control LLC,CARLSBORG,WA,(360) 670-3085,101PEPC881MZ,True,Pest Control,,0.90,completed,2025-07-23 03:19:25
+84,10TH CASTLE LLC,VANCOUVER,WA,(503) 860-0598,10THCCL851D7,True,Kitchen & Bath,https://www.10thcastle.com/,0.90,completed,2025-07-23 03:19:40
+86,10X20 PERFORMANCE FBRCTN LLC,PASCO,WA,(509) 619-2024,10X20PF785PO,,Metal Fabrication,,0.90,completed,2025-07-23 03:19:47
+96,112TH LLC,NORTH LAKEWOOD,WA,(360) 652-7745,112THL*839R1,True,Kitchen & Bath,https://www.masterbrandcabinets.com/dealers/wa/lakewood/16694/,0.90,completed,2025-07-23 03:20:16
+106,12 FRAMERS LLC,FEDERAL WAY,WA,(253) 285-8730,12FRAFL796PN,True,Framing,https://www.thebluebook.com/iProView/1576322/puget-sound-framing-llc/subcontractors/,0.90,completed,2025-07-23 03:20:40
+107,12 GENERAL CONSTRUCTION LLC,Spanaway,WA,(253) 391-1178,12GENGC815JA,True,Roofing,https://www.12generalconstructionllc.com/,0.90,completed,2025-07-23 03:20:48
+108,12 GENERAL HANDYMAN,LAKEWOOD,WA,(253) 391-9545,12GENGH844L4,,Handyman,,0.90,completed,2025-07-23 03:20:50
+113,12 TILE,Everett,WA,(206) 422-1359,12TILT*852LA,True,Flooring,,0.90,completed,2025-07-23 03:20:58
+65,10 STAR CONSTRUCTION LLC,LYNNWOOD,WA,(425) 772-8264,10STASC845MA,True,Handyman,https://10starconstruction.com/,0.90,completed,2025-07-23 04:53:53
+128,12DECKS LLC,MOUNTLAKE TERRACE,WA,(206) 487-6747,12DECL*781KK,True,Decking,https://data.wa.gov/api/views/m8qx-ubtq/rows.csv?accessType=DOWNLOAD,0.90,completed,2025-07-23 04:54:33
+125,123 IRRIGATION LLC,BOTHELL,WA,(425) 548-0154,123IRIL772JG,True,Landscaping,https://www.redfin.com/WA/Leavenworth/123-Jaybird-Ln-98826/home/75144668,0.90,completed,2025-07-23 04:54:39
+130,12th Can Painting,AUBURN,WA,(253) 802-1969,12THCCP862LB,True,Painting,https://www.auburnwa.gov/city_hall/parks_arts_recreation/arts_and_entertainment/postmark_center_for_the_arts/postmark_center_events,0.90,completed,2025-07-23 04:54:42
+136,12TH MAN TILING,RAINIER,WA,(360) 481-0247,12THMMT833JF,,Flooring,https://www.monaco-seattle.com/,0.90,completed,2025-07-23 04:54:53
+135,12TH MAN ROOFING LLC,BOTHELL,WA,(425) 219-8488,12THMMR846QC,True,Roofing,https://www.lni.wa.gov/licensing-permits/other-licenses-permits/asbestos-certification,0.90,completed,2025-07-23 04:55:03
+140,132ND CONSTRUCTS LLC,Bothell,WA,(206) 380-1099,132NDCL804BG,True,Kitchen & Bath,https://132ndconstructs.com/about-us/,0.90,completed,2025-07-23 04:55:11
+149,1407-WLD STARLIGHT 13 LLC,KIRKLAND,WA,(425) 576-9390,1407WS1860N2,True,Flooring,https://www.southwindfloors.com/,0.90,completed,2025-07-23 04:56:03
+163,168 KITCHEN & BATH CORP,SEATTLE,WA,(206) 495-3376,168KIKB779N4,True,Kitchen & Bath,https://www.redfin.com/WA/Seattle/168-18th-Ave-98122/unit-A/home/8190308,0.90,completed,2025-07-23 04:57:00
+165,16D LLC,VASHON,WA,(206) 354-0876,16DLLL*882JT,,Electrical,https://www.graysharbor.us/howdoi/small_works_projects_awarded.php,0.90,completed,2025-07-23 04:57:06
+172,1794 EXCAVATING LLC,ENUMCLAW,WA,(253) 255-1794,1794EEL782DT,,Excavation,https://apps.ecology.wa.gov/paris/PermitsBySIC-NAICS.aspx?ctl00_ContentPlaceHolder1_RadGridPermitSearchResultsChangePage=194_50,0.90,completed,2025-07-23 04:57:27
+178,1800 ROOF PRO LLC,ARLINGTON,WA,(360) 386-8846,1800RRP830O1,,Roofing,https://www.servpro.com/,0.90,completed,2025-07-23 04:57:47
+184,1855SLABJACK,EAST WENATCHEE,WA,(509) 888-4600,1855S**854DQ,True,Concrete,https://slabjackgeotechnical.com/geotech/,0.90,completed,2025-07-23 04:58:14
+187,1871 Woodworks,SPOKANE,WA,(509) 991-0552,1871WW*842JQ,True,Handyman,https://apps.sd.gov/hc65bidletting/SupplierDefault.aspx,0.90,completed,2025-07-23 04:58:20
+201,1LOVE PAINTING LLC,VANCOUVER,WA,(360) 787-3725,1LOVEPL784KE,True,Painting,https://nextdoor.com/pages/columbia-home-repair-vancouver-wa/,0.90,completed,2025-07-23 05:17:41
+202,1MANHANDYMAN LLC,YAKIMA,WA,(360) 244-3257,1MANHL*783LA,True,Handyman,https://data.wa.gov/api/views/m8qx-ubtq/rows.csv?accessType=DOWNLOAD&api_foundry=true,0.90,completed,2025-07-23 05:19:15
+207,1ST AIR MECHANICAL INC,MEAD,WA,(509) 218-2124,1STAIAM851OP,,Electrical,https://1st.net,0.90,completed,2025-07-23 05:26:39
+205,1ONE CONSTRUCTION LLC,SEATTLE,WA,(425) 478-8893,1ONECCL771KT,True,Remodeling,https://1oneconstruction.com,0.90,completed,2025-07-23 05:26:42
+212,1ST AMERICAN PLUMBING INC,YAKIMA,WA,(509) 952-1734,1STAMAP771L3,True,Plumbing,https://1stamericanplumbing.com,0.90,completed,2025-07-23 05:26:56
+213,1ST AVE KITCHEN & BATH INC,SEATTLE,WA,(206) 402-3582,1STAVAK917J9,True,Kitchen & Bath,https://1st.net,0.90,completed,2025-07-23 05:27:03
+217,1ST CAST PAINTING & RENVTN LLC,KELSO,WA,(360) 931-3192,1STCACP831LE,,Painting,https://1st.net,0.90,completed,2025-07-23 05:27:19
+227,1ST CHOICE CUSTOM HOMES LLC,FALL CITY,WA,(425) 941-3533,1STCHCC801RZ,True,Custom Homebuilder,https://1stchoicecustomhomes.com,0.90,completed,2025-07-23 05:27:53
+243,1st Choice Plumbing & Repair,SELAH,WA,(509) 895-9565,1STCHCP812P5,True,Plumbing,https://1stchoiceplumbingrepair.com,0.90,completed,2025-07-23 05:28:57
+246,1ST CHOICE PLUMBING/REPAIR LLC,SELAH,WA,(509) 966-0385,1STCHCP793NE,,Plumbing,https://1stchoiceplumbingrepair.com,0.90,completed,2025-07-23 05:29:05
+249,1ST CHOICE RESTORATION INC,KENNEWICK,WA,(509) 734-7737,1STCHCR950ME,True,Restoration,https://1stchoicerestoration.com,0.90,completed,2025-07-23 05:29:21
+252,1ST CHOICE TESTING LLC,MOUNTLAKE TERRACE,WA,(425) 273-3106,1STCHCT831D1,True,Plumbing,https://1stchoicetesting.com,0.90,completed,2025-07-23 05:29:36
+254,1ST CLASS CONSTRUCTION INC,Marysville,WA,(253) 426-8109,1STCLCC896M7,True,Kitchen & Bath,https://1stclassconstruction.com,0.90,completed,2025-07-23 05:29:47
+275,1ST PROSERVICE LLC,Bonney Lake,WA,(206) 495-2060,1STPRPL807JS,True,Handyman,https://www.1stproservice.com/areas-we-serve,0.90,completed,2025-07-23 18:15:38
+273,1ST PRECISION PAINTING,SPOKANE VALLEY,WA,(208) 757-0710,1STPRPP843OL,,Painting,,0.90,completed,2025-07-23 18:15:48
+270,1ST PLACE CONCRETE LLC,KENNEWICK,WA,(509) 302-5679,1STPLPC856DP,,Concrete,,0.90,completed,2025-07-23 18:15:53
+280,1ST RESPONSE HTG/AIR SLTNS LLC,LAKE STEVENS,WA,(206) 643-1525,1STRERH850P3,True,HVAC,,0.90,completed,2025-07-23 18:16:09
+288,1STOP INTERIOR,BELLINGHAM,WA,(360) 676-6034,1STOPI*772D8,True,Flooring,,0.90,completed,2025-07-23 18:16:12
+291,2 A T PAINTING LLC,OAK HARBOR,WA,(360) 840-5052,2TPAITP858CF,True,Painting,,0.90,completed,2025-07-23 18:17:05
+289,1UP FLOORS LLC,SUMNER,WA,(253) 292-6775,1UPFLFL862BU,True,Flooring,,0.90,completed,2025-07-23 18:17:17
+292,2 AMIGOS ROOFING LLC,YAKIMA,WA,(509) 834-9739,2AMIGAR770ND,,Roofing,,0.90,completed,2025-07-23 18:17:25
+301,2 BROTHERS CONTRACTING LLC,VANCOUVER,WA,(360) 909-2265,2BROTBC853M3,True,Roofing,,0.90,completed,2025-07-23 18:17:44
+296,2 BROS FLOORING LLC,Vancouver,WA,(971) 344-7396,2BROSBF853OT,,Flooring,,0.90,completed,2025-07-23 18:17:51
+303,2 BROTHERS PAINTING LLC,SEATTLE,WA,(206) 231-8589,2BROTBP766BQ,True,Painting,https://2brotherspaintingllc.com/project/west-seattle-1/,0.90,completed,2025-07-23 18:18:09
+309,2 COATS PAINTING LLC,VANCOUVER,WA,(360) 601-2730,2COATCP767RF,True,Painting,,0.90,completed,2025-07-23 18:18:12
+305,2 BROTHERS STONE MASONRY LLC,PASCO,WA,(509) 528-1032,2BROTBS810NO,,Concrete,,0.90,completed,2025-07-23 18:18:18
+310,2 COATS PAINTING LLC,VANCOUVER,WA,(360) 601-2730,2COATCP857LS,True,Painting,,0.90,completed,2025-07-23 18:18:25
+335,"2 OLD GUYS CONSTRUCTION, LLC",EVERETT,WA,(425) 971-4074,2OLDGOG771RE,True,Concrete,https://3guysconstruction.com/,0.90,completed,2025-07-23 18:19:47
+359,20/20 EXTERIORS,DEER PARK,WA,(509) 688-4480,2020EE*841DT,True,Roofing,,0.90,completed,2025-07-23 18:21:51
+368,2020 Electric Company LLC,GREENBANK,WA,(360) 661-1781,2020EEC804CQ,,Electrical,,0.90,completed,2025-07-23 18:23:32
+379,206 FLOORING LLC,REDMOND,WA,(425) 802-1752,206FLFL826LA,,Flooring,,0.90,completed,2025-07-23 18:24:19
+382,206PAINTERS LLC,Edmonds,WA,(206) 419-0991,206PAL*810D2,,Painting,,0.90,completed,2025-07-23 18:25:08
+399,21ST CENTURY ELECTRIC,BREMERTON,WA,(360) 990-5012,21STCCE753LT,,Electrical,,0.90,completed,2025-07-23 18:28:08
+404,23 CONCRETE LLC,LAKE FOREST PARK,WA,(206) 640-4723,23CONCL792N4,,Concrete,,0.90,completed,2025-07-23 18:28:42
+411,23RD ST GARDENING & DESIGN,ANACORTES,WA,(425) 335-5287,23RDSSG789KZ,True,Landscaping,,0.90,completed,2025-07-23 18:29:11
+416,24 HOUR LOCK AND KEY LLC,Vancouver,WA,(971) 720-9939,24HOUHL822L8,True,Handyman,,0.90,completed,2025-07-23 18:59:51
+413,24 HOUR FLOOD RESPONSE,SEATTLE,WA,(206) 380-4986,24HOUHF898JF,True,Water Damage Restoration,https://24hourfloodresponse.com,0.90,completed,2025-07-23 19:00:00
+258,1ST CLASS PAINTING LLC,ARLINGTON,WA,(360) 788-5525,1STCLCP840M2,True,Painting,https://www.1stclasspaintingllc.com,0.88,completed,2025-08-01 20:45:10
+185,1859 PAINTING,PORTLAND,OR,(503) 367-2273,1859PP*865NL,True,Painting,https://www.1859painting.com,0.87,completed,2025-08-01 20:45:12
+257,1ST CLASS GLASS INC,BOTHELL,WA,(425) 280-1976,1STCLCG833JL,True,General Contractor,https://www.1stclassglassinc.com,0.85,completed,2025-08-01 20:45:10
+831,3PHASE ELEVATOR CORP,CANTON,MA,(508) 350-9900,3PHASEC77377,True,General Contractor,https://www.3phaseelevatorcorp.com,0.85,completed,2025-08-01 20:45:10
+117,12.500 CMRCL WNDW CVRNG INC,MILWAUKIE,OR,(503) 654-2874,12500CW994KQ,True,General Contractor,https://www.12.500cmrclwndwcvrng.com,0.85,completed,2025-08-01 20:45:10
+381,206 PLUMBING LLC,SEATTLE,WA,(206) 310-0125,206PLPL864BH,True,Plumbing,https://www.206plumbingllc.com,0.85,completed,2025-08-01 20:45:12
+167,17 CONTRACTORS LLC,KALISPELL,MT,(406) 890-4063,17CONCL836O9,True,General Contractor,https://www.17contractorsllc.com,0.84,completed,2025-08-01 20:45:12
+173,18 SERIES HANDYMAN SERVICS LLC,RAINIER,WA,(703) 232-4737,18SERSH796R8,True,Handyman,https://www.18serieshandymanserv.com,0.83,completed,2025-08-01 20:45:12
+188,1884 LINE CO,OMAHA,NE,(402) 342-2052,1884LLC751BN,True,General Contractor,https://www.1884lineco.com,0.83,completed,2025-08-01 20:45:12
+11,& BUILD,SEATTLE,WA,(206) 271-1267,BUILDB*793D9,,Handyman,,0.80,completed,2025-07-23 03:12:20
+14,(TCHS) TRI-CITIES HOMES SERV,WEST RICHLAND,WA,(509) 907-2154,TCHSTTH791JF,True,Handyman,,0.80,completed,2025-07-23 03:15:57
+21,@HOME ESSENTIAL SERVICES LLC,BELLINGHAM,WA,(360) 919-6806,HOMEEES784LC,True,Handyman,,0.80,completed,2025-07-23 03:16:01
+16,+1 HAMMER LLC,WENATCHEE,WA,(509) 679-2915,1HAMMHL799NE,,Painting,,0.80,completed,2025-07-23 03:16:04
+18,@ YOUR SERVICE HOME APPL RPR,KIRKLAND,WA,(425) 814-9462,YOURSYS884LO,True,Handyman,,0.80,completed,2025-07-23 03:16:09
+23,1 BLOCK BROS LLC,EVERETT,WA,(425) 367-7706,1BLOCBB811DA,,Handyman,,0.80,completed,2025-07-23 03:16:17
+25,1 CHANCE CONCRETE & LNDSNG LLC,OLYMPIA,WA,(360) 451-7021,1CHANCC838M7,,Concrete,,0.80,completed,2025-07-23 03:16:35
+30,1 FOUNDATION,MILTON,WA,(253) 335-8991,1FOUNF*816LQ,,Concrete,,0.80,completed,2025-07-23 03:16:37
+33,1 MAN & A TRACTOR,BREMERTON,WA,(253) 258-4703,1MANTM*804OH,,Handyman,,0.80,completed,2025-07-23 03:16:39
+38,1 SHARP TOOL,WASHOUGAL,WA,(360) 606-7062,1SHARST852KA,,Handyman,https://www.efficientvelo.com,0.80,completed,2025-07-23 03:16:52
+34,1 NEW MECHANICAL LLC,SNOHOMISH,WA,(425) 326-7551,1NEWMNM831JG,,HVAC,,0.80,completed,2025-07-23 03:17:09
+40,1 STOP REAL ESTATE REHAB LLC,OLYMPIA,WA,(360) 239-0222,1STOPSR802NE,,Handyman,,0.80,completed,2025-07-23 03:17:09
+50,1-800 WATER DAMAGE/S PGT SD,MILTON,WA,(253) 927-4165,1800WWD793B6,True,Water Damage Restoration,,0.80,completed,2025-07-23 03:17:53
+55,1-800-BOARDUP OF SPOKANE/COEUR,BIRMINGHAM,MI,(248) 594-1144,1800BS*772L8,True,Handyman,https://1-800boardup.com/locations/,0.80,completed,2025-07-23 03:18:13
+54,1-800-BOARDUP OF SEATTLE,BIRMINGHAM,MI,(248) 594-1144,1800BS*774MG,,Handyman,https://1-800boardup.com/locations/,0.80,completed,2025-07-23 03:18:13
+59,1-A CONSTRUCTION & FIRE LLP,HERMISTON,OR,(541) 567-5730,1ACONCF942QF,,Excavation,,0.80,completed,2025-07-23 03:18:15
+63,10 PENNY HOMES LLC,EVERETT,WA,(425) 218-5276,10PENPH820RF,True,Handyman,,0.80,completed,2025-07-23 03:18:27
+64,10 POINT CONSTRUCTION SRVS LLC,TACOMA,WA,(253) 861-4544,10POIPC811LK,,Handyman,,0.80,completed,2025-07-23 03:18:31
+67,10/Zero5 General Contr LLC,PASCO,WA,(509) 539-2907,10ZERGC793J2,,Handyman,,0.80,completed,2025-07-23 03:18:38
+72,101 CONSTRUCTION LLC,SEATTLE,WA,(206) 999-4661,101COCL799M6,True,General Contracting,https://clarkconstruct.com/,0.80,completed,2025-07-23 03:18:47
+71,1002 COATINGS & CONST LLC,SUMNER,WA,(253) 678-1806,1002CCC811LR,,Painting,,0.80,completed,2025-07-23 03:18:52
+75,101 MOBILITY,TACOMA,WA,(206) 596-6926,101MOM*826CL,True,Handyman,https://www.101mobility.com/locations/all-locations/,0.80,completed,2025-07-23 03:18:59
+74,101 MOBILITY,TACOMA,WA,(206) 596-6926,101MOM*823B5,True,Handyman,https://www.101mobility.com/locations/all-locations/,0.80,completed,2025-07-23 03:19:01
+83,10K,BELLINGHAM,WA,(360) 746-8205,10K****802NQ,,Handyman,https://www.bellinghambaymarathon.org/,0.80,completed,2025-07-23 03:19:34
+85,10TH GENERATION BUILDERS LLC,VANCOUVER,WA,(916) 990-4909,10THGGB785PL,True,Handyman,https://generationhomesnw.com/,0.80,completed,2025-07-23 03:19:43
+87,10XR,VANCOUVER,WA,(564) 208-6594,10XR***780N5,,Electrical,https://www.cablewholesale.com/products/audio-video-products/microphone/product-10xr-01525.php,0.80,completed,2025-07-23 03:19:47
+90,11043 PALATINE AVE N LLC,EVERETT,WA,(425) 212-2210,11043PA843NC,True,Handyman,,0.80,completed,2025-07-23 03:19:56
+103,12 BROTHERS CONSTRUCTION LLC,Renton,WA,(206) 922-9441,12BROBC809BS,,Handyman,,0.80,completed,2025-07-23 03:20:27
+102,11TH HR WELDING  FAB & RPR LLC,BATTLE GROUND,WA,(702) 232-6433,11THHHW785NQ,,Handyman,,0.80,completed,2025-07-23 03:20:31
+109,12 HAWK CONTRACTING LLC,EVERETT,WA,(425) 750-7444,12HAWHC844NW,,Handyman,,0.80,completed,2025-07-23 03:20:42
+110,12 MOONS LLC,VANCOUVER,WA,(360) 909-6051,12MOOML924JS,,General Contracting,,0.80,completed,2025-07-23 03:20:48
+104,12 CUSTOM HOMES LLC,CASHMERE,WA,(509) 423-4969,12CUSCH819RK,True,Custom Homes,,0.80,completed,2025-07-23 03:20:48
+115,12 VOLT TECH SERVICES,OLYMPIA,WA,(360) 250-1759,12VOLVT847PE,,Electrical,https://ospi.k12.wa.us/,0.80,completed,2025-07-23 04:53:58
+120,1208 BERTONA LLC,SEATTLE,WA,(206) 784-4505,1208BBL832ML,True,Handyman,https://www.redfin.com/WA/Seattle/1208-W-Bertona-St-98119/home/129564,0.80,completed,2025-07-23 04:54:06
+121,123 BEST CONSTRUCTION LLC,MILTON,WA,(253) 862-6511,123BEBC804M2,,Handyman,https://revenue.delaware.gov/business-license-search/,0.80,completed,2025-07-23 04:54:14
+126,"12750 DAYTON AVE N, LLC",EVERETT,WA,(425) 212-2210,12750DA841DZ,True,Handyman,https://www.redfin.com/WA/Seattle/12738-Dayton-Ave-N-98133/home/97607,0.80,completed,2025-07-23 04:54:23
+124,123 FLOOR LLC,EVERETT,WA,(425) 312-5108,123FLFL783LT,,Flooring,https://upwards.com/daycare/123-daycare-everett,0.80,completed,2025-07-23 04:54:26
+129,12TH AVENUE IRON INC,SEATTLE,WA,(206) 325-0792,12THAAI925C2,,Handyman,http://murphyauction.com/Auction/Details/9637,0.80,completed,2025-07-23 04:54:36
+132,12TH MAN CONSTRUCTION INC,EDMONDS,WA,(360) 420-1850,12THMMC846K3,,Concrete,https://www.ckcps.com/projects/tower-12,0.80,completed,2025-07-23 04:55:03
+134,12TH MAN LLC,BOTHELL,WA,(425) 949-8041,12THMML834BF,,Handyman,https://www.chocolateman.com/,0.80,completed,2025-07-23 04:55:03
+143,136TH AVENUE SE NEW CASTLE LLC,SEATTLE,WA,(206) 728-6543,136THAS827L6,,Handyman,https://www.redfin.com/WA/Newcastle/8300-136th-Ave-SE-98059/home/415069,0.80,completed,2025-07-23 04:55:39
+144,13733 19TH AVE NE LLC,EVERETT,WA,(425) 212-2210,137331A842DA,,Handyman,https://www.redfin.com/neighborhood/2037/WA/Seattle/Olympic-Hills/houses-for-rent,0.80,completed,2025-07-23 04:55:39
+146,14 CONSTRUCTION LLC,TENINO,WA,(425) 892-0052,14CONCL771LE,,Handyman,https://www.lni.wa.gov/licensing-permits/other-licenses-permits/asbestos-certification,0.80,completed,2025-07-23 04:55:45
+148,1404-WLD IssaquahTownhome LLC,KIRKLAND,WA,(425) 576-9390,1404WIL847NR,True,Handyman,https://data.wa.gov/api/views/m8qx-ubtq/rows.csv?accessType=DOWNLOAD,0.80,completed,2025-07-23 04:56:00
+147,1403-WLD DAMSON ROAD LLC,KIRKLAND,WA,(425) 576-9390,1403WDR857JO,,Handyman,https://data.seattle.gov/api/views/wnbq-64tb/rows.csv?accessType=DOWNLOAD,0.80,completed,2025-07-23 04:56:15
+156,1535 23rd Ave LLC,KIRKLAND,WA,(206) 624-7888,153522A838LN,,Handyman,https://www.redfin.com/WA/Seattle/1513-23rd-Ave-S-98144/home/2084630,0.80,completed,2025-07-23 04:56:25
+150,1408-WLD 148TH Townhomes LLC,KIRKLAND,WA,(425) 576-9390,1408W1T843NR,True,Handyman,https://data.wa.gov/api/views/m8qx-ubtq/rows.csv?accessType=DOWNLOAD,0.80,completed,2025-07-23 04:56:40
+153,1503-WLD SHR LLC,KIRKLAND,WA,(425) 576-9390,1503WSL836L2,True,Handyman,https://data.wa.gov/api/views/m8qx-ubtq/rows.csv?accessType=DOWNLOAD&api_foundry=true,0.80,completed,2025-07-23 04:56:40
+157,15TH & OLIVE GENERAL CONTR,SEATTLE,WA,(206) 347-3472,15THOOG830M1,True,Handyman,https://denizen.homes/showcase-gallery/15th-olive-townhomes/,0.80,completed,2025-07-23 04:56:44
+160,1624 CARPENTRY,RENTON,WA,(206) 406-6654,1624CC*810P1,,Handyman,https://www.zgf.com/leadership/1562-allyn-stellmacher,0.80,completed,2025-07-23 04:56:53
+161,168 CONSTRUCTION LLC,BELLEVUE,WA,(425) 295-8786,168COCL766CM,True,Handyman,https://www.redfin.com/WA/Bellevue/168-163rd-Pl-SE-98008/home/426184,0.80,completed,2025-07-23 04:57:00
+162,168 CONSTRUCTION MONEY LLC,BELLEVUE,WA,(206) 981-8888,168COCM765LK,True,Handyman,https://www.redfin.com/WA/Bellevue/2600-168th-Ave-NE-98008/home/433071,0.80,completed,2025-07-23 04:57:00
+166,16D LLC,VASHON,WA,(206) 218-4890,16DLLL*895D2,,Electrical,https://www.graysharbor.us/howdoi/small_works_projects_awarded.php,0.80,completed,2025-07-23 04:57:03
+175,180 DEGREE DESIGN LLC,ARLINGTON,WA,(425) 948-5299,180DEDD790PA,,Handyman,https://www.uta.edu/,0.80,completed,2025-07-23 04:57:36
+168,17 HOME SERVICES LLC,MOSES LAKE,WA,(509) 668-0318,17HOMHS764CO,True,Handyman,https://fs.fldfs.com/dispub2/cexhwaro.html,0.80,completed,2025-07-23 04:57:39
+177,1800 BLACKTOP LLC,GRAHAM,WA,(253) 339-8710,1800BBL762D7,,Paving,https://safer.fmcsa.dot.gov/keywordx.asp?searchstring=%2ABLACK%2A,0.80,completed,2025-07-23 04:57:44
+179,1801-WLD LS TOWNHOMES LLC,KIRKLAND,WA,(425) 576-9390,1801WLT816KN,,Handyman,https://agi.alabama.gov/plantprotection/nursery-dealers/,0.80,completed,2025-07-23 04:57:50
+181,1812 EXTERIOR SOLUTIONS LLC,Tacoma,WA,(253) 797-7172,1812EES783DW,,Roofing,,0.80,completed,2025-07-23 04:58:03
+196,1ALMEDAS CONSTRUCTION LLC,LYNNWOOD,WA,(425) 344-2682,1ALMECL775KC,True,Handyman,https://data.wa.gov/api/views/m8qx-ubtq/rows.csv?accessType=DOWNLOAD&api_foundry=true,0.80,completed,2025-07-23 05:10:45
+197,1ASUNRISE LLC,AUBURN,WA,(206) 226-9951,1ASUNL*771DT,,Handyman,https://data.wa.gov/api/views/g526-rd4x/rows.csv?accessType=DOWNLOAD&api_foundry=true,0.80,completed,2025-07-23 05:11:05
+206,1ST & BEST CHOICE HTNG & A/C,LOON LAKE,WA,(509) 481-3717,1STBEBC923JN,,HVAC,https://1st.net,0.80,completed,2025-07-23 05:26:37
+215,1ST CALL CONSTRUCTION INC,VANCOUVER,WA,(360) 546-3900,1STCACC902NS,,Handyman,https://lni.wa.gov/licensing-permits/contractors/register-as-a-contractor/,0.80,completed,2025-07-23 05:27:12
+219,1ST CHOICE APPLIANCE REPAIR,KENNEWICK,WA,(509) 570-6508,1STCHCA821KB,,Handyman,https://1st.net,0.80,completed,2025-07-23 05:27:25
+228,1ST CHOICE DIRT MOVERS LLC,SHELTON,WA,(360) 584-6597,1STCHCD835BU,,Landscaping,https://1st.net,0.80,completed,2025-07-23 05:27:56
+230,1ST CHOICE FLOORING LLC,ARLINGTON,WA,(425) 791-4351,1STCHCF820BQ,,Flooring,https://1st.net,0.80,completed,2025-07-23 05:28:04
+231,1ST CHOICE GLASS AUTO&HOME,BELLINGHAM,WA,(360) 305-7930,1STCHCG815QR,True,Windows & Doors,https://1st.net,0.80,completed,2025-07-23 05:28:10
+233,1ST CHOICE HOME IMPRVMNT INC,TACOMA,WA,(253) 324-3103,1STCHCH837M4,True,Handyman,https://1st.net,0.80,completed,2025-07-23 05:28:15
+236,1ST CHOICE LANDSCAPES,SEATTLE,WA,(206) 799-9689,1STCHCL885CA,,Landscaping,https://1st.net,0.80,completed,2025-07-23 05:28:27
+239,1ST CHOICE MECHANICAL PLLC,WOODINVILLE,WA,(425) 367-1515,1STCHCM811DD,,HVAC,https://1st.net,0.80,completed,2025-07-23 05:28:42
+240,1ST CHOICE PAINTING & RMDLING,PASCO,WA,(509) 460-3684,1STCHCP836L3,True,Painting,https://1st.net,0.80,completed,2025-07-23 05:28:45
+251,1ST CHOICE SIDING LLC,MUKILTEO,WA,(425) 772-0697,1STCHCS941BS,,Siding,https://1st.net,0.80,completed,2025-07-23 05:29:31
+253,1ST CHOICE WLDNG & EQPMNT RPR,BELFAIR,WA,(360) 801-3153,1STCHCW822LJ,,Handyman,https://1st.net,0.80,completed,2025-07-23 05:29:42
+255,1st Class Drywall,CHEWELAH,WA,(509) 936-0997,1STCLCD863OS,,Drywall,https://1st.net,0.80,completed,2025-07-23 05:29:52
+256,1ST CLASS FLOORING SOLUTIONS,VANCOUVER,WA,(360) 842-1170,1STCLCF799O8,,Flooring,https://1st.net,0.80,completed,2025-07-23 05:29:56
+260,1ST CLASS SHEET METAL RFNG LLC,VANCOUVER,WA,(360) 842-1170,1STCLCS807MM,,HVAC,https://1st.net,0.80,completed,2025-07-23 05:30:16
+276,1ST QUALITY CONSTRUCTION,TACOMA,WA,(253) 226-0045,1STQUQC760OD,,General Contractor,https://www.procore.com/network/p/1st-quality-construction-llc-tacoma,0.80,completed,2025-07-23 18:15:45
+274,1ST PROPANE OF WHATCOM CTY INC,BLAINE,WA,(360) 332-3121,1STPRWC001BG,,HVAC,,0.80,completed,2025-07-23 18:15:58
+307,2 CANNON RIVER CONST LLC,DAYTON,WA,(509) 520-3138,2CANNCR782OA,,Handyman,,0.80,completed,2025-07-23 18:18:07
+340,2 RIVERS ABATEMENT LLC,KENNEWICK,WA,(509) 221-8207,2RIVERA754MQ,,Asbestos Abatement,,0.80,completed,2025-07-23 18:20:28
+392,2112 HOMES LLC,SHORELINE,WA,(206) 327-1925,2112HHL770OL,True,Handyman,https://www.redfin.com/WA/Shoreline/2112-N-146th-St-98133/home/81572,0.80,completed,2025-07-23 18:26:01
+832,3PHASE ELEVATOR CORP,CANTON,MA,(508) 350-9900,3PHASEC773PJ,True,General Contractor,https://www.3phaseelevatorcorp.com,0.80,completed,2025-08-01 20:45:10
+7,#1EAGLEREMODELING LLC,SPANAWAY,WA,(206) 372-8756,1EAGLL*816PQ,,,,0.70,completed,2025-07-23 02:35:15
+8,#6 Productions LLC,ELLENSBURG,WA,(509) 859-3466,6PRODPL809OT,,,,0.70,completed,2025-07-23 02:35:15
+4,#1 CONSTRUCTION,FEDERAL WAY,WA,(206) 383-3737,1CONSC*856LS,,General Contractor,,0.70,completed,2025-07-23 03:12:22
+12,&RU ENTERPRISES LLC,SPOKANE,WA,(509) 475-2600,RUENTEL855LN,,Handyman,,0.70,completed,2025-07-23 03:12:25
+15,+1 Construction LLC,WENATCHEE,WA,(509) 679-2915,1CONSCL842KL,,Handyman,,0.70,completed,2025-07-23 03:15:54
+24,1 CALL CONSTRUCTION LLC,KELSO,WA,(360) 957-3383,1CALLCC820NB,,Handyman,,0.70,completed,2025-07-23 03:16:30
+32,1 LEG ENTERPRISES LLC,KENNEWICK,WA,(509) 378-6926,1LEGELE767JW,,Handyman,,0.70,completed,2025-07-23 03:16:42
+37,1 Savanni LLC,EDMONDS,WA,(425) 220-1777,1SAVAL*833KJ,,Handyman,,0.70,completed,2025-07-23 03:17:04
+46,1-16 INSTALLATION LLC,EDGEWOOD,WA,(253) 886-3937,116INIL757DL,,Handyman,,0.70,completed,2025-07-23 03:17:27
+62,10 PENNY CONSTRUCTION,WENATCHEE,WA,(509) 699-6534,10PENPC794JZ,,Handyman,,0.70,completed,2025-07-23 03:18:21
+79,101 WEST LLC,SNOHOMISH,WA,(425) 329-8202,101WEWL795L8,,Handyman,,0.70,completed,2025-07-23 03:19:04
+81,10733 MERIDIAN AVE NE LLC,ALBUQUERQUE,NM,(425) 290-2755,10733MA845QS,,Handyman,,0.70,completed,2025-07-23 03:19:32
+82,108 Contractors,FEDERAL WAY,WA,(253) 347-7547,108COC*861NR,,Handyman,,0.70,completed,2025-07-23 03:19:32
+88,11 DEGREES RESIN,LAKE STEVENS,WA,(425) 585-8293,11DEGDR767PD,,Handyman,,0.70,completed,2025-07-23 03:19:38
+89,110% LLC,YELM,WA,(360) 259-7189,110LLL*812CA,,Handyman,,0.70,completed,2025-07-23 03:19:59
+93,1121 - 34TH AVE TOWNHOMES GC,SEATTLE,WA,(206) 347-3472,112133A833JG,,Handyman,,0.70,completed,2025-07-23 03:20:04
+92,11202 LLC,MERCER ISLAND,WA,(206) 797-9700,11202L*815KL,,Handyman,,0.70,completed,2025-07-23 03:20:04
+95,11211 STERLING GC,RICHLAND,WA,(509) 943-1588,11211SG892QB,,General Contractor,,0.70,completed,2025-07-23 03:20:09
+98,1134 LAKESIDE SOUTH LLC,SEATTLE,WA,(206) 254-5606,1134LLS862PF,,Handyman,,0.70,completed,2025-07-23 03:20:13
+94,11210 LLC,BELLEVUE,WA,(425) 453-8886,11210L*833M8,,Handyman,,0.70,completed,2025-07-23 03:20:13
+100,1170 REPUBLICAN ASSOCIATES LLC,BELLEVUE,WA,(425) 502-9199,1170RRA815KW,True,Handyman,https://www.shoresmith.com/,0.70,completed,2025-07-23 03:20:18
+97,11336 20TH AVE NE LLC,EVERETT,WA,(425) 212-2210,113362A842DA,,Handyman,,0.70,completed,2025-07-23 03:20:20
+101,11737 40TH AVE NE LLC,SEATTLE,WA,(425) 344-3048,117374A758J3,,Handyman,,0.70,completed,2025-07-23 03:20:22
+112,12 STONE CONTRACTING GROUP,SAINT GEORGE,UT,(435) 703-8653,12STOSC821JL,,General Contracting,,0.70,completed,2025-07-23 03:20:54
+116,12'S IMPACT CONSTRUCTION LLC,KENT,WA,(206) 348-0516,12SIMIC790CJ,,Handyman,https://www.codepublishing.com/WA/Kent/html/Kent12/Kent1213.html,0.70,completed,2025-07-23 04:53:55
+118,1202 5TH AVE N LLC,EVERETT,WA,(425) 212-2210,120255A836JS,,Handyman,https://www.treasury.gov/auctions/treasury/rp/bidresults.shtml,0.70,completed,2025-07-23 04:54:00
+114,12 TOOLS CUSTOM BUILDS,POULSBO,WA,(360) 516-7728,12TOOTC750K2,,Handyman,https://lni.wa.gov/licensing-permits/contractors/hiring-a-contractor/verify-contractor-tradesperson-business,0.70,completed,2025-07-23 04:54:06
+119,12051 20TH AVE NE LLC,EVERETT,WA,(425) 212-2210,120512A837RL,,Handyman,,0.70,completed,2025-07-23 04:54:11
+127,12921 DEVELOPMENT LLC,SUQUAMISH,WA,(425) 443-2152,12921DL762DA,,Handyman,,0.70,completed,2025-07-23 04:54:48
+137,1301-WLD PERRA LLC,KIRKLAND,WA,(425) 576-9390,1301WPL868PS,,Handyman,https://www.redfin.com/WA/Bothell/19315-38th-Dr-SE-98012/home/112744991,0.70,completed,2025-07-23 04:55:05
+139,1305-WLD LAKE SERENE LLC,KIRKLAND,WA,(425) 576-9390,1305WLS869PS,,Handyman,https://snohomishcountywa.gov/DocumentCenter/View/136849,0.70,completed,2025-07-23 04:55:23
+142,13528 1ST AVE NW LLC,EVERETT,WA,(425) 212-2210,135281A822Q7,,Handyman,https://www.redfin.com/WA/Seattle/13528-Burke-Ave-N-98133/home/102243,0.70,completed,2025-07-23 04:55:32
+154,1514 NE 97TH ST LLC,SEATTLE,WA,(425) 344-3048,1514NN9760O5,,Handyman,https://www.redfin.com/WA/Seattle/1514-NE-97th-St-98115/home/107241,0.70,completed,2025-07-23 04:56:21
+151,1501-WLD SIERRA LLC,KIRKLAND,WA,(425) 576-9390,1501WSL841KL,,Handyman,https://www.snoco.org/proptax/search.aspx?parcel_number=01166200000600,0.70,completed,2025-07-23 04:56:40
+158,1602-WLD SF P1 LLC,KIRKLAND,WA,(425) 576-9390,1602WSP843QN,,Handyman,https://www.snoco.org/proptax/(S(epvo5pctctnrk2pojilmxzbt))/search.aspx?parcel_number=01167600005600,0.70,completed,2025-07-23 04:56:46
+155,1528 NE 89TH STREET LLC,EVERETT,WA,(425) 212-2210,1528NN8841PS,,Handyman,,0.70,completed,2025-07-23 04:56:48
+159,161ST AVE DEVELOPMENT LLC,BELLEVUE,WA,(425) 828-3003,161STAD831PJ,,Handyman,https://www.redmond.gov/406/Projects,0.70,completed,2025-07-23 04:57:10
+170,1702-WLD ER 8 P23 LLC,KIRKLAND,WA,(425) 576-9390,1702WE8823DF,,Handyman,https://washingtonobserver.substack.com/p/gambling-revenge-play-goes-sideways,0.70,completed,2025-07-23 04:57:17
+171,1721 REMODEL CONSTRUCTION,LAKE TAPPS,WA,(253) 241-7525,1721RRC838DC,,Handyman,https://www.tacoma.uw.edu/campus-map/dou,0.70,completed,2025-07-23 04:57:20
+169,1701-WLD ELK RUN 8 P1 LLC,KIRKLAND,WA,(425) 576-9390,1701WER821DF,,Handyman,https://www.pacodeandbulletin.gov/Display/pabull?file=/secure/pabulletin/data/vol46/46-31/1345.html,0.70,completed,2025-07-23 04:57:27
+174,180 CONSTRUCTION LLC,VANCOUVER,WA,(360) 449-9014,180COCL793NU,,Handyman,https://apps.sos.wa.gov/corps/limitedliabilitycompaniesllconlineandpaperregistrations.aspx,0.70,completed,2025-07-23 04:57:32
+180,1809 39TH AVE E LLC,SEATTLE,WA,(206) 254-5606,180933A830DU,,Handyman,https://www.redfin.com/WA/Seattle/1827-39th-Ave-E-98112/home/139476,0.70,completed,2025-07-23 04:57:56
+182,184TH STREET INC,EVERETT,WA,(206) 669-8628,184THSI836LE,,Handyman,https://www.alderwoodmall.com/en/,0.70,completed,2025-07-23 04:57:59
+186,185TH BOTHELL LLC,SEATTLE,WA,(206) 949-6716,185THBL790K6,,Handyman,https://www.redfin.com/WA/Bothell/4529-185th-Pl-SE-98012/home/110263902,0.70,completed,2025-07-23 04:58:08
+183,18507 104TH AVE NE LLC,EVERETT,WA,(425) 212-2210,185071A816P3,,Handyman,https://www.seedtable.com/best-startups-in-everett-washington,0.70,completed,2025-07-23 04:58:14
+190,1889 BUILDING CONSTRUCTION LLC,CURLEW,WA,(509) 779-4232,1889BBC787RO,,Handyman,https://www.yakimaherald.com/news/local/happened/it-happened-here-davidson-building-becomes-an-ellensburg-landmark/article_0f2442d7-8deb-512e-93b5-9624ff8224a9.html,0.70,completed,2025-07-23 04:58:24
+192,1958 NELSON LLC,BELLEVUE,WA,(425) 559-2300,1958NNL858NQ,,Handyman,https://www.belcan.com/,0.70,completed,2025-07-23 04:58:27
+191,1901-WLD KENMORE 68TH LLC,KIRKLAND,WA,(425) 576-9390,1901WK6793NE,,Handyman,,0.70,completed,2025-07-23 04:58:31
+193,1958 TUDOR LLC,GIG HARBOR,WA,(425) 628-8211,1958TTL809NK,,Handyman,,0.70,completed,2025-07-23 04:58:35
+195,1A LLC,BURLINGTON,WA,(206) 419-7386,1ALLCL*842OH,,Handyman,https://burlingtonwa.gov/105/Community-Development,0.70,completed,2025-07-23 05:10:35
+198,1EARTH DESIGN LLC,SEATTLE,WA,(206) 280-8507,1EARTDL778KD,,Landscaping,https://www7.eere.energy.gov/buildings/residential/explorezerh/partners?name=&term_node_tid_depth=3490&combine=All&sort_by=field_certified_doe_zerh_value&page=4,0.70,completed,2025-07-23 05:17:46
+203,1Nation Construction,TOPPENISH,WA,(509) 314-9675,1NATIC*832JM,,Handyman,https://yakama.com/about/,0.70,completed,2025-07-23 05:19:28
+208,1ST AIR MECHANICAL INC,MEAD,WA,(509) 468-1964,1STAIAM950J2,,HVAC,https://1st.net,0.70,completed,2025-07-23 05:26:47
+220,1ST CHOICE AUTO & RSDNTL GLSS,FERNDALE,WA,(360) 935-1540,1STCHCA752LB,,Windows & Doors,https://1st.net,0.70,completed,2025-07-23 05:27:23
+221,1ST CHOICE BOBCAT SERVICE,COLBERT,WA,(509) 496-3831,1STCHCB912CC,,Handyman,https://1st.net,0.70,completed,2025-07-23 05:27:30
+224,1ST CHOICE CONSTRUCTION,SUNNYSIDE,WA,(509) 949-1194,1STCHC*045QA,,Handyman,https://www.yakimafed.com/,0.70,completed,2025-07-23 05:27:41
+232,1st Choice Home Const Co,Lake Stevens,WA,(425) 293-5267,1STCHCH889BZ,True,Handyman,https://1st.net,0.70,completed,2025-07-23 05:28:08
+268,1st Group Contracting LLC,OTIS ORCHARDS,WA,(509) 590-4253,1STGRGC838RO,,Handyman,https://centerplacespokanevalley.com/Archive/ViewFile/Item/143,0.70,completed,2025-07-23 18:13:25
+278,1ST RATE CONST & DRN WZD INC,PUYALLUP,WA,(253) 347-7015,1STRARC829DL,,Handyman,,0.70,completed,2025-07-23 18:16:56
+294,2 BEARS DEVELOPME & CONST LLC,VANCOUVER,WA,(360) 787-3465,2BEARBD754D5,,Handyman,,0.70,completed,2025-07-23 18:17:29
+321,2 GENERATIONS CONSTRUCTION LLC,Kennewick,WA,(509) 302-0274,2GENEGC797QT,,Handyman,,0.70,completed,2025-07-23 18:18:27
+319,2 G CONSTRUCTION,WALLA WALLA,WA,(509) 524-3404,2GCONGC858OH,,Handyman,,0.70,completed,2025-07-23 18:18:35
+322,2 GRADE LLC,PORT ANGELES,WA,(360) 461-3992,2GRADGL923JH,,Handyman,,0.70,completed,2025-07-23 18:18:48
+332,2 Monkeys Enterprises,SILVERDALE,WA,(360) 277-7758,2MONKME833KS,,Handyman,,0.70,completed,2025-07-23 18:19:03
+334,2 OLD DOGS MILLWRK & CBNT INST,RENTON,WA,(425) 362-8594,2OLDDOD828LM,,Handyman,,0.70,completed,2025-07-23 18:19:41
+348,2 SOUND CONSTRUCTION INC,VANCOUVER,WA,(503) 201-0216,2SOUNSC798QW,,Handyman,https://wsdot.wa.gov/construction-planning/search-projects/sr-509-completion-project,0.70,completed,2025-07-23 18:21:01
+349,2 THE POINT,BURIEN,WA,(206) 861-4380,2POINP*828DK,,Handyman,,0.70,completed,2025-07-23 18:21:12
+351,2 THE T EXTERIOR LLC,KENT,WA,(206) 504-0518,2TEXTTE752JC,,Handyman,,0.70,completed,2025-07-23 18:21:37
+362,2001-WLD BRAES PARK LLC,KIRKLAND,WA,(425) 576-9390,2001WBP781CA,,Handyman,,0.70,completed,2025-07-23 18:22:21
+364,2003-WLD BRUNTSFIELD LLC,KIRKLAND,WA,(425) 576-9390,2003WBL772KH,,Handyman,,0.70,completed,2025-07-23 18:22:58
+374,206 CONSTRUCTION LLC,FEDERAL WAY,WA,(206) 372-3691,206COCL767JQ,,Handyman,https://www.lni.wa.gov/licensing-permits/other-licenses-permits/asbestos-certification,0.70,completed,2025-07-23 18:23:44
+378,206 FIX,SEATTLE,WA,(206) 372-2762,206FIF*911R1,,Handyman,https://www.seattle.gov/customer-service-bureau/contact-us,0.70,completed,2025-07-23 18:24:09
+394,212-WLD ABERDOUR LLC,KIRKLAND,WA,(425) 576-9390,212WLAL778KH,,Handyman,,0.70,completed,2025-07-23 18:26:40
+398,21ST CENTURY CONSTRUCTION LLC,CHEWELAH,WA,(509) 934-8404,21STCCC841P7,,Handyman,,0.70,completed,2025-07-23 18:27:56
+408,237 SPLICING,PUYALLUP,WA,(253) 278-0139,237SPS*757L3,,Handyman,,0.70,completed,2025-07-23 18:28:57
+28,1 EUROSTYLE CORPORATION,VANCOUVER,WA,(971) 202-3331,1EUROEC864MG,,Handyman,https://euro.style/,0.60,completed,2025-07-23 03:16:24
+194,1977 CONSTRUCTION,Edmonds,WA,(425) 458-8220,1977CC*825P6,,Handyman,https://myedmondsnews.com/2020/08/looking-back-a-building-fire-in-summer-1977-and-some-other-edmonds-history/,0.60,completed,2025-07-23 05:10:36
+377,206 FENCING LLC,RENTON,WA,(206) 518-7384,206FEFL792OS,True,Fencing,https://inline-fence.com/residential-commercial-fences-in-renton-wa/,0.60,completed,2025-07-23 18:59:48
+20,@DAM,TACOMA,WA,(253) 222-4938,DAM****811O7,,Handyman,,0.50,completed,2025-07-23 03:15:59
+22,04 CONSTRUCTION LLC,BEND,OR,(541) 410-2249,04CONCL862CR,,Concrete,,0.50,completed,2025-07-23 03:16:13
+27,1 Epic Installation LLC,TUKWILA,WA,(206) 423-9071,1EPICEI852J1,,Handyman,,0.50,completed,2025-07-23 03:16:35
+35,1 OREGON PACIFIC CONTRACTORS,TOLEDO,OR,(541) 270-4834,1OREGOP801OH,,General Contractor,,0.50,completed,2025-07-23 03:16:54
+60,1-Nation Construction LLC,TOPPENISH,WA,(509) 314-9675,1NATICL821MF,,Handyman,,0.50,completed,2025-07-23 03:18:17
+91,1111 CONSTRUCTION INC,BEAVERTON,OR,(971) 713-0462,1111CI*756DO,,General Contractor,,0.50,completed,2025-07-23 03:19:49
+99,11347 20TH AVE NE LLC,EVERETT,WA,(425) 212-2210,113472A834N1,,Handyman,,0.50,completed,2025-07-23 03:20:24
+111,12 SANCHEZ CONSTRUCTION LLC,BURIEN,WA,(206) 370-2016,12SANSC772RE,,Handyman,,0.50,completed,2025-07-23 03:20:56
+138,1303-WLD DUVALL VILLAGE LLC,KIRKLAND,WA,(425) 576-9390,1303WDV812KN,,,https://washingtonobserver.substack.com/p/gambling-revenge-play-goes-sideways,0.50,completed,2025-07-23 04:55:07
+141,132R LLC,KENT,WA,(253) 680-9064,132RLL*795R1,,Handyman,,0.50,completed,2025-07-23 04:55:49
+164,168 REMODELING LLC,KENT,WA,(206) 880-6646,168RERL778KJ,,Handyman,https://kingcounty.gov/en/dept/metro/routes-and-service/schedules-and-maps/168,0.50,completed,2025-07-23 04:57:08
+209,1ST AMERICAN ALLIED IND LLC,TUMWATER,WA,(206) 474-9797,1STAMAA830KS,,Handyman,https://1st.net,0.50,completed,2025-07-23 05:26:49
+211,1ST AMERICAN CONSTRUCTION LLC,PASCO,WA,(509) 521-9632,1STAMAC853PW,,Handyman,https://1st.net,0.50,completed,2025-07-23 05:26:58
+214,1ST AVENUE NW INC,BOTHELL,WA,(425) 770-1295,1STAVAN787B8,,Handyman,https://1st.net,0.50,completed,2025-07-23 05:27:05
+222,1ST CHOICE BUILDERS LLC,OLYMPIA,WA,(360) 888-6389,1STCHCB765K2,,Handyman,https://1st.net,0.50,completed,2025-07-23 05:27:32
+223,1ST CHOICE BUILDING SOLS LLC,EATONVILLE,WA,(253) 381-9312,1STCHCB777B3,,Handyman,https://1st.net,0.50,completed,2025-07-23 05:27:37
+226,1ST CHOICE CUSTM DSGN CNST INC,KIRKLAND,WA,(206) 310-5336,1STCHCC951NT,,Handyman,https://1st.net,0.50,completed,2025-07-23 05:27:45
+229,1ST CHOICE FIRE LLC,BONNEY LAKE,WA,(253) 876-5755,1STCHCF770OF,,Handyman,https://1st.net,0.50,completed,2025-07-23 05:28:01
+234,1ST CHOICE HOME SOLUTIONS LLC,LYNNWOOD,WA,(509) 303-9094,1STCHCH779BZ,,Handyman,https://1st.net,0.50,completed,2025-07-23 05:28:17
+235,1ST CHOICE INNOVATIONS,SPOKANE,WA,(206) 592-7067,1STCHCI815MT,,Handyman,https://1st.net,0.50,completed,2025-07-23 05:28:24
+248,1ST CHOICE R CONSTRUCTION LLC,OLYMPIA,WA,(360) 402-3717,1STCHCR846KR,,Handyman,https://1st.net,0.50,completed,2025-07-23 05:29:13
+261,1st Construction Resources LLC,FEDERAL WAY,WA,(206) 276-5863,1STCOCR870CL,,Handyman,https://1st.net,0.50,completed,2025-07-23 05:30:21
+262,1ST D&E CONSTRUCTION LLC,Everett,WA,(425) 275-7511,1STDEDC792P5,,Handyman,https://1st.net,0.50,completed,2025-07-23 05:30:25
+263,1st Fire Solutions LLC,Puyallup,WA,(253) 277-3298,1STFIFS861DF,,Handyman,https://1st.net,0.50,completed,2025-07-23 05:30:30
+264,1ST FLOOR,WESTPORT,WA,(206) 228-4725,1STFL**012QN,,Handyman,https://1st.net,0.50,completed,2025-07-23 05:30:35
+266,1st GENESIS CONSTRUCTION LLC,PASCO,WA,(509) 412-0202,1STGEGC811B2,,Handyman,https://1st.net,0.50,completed,2025-07-23 05:30:45
+286,1ST SURFACE CREATIVE,SEATTLE,WA,(917) 531-2783,1STSUSC784OM,,Handyman,,0.50,completed,2025-07-23 18:16:19
+302,2 BROTHERS INC,BLAINE,WA,(360) 332-6300,2BROTBI945DA,,Handyman,,0.50,completed,2025-07-23 18:17:54
+333,2 Monkeys Enterprises,SILVERDALE,WA,(360) 277-7756,2MONKME834KA,,Handyman,,0.50,completed,2025-07-23 18:19:14
+350,2 THE POINT LLC,LAKE TAPPS,WA,(206) 861-4380,2POINPL752K9,,,,0.50,completed,2025-07-23 18:21:24
+391,211-WLD KILBIRNIE LLC,KIRKLAND,WA,(425) 576-9390,211WLK*771B6,,Handyman,,0.50,completed,2025-07-23 18:25:55
+395,215-WLD DOWNFIELD LLC,KIRKLAND,WA,(425) 576-9390,215WLDL778KH,,Handyman,,0.50,completed,2025-07-23 18:27:29
+397,21st CENTURY CONSTRUCTION,VALLEY,WA,(509) 991-8137,21STCCC864NH,,Handyman,,0.50,completed,2025-07-23 18:27:37
+204,1NE CONSTRUCTION LLC,Auburn,WA,(425) 547-9797,1NECOCL773NM,,,https://1ne.com,0.20,completed,2025-07-23 05:19:04
+152,1502-WLD EDMONDS LLC,KIRKLAND,WA,(425) 576-9390,1502WWE844KL,,,https://madeinwashington.com/,0.00,completed,2025-07-23 04:56:22
