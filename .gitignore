@@ -137,3 +137,8 @@ dmypy.json
 # OS
 .DS_Store
 Thumbs.db 
+# Database backups
+*.sql.gz
+*_backup.sql
+contractor_db_export.sql.gz
+contractor_enrichment_backup.sql

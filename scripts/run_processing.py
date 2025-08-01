@@ -34,6 +34,25 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+class ContractorLogger:
+    """Direct logging for individual contractors - no buffering to prevent interleaving"""
+    def __init__(self, contractor_id: str, contractor_name: str):
+        self.contractor_id = contractor_id
+        self.contractor_name = contractor_name
+        
+    def info(self, message: str):
+        logger.info(message)
+        
+    def warning(self, message: str):
+        logger.warning(message)
+        
+    def error(self, message: str):
+        logger.error(message)
+        
+    def flush_to_main_logger(self):
+        """No-op since we're logging directly now"""
+        pass
+
 class ContractorProcessor:
     """Main contractor processing class"""
     
@@ -157,21 +176,20 @@ class ContractorProcessor:
             
             logger.info(f"🔍 Trying free enrichment for: {clean_name}")
             
-            # Step 1: Try Clearbit (when available)
+            # Step 1: Try Clearbit Autocomplete API (free, no auth required)
             try:
-                clearbit_url = "https://company.clearbit.com/v1/domains/find"
-                params = {'name': clean_name}
+                clearbit_url = "https://autocomplete.clearbit.com/v1/companies/suggest"
+                params = {'query': clean_name}
                 
                 async with self.session.get(clearbit_url, params=params, timeout=5) as response:
                     if response.status == 200:
                         data = await response.json()
-                        domain = data.get('domain')
-                        if domain:
-                            website_url = f"https://{domain}"
-                            logger.info(f"✅ Clearbit found website: {website_url}")
-                            return website_url
-                    elif response.status == 401:
-                        logger.info(f"🔒 Clearbit requires authentication - skipping")
+                        if data and len(data) > 0:
+                            domain = data[0].get('domain')
+                            if domain:
+                                website_url = f"https://{domain}"
+                                logger.info(f"✅ Clearbit found website: {website_url}")
+                                return website_url
                     elif response.status != 404:  # 404 is normal "not found"
                         logger.info(f"⚠️ Clearbit API status {response.status}")
             except Exception as e:
@@ -222,14 +240,48 @@ class ContractorProcessor:
     async def search_contractor_online(self, contractor: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Search for contractor information using Google Custom Search (fallback)"""
         try:
+            # Clean business name for better search results
+            business_name = contractor['business_name']
+            # Remove special characters and expand common abbreviations
+            business_name = business_name.replace('@', '').replace('&', 'AND')
+            # Expand common contractor abbreviations (word boundaries important!)
+            abbreviations = {
+                ' APPL RPR': ' APPLIANCE REPAIR',
+                ' CONST ': ' CONSTRUCTION ',
+                ' CONSTR ': ' CONSTRUCTION ',
+                ' ELEC ': ' ELECTRICAL ',
+                ' PLMB ': ' PLUMBING ',
+                ' HVAC ': ' HEATING VENTILATION AIR CONDITIONING ',
+                ' RPR ': ' REPAIR ',
+                ' SVC ': ' SERVICE ',
+                ' SVCS ': ' SERVICES ',
+                ' LLC': '',
+                ' INC': '',
+                ' CORP': '',
+                ' CO ': ' COMPANY '  # Fixed: only replace " CO " (with spaces) not "CO" inside words
+            }
+            
+            for abbrev, full in abbreviations.items():
+                business_name = business_name.replace(abbrev, full)
+            
+            # Handle " CO" at the end of business name
+            if business_name.endswith(' CO'):
+                business_name = business_name[:-3] + ' COMPANY'
+            
+            # Clean up extra spaces
+            business_name = ' '.join(business_name.split())
+            
             # Build search query
-            query_parts = [contractor['business_name']]
+            query_parts = [business_name]
             if contractor.get('city'):
                 query_parts.append(contractor['city'])
             if contractor.get('state'):
                 query_parts.append(contractor['state'])
             
             search_query = " ".join(query_parts)
+            if business_name != contractor['business_name']:
+                logger.info(f"🧹 Cleaned business name: '{contractor['business_name']}' -> '{business_name}'")
+            logger.info(f"🔍 Google Search Query: '{search_query}'")
             
             # Google Custom Search API call
             search_url = "https://www.googleapis.com/customsearch/v1"
@@ -243,7 +295,15 @@ class ContractorProcessor:
             async with self.session.get(search_url, params=params) as response:
                 if response.status == 200:
                     data = await response.json()
-                    return data.get('items', [])
+                    results = data.get('items', [])
+                    logger.info(f"📊 Google returned {len(results)} search results")
+                    for i, result in enumerate(results[:3], 1):  # Log first 3 results
+                        title = result.get('title', 'No title')[:50]
+                        link = result.get('link', 'No link')
+                        logger.info(f"   📄 Result #{i}: {title} -> {link}")
+                    if len(results) > 3:
+                        logger.info(f"   ... and {len(results) - 3} more results")
+                    return results
                 elif response.status == 429:
                     logger.warning("Google API rate limit reached, waiting...")
                     await asyncio.sleep(5)
@@ -264,13 +324,20 @@ class ContractorProcessor:
         try:
             logger.info(f"🕷️ Crawling website: {url}")
             
-            # Set reasonable timeout and headers
+            # Set comprehensive browser-like headers to avoid 403 errors
             headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.5',
-                'Accept-Encoding': 'gzip, deflate',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Accept-Encoding': 'gzip, deflate, br',
                 'Connection': 'keep-alive',
+                'Upgrade-Insecure-Requests': '1',
+                'Sec-Fetch-Dest': 'document',
+                'Sec-Fetch-Mode': 'navigate',
+                'Sec-Fetch-Site': 'none',
+                'Sec-Fetch-User': '?1',
+                'Cache-Control': 'max-age=0',
+                'DNT': '1',
             }
             
             start_time = time.time()
@@ -299,6 +366,9 @@ class ContractorProcessor:
                     
                     # Extract meaningful content using simple text processing
                     website_content = self.extract_website_content(content)
+                    
+                    # Add raw HTML for phone number detection fallback
+                    website_content['raw_html'] = content
                     
                     logger.info(f"✅ Successfully crawled {url} ({content_length} chars)")
                     return website_content
@@ -637,6 +707,42 @@ Respond with valid JSON only.
         # Rate limiting
         await asyncio.sleep(config.LLM_DELAY)
 
+    def _get_url_rejection_reason(self, website_url: Optional[str]) -> str:
+        """Get detailed reason why a URL was rejected"""
+        if not website_url:
+            return "Empty/null URL"
+        
+        # Check against excluded domains first
+        is_excluded, exclusion_reason = self.is_excluded_website(website_url)
+        if is_excluded:
+            return f"Excluded domain ({exclusion_reason})"
+        
+        # Convert to lowercase for case-insensitive matching
+        url_lower = website_url.lower()
+        
+        # Directory and listing sites to filter out (backup to EXCLUDED_DOMAINS)
+        directory_sites = [
+            'yelp.com', 'bbb.org', 'better business bureau', 'angieslist.com', 'angi.com',
+            'homeadvisor.com', 'thumbtack.com', 'porch.com', 'yellowpages.com', 'superpages.com',
+            'manta.com', 'foursquare.com', 'facebook.com', 'linkedin.com', 'indeed.com',
+            'glassdoor.com', 'google.com/maps', 'maps.google.com', 'google.com/search',
+            'buildzoom.com', 'mapquest.com', 'bloomberg.com', 'instagram.com', 'twitter.com',
+            'directory', 'listings', 'find_desc=', 'find_loc='
+        ]
+        
+        # Check if URL contains any directory site patterns
+        for directory_pattern in directory_sites:
+            if directory_pattern in url_lower:
+                return f"Directory/listing site ({directory_pattern})"
+        
+        # Additional checks for search result URLs
+        search_patterns = ['search?', 'results?', 'find?']
+        for pattern in search_patterns:
+            if pattern in url_lower:
+                return f"Search result URL ({pattern})"
+        
+        return "Unknown rejection reason"
+
     def filter_website_url(self, website_url: Optional[str]) -> Optional[str]:
         """Filter out directory, listing websites, excluded domains, and industry associations"""
         if not website_url:
@@ -645,7 +751,6 @@ Respond with valid JSON only.
         # Check against excluded domains first
         is_excluded, exclusion_reason = self.is_excluded_website(website_url)
         if is_excluded:
-            logger.debug(f"URL filtered by excluded domains: {exclusion_reason}")
             return None
         
         # Convert to lowercase for case-insensitive matching
@@ -653,34 +758,12 @@ Respond with valid JSON only.
         
         # Directory and listing sites to filter out (backup to EXCLUDED_DOMAINS)
         directory_sites = [
-            'yelp.com',
-            'bbb.org',
-            'better business bureau',
-            'angieslist.com',
-            'angi.com',
-            'homeadvisor.com',
-            'thumbtack.com',
-            'porch.com',
-            'yellowpages.com',
-            'superpages.com',
-            'manta.com',
-            'foursquare.com',
-            'facebook.com',
-            'linkedin.com',
-            'indeed.com',
-            'glassdoor.com',
-            'google.com/maps',
-            'maps.google.com',
-            'google.com/search',
-            'buildzoom.com',     # Contractor directory
-            'mapquest.com',      # Map/directory service
-            'bloomberg.com',     # Business directory
-            'instagram.com',     # Social media
-            'twitter.com',       # Social media
-            'directory',
-            'listings',
-            'find_desc=',  # Google search URLs
-            'find_loc=',   # Google search URLs
+            'yelp.com', 'bbb.org', 'better business bureau', 'angieslist.com', 'angi.com',
+            'homeadvisor.com', 'thumbtack.com', 'porch.com', 'yellowpages.com', 'superpages.com',
+            'manta.com', 'foursquare.com', 'facebook.com', 'linkedin.com', 'indeed.com',
+            'glassdoor.com', 'google.com/maps', 'maps.google.com', 'google.com/search',
+            'buildzoom.com', 'mapquest.com', 'bloomberg.com', 'instagram.com', 'twitter.com',
+            'directory', 'listings', 'find_desc=', 'find_loc='
         ]
         
         # Check if URL contains any directory site patterns
@@ -891,8 +974,9 @@ Respond with valid JSON only.
         contractor_city = contractor.get('city', '').upper()
         contractor_state = contractor.get('state', 'WA').upper()
         contractor_name = contractor.get('business_name', '').upper()
+        contractor_id = contractor.get('id', 'Unknown')
         
-        logger.info(f"🔍 ULTRA STRICT validation for: {contractor['business_name']}")
+        logger.info(f"🔍 ULTRA STRICT validation for: {contractor['business_name']} (ID: {contractor_id})")
         
         # STEP 1: Business Name Verification (CRITICAL)
         business_name_match = self.verify_business_name_match(website_text, contractor_name)
@@ -907,7 +991,8 @@ Respond with valid JSON only.
             return False
             
         # STEP 3: Location Verification (CRITICAL)
-        location_match = self.verify_wa_location(website_text, contractor_city)
+        raw_html = crawled_content.get('raw_html', '')
+        location_match = self.verify_wa_location(website_text, contractor_city, raw_html)
         if not location_match:
             logger.warning(f"❌ ULTRA STRICT validation FAILED: No Washington location match")
             return False
@@ -923,12 +1008,38 @@ Respond with valid JSON only.
         clean_name = re.sub(r'\s+(LLC|INC|CORP|CO|LTD|COMPANY)\s*$', '', contractor_name)
         name_words = clean_name.split()
         
-        # Must match at least 2 significant words (ignore numbers and common words)
+        # Strategy 1: Check for exact string match (with and without spaces)
+        if clean_name in website_text:
+            logger.info(f"✅ Business name match: Exact string match found")
+            return True
+        
+        # Strategy 2: Check concatenated version (remove spaces)
+        concatenated_name = ''.join(name_words)
+        if concatenated_name in website_text:
+            logger.info(f"✅ Business name match: Concatenated string match found ({concatenated_name})")
+            return True
+        
+        # Strategy 3: Check concatenated with common variations
+        variations = [
+            concatenated_name + 'LLC',
+            concatenated_name + 'INC', 
+            concatenated_name + 'CORP',
+            concatenated_name + 'CO',
+            concatenated_name + 'COMPANY'
+        ]
+        
+        for variation in variations:
+            if variation in website_text:
+                logger.info(f"✅ Business name match: Concatenated variation found ({variation})")
+                return True
+        
+        # Strategy 4: Traditional word-by-word matching (fallback)
         significant_words = [word for word in name_words if len(word) > 2 and word not in ['THE', 'AND', 'OR']]
         
         if len(significant_words) < 2:
-            # For single word companies, need exact match
-            return clean_name in website_text
+            # For single word companies, already checked exact match above
+            logger.warning(f"❌ Business name mismatch: Single word '{clean_name}' not found")
+            return False
         
         # Check if at least 2 significant words appear on the website
         matches = sum(1 for word in significant_words if word in website_text)
@@ -966,41 +1077,63 @@ Respond with valid JSON only.
         logger.warning(f"❌ No contractor services found: Only {matches} service keywords")
         return False
     
-    def verify_wa_location(self, website_text: str, contractor_city: str) -> bool:
+    def verify_wa_location(self, website_text: str, contractor_city: str, raw_html: str = None) -> bool:
         """Verify Washington state location indicators"""
         import re
         
-        # Extract all phone numbers from website content
-        phone_patterns = re.findall(r'\(?(253|206|360|425|509)\)?[-.\s]?(\d{3})[-.\s]?(\d{4})', website_text)
+        # Try both extracted text and raw HTML for phone number detection
+        search_texts = [website_text]
+        if raw_html:
+            search_texts.append(raw_html)
         
-        if phone_patterns:
-            # Check if ANY phone number has Washington area codes
-            wa_area_codes = {'253', '206', '360', '425', '509'}
-            website_area_codes = [match[0] for match in phone_patterns]
+        found_wa_phones = []
+        
+        for text_source in search_texts:
+            # Extract all potential phone number patterns (with any formatting, including HTML entities)
+            # Look for 3-3-4 digit patterns with flexible separators (spaces, dashes, dots, HTML entities, etc.)
+            phone_candidates = re.findall(r'(?:^|[^\d])(\d{3})[^\d]{1,10}?(\d{3})[^\d]{1,10}?(\d{4})(?=[^\d]|$)', text_source)
             
-            if any(code in wa_area_codes for code in website_area_codes):
-                logger.info(f"✅ WA location verified: Found area code(s): {website_area_codes}")
+            # Convert to 10-digit strings for easier processing
+            digit_sequences = [''.join(match) for match in phone_candidates]
+            
+            # Washington area codes we care about
+            wa_area_codes = {'253', '206', '360', '425', '509', '564'}  # Added 564 (new WA area code)
+            
+            for sequence in digit_sequences:
+                # Check if it starts with a WA area code
+                if len(sequence) >= 10:
+                    area_code = sequence[:3]
+                    if area_code in wa_area_codes:
+                        # Format as readable phone number for logging
+                        formatted_phone = f"({area_code}) {sequence[3:6]}-{sequence[6:10]}"
+                        if formatted_phone not in found_wa_phones:  # Avoid duplicates
+                            found_wa_phones.append(formatted_phone)
+        
+        logger.info(f"🔍 Found {len(found_wa_phones)} WA phone numbers across all sources")
+        
+        if found_wa_phones:
+                logger.info(f"✅ WA location verified: Found phone number(s): {found_wa_phones}")
                 
-                # Additional check: must mention contractor's city or nearby cities
-                if contractor_city in website_text:
+                # Additional check: must mention contractor's city or nearby cities (case-insensitive)
+                if contractor_city.upper() in website_text.upper():
                     logger.info(f"✅ City match verified: {contractor_city}")
                     return True
                 
-                # Check for Puget Sound area cities
+                # Check for Puget Sound area cities (case-insensitive)
                 puget_sound_cities = ['SEATTLE', 'BELLEVUE', 'TACOMA', 'EVERETT', 'SPOKANE', 'KIRKLAND', 'REDMOND', 'BOTHELL', 'LYNNWOOD', 'RENTON', 'KENT', 'FEDERAL WAY', 'BURIEN']
-                if any(city in website_text for city in puget_sound_cities):
-                    found_cities = [city for city in puget_sound_cities if city in website_text]
+                if any(city in website_text.upper() for city in puget_sound_cities):
+                    found_cities = [city for city in puget_sound_cities if city in website_text.upper()]
                     logger.info(f"✅ WA cities verified: {found_cities}")
                     return True
         
-        # Check for Washington-specific service area mentions
+        # Check for Washington-specific service area mentions (case-insensitive)
         wa_service_indicators = [
             'WASHINGTON STATE', 'PUGET SOUND', 'GREATER SEATTLE', 'EASTSIDE', 'SERVING SEATTLE',
             'KING COUNTY', 'PIERCE COUNTY', 'SNOHOMISH COUNTY', 'THURSTON COUNTY'
         ]
         
         for indicator in wa_service_indicators:
-            if indicator in website_text:
+            if indicator in website_text.upper():
                 logger.info(f"✅ WA service area verified: {indicator}")
                 return True
         
@@ -1296,48 +1429,68 @@ Respond with valid JSON only.
 
     async def process_contractor(self, contractor: Dict[str, Any]):
         """Process a single contractor"""
+        # Create contractor-specific logger
+        contractor_logger = ContractorLogger(
+            str(contractor.get('id', 'Unknown')), 
+            contractor['business_name']
+        )
+        
         try:
+            # Clear separator for new contractor - log immediately to show progress
+            logger.info("=" * 80)
+            logger.info(f"🏢 PROCESSING CONTRACTOR #{contractor.get('id', 'Unknown')}")
+            logger.info(f"📋 Business: {contractor['business_name']}")
+            logger.info(f"📍 Location: {contractor.get('city', 'Unknown')}, {contractor.get('state', 'Unknown')}")
+            logger.info(f"📞 Phone: {contractor.get('phone_number', 'None')}")
+            logger.info(f"🏗️  License: {contractor.get('contractor_license_type_code_desc', 'Unknown')}")
+            logger.info("=" * 80)
+            
             # Step 0: Validate location first
             if not self.is_local_contractor(contractor):
-                logger.info(f"⏭️ Skipping non-local contractor: {contractor['business_name']} ({contractor.get('city', 'Unknown')}, {contractor.get('state', 'Unknown')}) - Phone: {contractor.get('phone_number', 'None')}")
+                contractor_logger.info(f"⏭️ SKIPPING: Non-local contractor (outside Puget Sound area)")
+                contractor_logger.info("=" * 80)
                 self.stats['failed'] += 1
                 return
-                
-            logger.info(f"Processing: {contractor['business_name']} ({contractor['city']}, {contractor['state']})")
             
             # Step 1: Google Search FIRST (accuracy over cost for data quality)
             website_content = None
             validated_website_url = None
             search_results = []
             
-            logger.info("🎯 Using Google Search FIRST for maximum accuracy...")
-            logger.info("💸 Prioritizing data quality over cost savings...")
+            contractor_logger.info("🎯 Using Google Search FIRST for maximum accuracy...")
+            contractor_logger.info("💸 Prioritizing data quality over cost savings...")
             self.stats['google_fallback'] += 1
             search_results = await self.search_contractor_online(contractor)
             
             if search_results:
-                logger.info(f"🔍 Searching through {len(search_results)} Google results for valid website...")
+                contractor_logger.info(f"🔍 Searching through {len(search_results)} Google results for valid website...")
                 
                 # Look for legitimate website URLs (filtered)
                 for i, result in enumerate(search_results, 1):
                     url = result.get('link', '')
-                    logger.info(f"   📄 Result {i}/{len(search_results)}: {url}")
+                    contractor_logger.info(f"   📄 Result {i}/{len(search_results)}: {url}")
                     
                     filtered_url = self.filter_website_url(url)
                     if filtered_url:  # This is a legitimate website
-                        logger.info(f"🎯 Found legitimate website: {filtered_url}")
+                        contractor_logger.info(f"   ✅ ACCEPTED: Legitimate website URL")
+                        contractor_logger.info(f"   🕷️ Crawling website: {filtered_url}")
                         crawled_content = await self.crawl_website_content(filtered_url, contractor)
                         
                         # FIRST: Check for industry association before any validation
                         if crawled_content:
                             is_excluded, exclusion_reason = self.is_excluded_website(filtered_url, crawled_content)
                             if is_excluded:
-                                logger.warning(f"🚫 Website excluded: {exclusion_reason} - {filtered_url}")
-                                logger.info(f"   🔄 Continuing to search remaining {len(search_results) - i} results...")
+                                contractor_logger.warning(f"   🚫 REJECTED: {exclusion_reason}")
+                                contractor_logger.info(f"   🔄 Continuing to search remaining {len(search_results) - i} results...")
                                 continue
+                        else:
+                            contractor_logger.warning(f"   ❌ REJECTED: Failed to crawl website content")
+                            contractor_logger.info(f"   🔄 Continuing to search remaining {len(search_results) - i} results...")
+                            continue
                         
                         # Validate that this website actually belongs to the contractor with STRICT validation
-                        if crawled_content and self.validate_website_belongs_to_contractor_strict(crawled_content, contractor):
+                        contractor_logger.info(f"   🔍 Validating website belongs to contractor...")
+                        if self.validate_website_belongs_to_contractor_strict(crawled_content, contractor):
                             # Calculate comprehensive 5-factor confidence score
                             website_confidence = self.calculate_website_confidence_score(crawled_content, contractor)
                             
@@ -1347,69 +1500,76 @@ Respond with valid JSON only.
                                 validated_website_url = filtered_url
                                 # Store the website confidence for later use
                                 website_content['website_confidence'] = website_confidence
-                                logger.info(f"✅ Website accepted with confidence {website_confidence:.2f}: {filtered_url}")
+                                contractor_logger.info(f"   ✅ WEBSITE VALIDATED: Confidence {website_confidence:.2f} - USING THIS WEBSITE")
                                 break
                             else:
-                                logger.warning(f"❌ Website confidence too low ({website_confidence:.2f} < 0.4): {filtered_url}")
-                                logger.info(f"   🔄 Continuing to search remaining {len(search_results) - i} results...")
+                                contractor_logger.warning(f"   ❌ REJECTED: Website confidence too low ({website_confidence:.2f} < 0.4)")
+                                contractor_logger.info(f"   🔄 Continuing to search remaining {len(search_results) - i} results...")
                         else:
-                            logger.warning(f"❌ Website rejected - doesn't match contractor (STRICT): {filtered_url}")
-                            logger.info(f"   🔄 Continuing to search remaining {len(search_results) - i} results...")
+                            contractor_logger.warning(f"   ❌ REJECTED: Website doesn't match contractor (failed validation)")
+                            contractor_logger.info(f"   🔄 Continuing to search remaining {len(search_results) - i} results...")
                     else:
-                        logger.info(f"   ⏭️ Skipped (directory/listing): {url}")
+                        # Log why this URL was filtered out
+                        rejection_reason = self._get_url_rejection_reason(url)
+                        contractor_logger.info(f"   ⏭️ SKIPPED: {rejection_reason}")
                 
                 if not validated_website_url:
-                    logger.warning(f"🚫 No valid website found after checking all {len(search_results)} Google results")
+                    contractor_logger.warning(f"🚫 SEARCH COMPLETE: No valid website found after checking all {len(search_results)} Google results")
+                else:
+                    contractor_logger.info(f"🎯 SEARCH COMPLETE: Found and validated website: {validated_website_url}")
             else:
-                logger.warning("🚫 No Google search results found")
+                contractor_logger.warning("🚫 No Google search results found")
             
             # Step 2: ONLY try free enrichment if Google Search completely failed
             if not validated_website_url:
-                logger.info("🔄 Google Search found no valid websites, trying free enrichment as last resort...")
+                contractor_logger.info("🔄 Google Search found no valid websites, trying free enrichment as last resort...")
                 
                 free_website = await self.search_free_enrichment(contractor)
                 if free_website:
                     # Filter and validate free enrichment result with EXTRA STRICT validation
                     filtered_url = self.filter_website_url(free_website)
                     if filtered_url:
-                        logger.info(f"🎯 Free enrichment provided legitimate website: {filtered_url}")
+                        contractor_logger.info(f"🎯 Free enrichment provided legitimate website: {filtered_url}")
                         crawled_content = await self.crawl_website_content(filtered_url, contractor)
                         
                         # FIRST: Check for industry association before validation
                         if crawled_content:
                             is_excluded, exclusion_reason = self.is_excluded_website(filtered_url, crawled_content)
                             if is_excluded:
-                                logger.warning(f"🚫 Free enrichment website excluded: {exclusion_reason} - {filtered_url}")
-                                logger.warning("🚫 Both Google Search and free enrichment failed to find valid website")
+                                contractor_logger.warning(f"🚫 Free enrichment website excluded: {exclusion_reason} - {filtered_url}")
+                                contractor_logger.warning("🚫 Both Google Search and free enrichment failed to find valid website")
+                                contractor_logger.info("❌ No validated website found - skipping AI evaluation as requested")
+                                contractor_logger.info("✅ CONTRACTOR PROCESSING COMPLETE")
+                                contractor_logger.info("=" * 80)
                                 return
                         
                         # EXTRA STRICT validation for domain guessed results
                         if crawled_content and self.validate_website_belongs_to_contractor_extra_strict(crawled_content, contractor):
                             website_content = crawled_content
                             validated_website_url = filtered_url
-                            logger.info(f"✅ Free enrichment website validated with EXTRA STRICT validation: {filtered_url}")
-                            logger.info("💰 Cost savings: Used free methods after Google Search failed!")
+                            contractor_logger.info(f"✅ Free enrichment website validated with EXTRA STRICT validation: {filtered_url}")
+                            contractor_logger.info("💰 Cost savings: Used free methods after Google Search failed!")
                             self.stats['clearbit_success'] += 1
                             # Create mock search result for consistency
                             search_results = [{'link': filtered_url, 'title': f"{contractor['business_name']} - Free Enrichment", 'snippet': 'Found via free enrichment (last resort)'}]
                         else:
-                            logger.warning(f"❌ Free enrichment website rejected - doesn't match contractor (EXTRA STRICT): {filtered_url}")
+                            contractor_logger.warning(f"❌ Free enrichment website rejected - doesn't match contractor (EXTRA STRICT): {filtered_url}")
                     else:
-                        logger.info(f"⏭️ Free enrichment website skipped (directory/listing): {free_website}")
+                        contractor_logger.info(f"⏭️ Free enrichment website skipped (directory/listing): {free_website}")
                 
                 if not validated_website_url:
-                    logger.warning("🚫 Both Google Search and free enrichment failed to find valid website")
+                    contractor_logger.warning("🚫 Both Google Search and free enrichment failed to find valid website")
             
             # Step 3: AI analysis ONLY if we have a validated website
             if validated_website_url and website_content:
-                logger.info("✅ Found validated website - proceeding with AI analysis")
+                contractor_logger.info("✅ Found validated website - proceeding with AI analysis")
                 analysis = await self.analyze_with_ai(contractor, search_results or [], website_content)
                 # Update analysis to use validated website URL
                 analysis['website'] = validated_website_url
                 await self.update_contractor_results(contractor, analysis, search_results or [], website_content)
             else:
                 # No valid website found - skip AI evaluation as requested
-                logger.info("❌ No validated website found - skipping AI evaluation as requested")
+                contractor_logger.info("❌ No validated website found - skipping AI evaluation as requested")
                 analysis = {
                     'category': 'Unknown',
                     'confidence': 0.0,
@@ -1422,8 +1582,13 @@ Respond with valid JSON only.
                 }
                 await self.update_contractor_results(contractor, analysis, search_results or [], None)
             
+            # Completion separator
+            contractor_logger.info("✅ CONTRACTOR PROCESSING COMPLETE")
+            contractor_logger.info("=" * 80)
+            
         except Exception as e:
-            logger.error(f"Error processing contractor {contractor['business_name']}: {e}")
+            contractor_logger.error(f"❌ ERROR processing contractor {contractor['business_name']}: {e}")
+            contractor_logger.info("=" * 80)
             self.stats['failed'] += 1
     
     async def process_batch(self, batch: List[Dict[str, Any]]):
@@ -1437,20 +1602,26 @@ Respond with valid JSON only.
             async with semaphore:
                 await self.process_contractor(contractor)
         
-        tasks = [process_with_semaphore(contractor) for contractor in batch]
-        await asyncio.gather(*tasks, return_exceptions=True)
+        # Process contractors sequentially to prevent variable scoping issues
+        for contractor in batch:
+            try:
+                await process_with_semaphore(contractor)
+            except Exception as e:
+                logger.error(f"Error processing contractor {contractor.get('business_name', 'Unknown')}: {e}")
         
-        # Print progress
+        # Print batch completion summary
         elapsed = (datetime.now() - self.stats['start_time']).total_seconds()
         rate = self.stats['processed'] / elapsed if elapsed > 0 else 0
         
-        logger.info(f"📊 Progress: {self.stats['processed']} processed, "
-                   f"{self.stats['auto_approved']} auto-approved, "
-                   f"{self.stats['manual_review']} manual review, "
-                   f"{self.stats['failed']} failed "
-                   f"({rate:.2f} contractors/sec)")
-        logger.info(f"💰 Cost: {self.stats['clearbit_success']} Clearbit (free), "
-                   f"{self.stats['google_fallback']} Google (paid)")
+        logger.info("🎯" + "=" * 78)
+        logger.info(f"📊 BATCH COMPLETE - Progress Summary:")
+        logger.info(f"   • Total processed: {self.stats['processed']}")
+        logger.info(f"   • Auto-approved: {self.stats['auto_approved']}")
+        logger.info(f"   • Manual review: {self.stats['manual_review']}")
+        logger.info(f"   • Failed/Skipped: {self.stats['failed']}")
+        logger.info(f"   • Processing rate: {rate:.2f} contractors/sec")
+        logger.info(f"💰 API Usage: {self.stats['clearbit_success']} Clearbit (free), {self.stats['google_fallback']} Google (paid)")
+        logger.info("🎯" + "=" * 78)
     
     async def run(self, max_contractors: Optional[int] = None, reprocess_no_website: bool = False):
         """Main processing loop"""

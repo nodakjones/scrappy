@@ -2,6 +2,10 @@
 
 *An AI-powered system for automatically validating, categorizing, and enriching contractor business data*
 
+## 🚨 IMPORTANT: READ FIRST
+**Before making ANY changes to this system, read [IMPORTANT_SETUP_NOTES.md](IMPORTANT_SETUP_NOTES.md)**  
+**Never overwrite existing .env files or assume the database is empty!**
+
 ---
 
 ## Overview
@@ -301,6 +305,11 @@ Includes comprehensive coverage of all business types from your CRM:
 
 5. **Start processing:**
    ```bash
+   # For large batches, process in background with monitoring
+   python scripts/run_processing.py --max 5000 &
+   python scripts/monitor_and_export.py &
+   
+   # Or for smaller batches, process normally
    python scripts/run_processing.py
    ```
 
@@ -308,6 +317,8 @@ Includes comprehensive coverage of all business types from your CRM:
    ```bash
    python scripts/export_contractors.py --exported-by "your_name"
    ```
+   
+   *Note: With automated monitoring active, exports happen automatically when processing completes.*
 
 ### Monitor Progress
 
@@ -325,6 +336,35 @@ FROM contractors
 WHERE review_status = 'approved_download'
 ORDER BY confidence_score DESC;
 ```
+
+### Automated Monitoring & Export
+
+**For long-running batch processing**, the system includes an automated monitoring script that:
+
+- **Monitors processing completion** (checks every 5 minutes)
+- **Auto-exports results** when target is reached or processing stops
+- **Commits to git** with timestamped CSV files
+- **Pushes to remote branch** automatically
+
+**Start automated monitoring:**
+```bash
+python3 scripts/monitor_and_export.py &
+```
+
+**What happens automatically:**
+1. Monitors `run_processing.py` background process
+2. When processing completes (reaches target count or process stops):
+   - Exports all ready contractors to timestamped CSV
+   - Adds file to git: `exports/contractors_batch_YYYYMMDD_HHMMSS.csv`
+   - Commits with message: "Export XXX processed contractors - batch complete"
+   - Pushes to current branch
+
+**Check if monitoring is active:**
+```bash
+ps aux | grep monitor_and_export
+```
+
+This ensures exports happen automatically even if the current session ends, perfect for processing large batches (e.g., 5000+ records).
 
 ---
 
