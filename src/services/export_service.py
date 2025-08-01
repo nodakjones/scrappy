@@ -97,3 +97,113 @@ class ExportService:
         # Sort by creation time, newest first
         files.sort(key=lambda x: x['created'], reverse=True)
         return files
+    
+    async def export_to_csv(self, contractors: List[Contractor], filename_prefix: str = "contractor_export") -> str:
+        """Export contractors to CSV file"""
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"{filename_prefix}_full_{timestamp}.csv"
+        filepath = self.export_dir / filename
+        
+        # Define columns for full export
+        columns = [
+            'id', 'business_name', 'phone_number', 'address_line_1', 'city', 'state', 'zip_code',
+            'website_url', 'confidence_score', 'is_home_contractor', 'mailer_category',
+            'contractor_license_type_code_desc', 'processing_status', 'last_processed'
+        ]
+        
+        logger.info(f"Exporting {len(contractors)} contractors to {filename}")
+        
+        with open(filepath, 'w', newline='', encoding='utf-8') as csvfile:
+            writer = csv.DictWriter(csvfile, fieldnames=columns)
+            writer.writeheader()
+            
+            for contractor in contractors:
+                row = {}
+                for col in columns:
+                    value = getattr(contractor, col, None)
+                    
+                    # Format values appropriately
+                    if value is None:
+                        row[col] = ''
+                    elif isinstance(value, datetime):
+                        row[col] = value.strftime('%Y-%m-%d %H:%M:%S')
+                    elif isinstance(value, (dict, list)):
+                        row[col] = str(value)
+                    else:
+                        row[col] = str(value)
+                
+                writer.writerow(row)
+        
+        logger.info(f"Export completed: {filepath}")
+        return str(filepath)
+    
+    async def create_summary_export(self, contractors: List[Contractor], filename_prefix: str = "contractor_export") -> str:
+        """Create a summary CSV with key fields only"""
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"{filename_prefix}_summary_{timestamp}.csv"
+        filepath = self.export_dir / filename
+        
+        # Define columns for summary export
+        columns = [
+            'business_name', 'phone_number', 'city', 'state', 'website_url', 
+            'confidence_score', 'is_home_contractor', 'mailer_category'
+        ]
+        
+        logger.info(f"Creating summary export with {len(contractors)} contractors to {filename}")
+        
+        with open(filepath, 'w', newline='', encoding='utf-8') as csvfile:
+            writer = csv.DictWriter(csvfile, fieldnames=columns)
+            writer.writeheader()
+            
+            for contractor in contractors:
+                row = {}
+                for col in columns:
+                    value = getattr(contractor, col, None)
+                    
+                    # Format values
+                    if value is None:
+                        row[col] = ''
+                    elif isinstance(value, datetime):
+                        row[col] = value.strftime('%Y-%m-%d %H:%M:%S')
+                    elif col == 'confidence_score' and value is not None:
+                        row[col] = f"{float(value):.3f}"
+                    else:
+                        row[col] = str(value)
+                
+                writer.writerow(row)
+        
+        logger.info(f"Summary export completed: {filepath}")
+        return str(filepath)
+    
+    async def mark_as_exported(self, contractors: List[Contractor], batch_id: str = None):
+        """Mark contractors as exported in database"""
+        if not contractors:
+            return
+        
+        export_time = datetime.utcnow()
+        if batch_id is None:
+            batch_id = f"batch_{export_time.strftime('%Y%m%d_%H%M%S')}"
+        
+        contractor_ids = [c.id for c in contractors]
+        
+        # Update contractors table
+        update_query = """
+        UPDATE contractors 
+        SET exported_at = $1, export_batch_id = $2, updated_at = $1
+        WHERE id = ANY($3)
+        """
+        
+        await db_pool.execute(update_query, export_time, batch_id, contractor_ids)
+        
+        # Try to create export batch record (table might not exist)
+        try:
+            batch_query = """
+            INSERT INTO export_batches (batch_id, export_time, contractor_count, export_type)
+            VALUES ($1, $2, $3, $4)
+            """
+            await db_pool.execute(batch_query, batch_id, export_time, len(contractors), 'csv')
+        except Exception as e:
+            logger.warning(f"Could not create export_batches record: {e}")
+        
+        logger.info(f"Marked {len(contractors)} contractors as exported with batch_id: {batch_id}")
+        return batch_id
