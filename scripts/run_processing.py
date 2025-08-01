@@ -244,7 +244,7 @@ class ContractorProcessor:
             business_name = contractor['business_name']
             # Remove special characters and expand common abbreviations
             business_name = business_name.replace('@', '').replace('&', 'AND')
-            # Expand common contractor abbreviations
+            # Expand common contractor abbreviations (word boundaries important!)
             abbreviations = {
                 ' APPL RPR': ' APPLIANCE REPAIR',
                 ' CONST ': ' CONSTRUCTION ',
@@ -258,11 +258,15 @@ class ContractorProcessor:
                 ' LLC': '',
                 ' INC': '',
                 ' CORP': '',
-                ' CO': ' COMPANY'
+                ' CO ': ' COMPANY '  # Fixed: only replace " CO " (with spaces) not "CO" inside words
             }
             
             for abbrev, full in abbreviations.items():
                 business_name = business_name.replace(abbrev, full)
+            
+            # Handle " CO" at the end of business name
+            if business_name.endswith(' CO'):
+                business_name = business_name[:-3] + ' COMPANY'
             
             # Clean up extra spaces
             business_name = ' '.join(business_name.split())
