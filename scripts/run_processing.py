@@ -35,30 +35,23 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 class ContractorLogger:
-    """Thread-safe logging buffer for individual contractors"""
+    """Direct logging for individual contractors - no buffering to prevent interleaving"""
     def __init__(self, contractor_id: str, contractor_name: str):
         self.contractor_id = contractor_id
         self.contractor_name = contractor_name
-        self.logs = []
         
     def info(self, message: str):
-        self.logs.append(('INFO', message))
+        logger.info(message)
         
     def warning(self, message: str):
-        self.logs.append(('WARNING', message))
+        logger.warning(message)
         
     def error(self, message: str):
-        self.logs.append(('ERROR', message))
+        logger.error(message)
         
     def flush_to_main_logger(self):
-        """Output all buffered logs to the main logger as a group"""
-        for level, message in self.logs:
-            if level == 'INFO':
-                logger.info(message)
-            elif level == 'WARNING':
-                logger.warning(message)
-            elif level == 'ERROR':
-                logger.error(message)
+        """No-op since we're logging directly now"""
+        pass
 
 class ContractorProcessor:
     """Main contractor processing class"""
@@ -1386,9 +1379,8 @@ Respond with valid JSON only.
             # Step 0: Validate location first
             if not self.is_local_contractor(contractor):
                 contractor_logger.info(f"⏭️ SKIPPING: Non-local contractor (outside Puget Sound area)")
+                contractor_logger.info("=" * 80)
                 self.stats['failed'] += 1
-                # Flush logs and return early
-                contractor_logger.flush_to_main_logger()
                 return
             
             # Step 1: Google Search FIRST (accuracy over cost for data quality)
@@ -1477,8 +1469,9 @@ Respond with valid JSON only.
                             if is_excluded:
                                 contractor_logger.warning(f"🚫 Free enrichment website excluded: {exclusion_reason} - {filtered_url}")
                                 contractor_logger.warning("🚫 Both Google Search and free enrichment failed to find valid website")
-                                # Flush logs and return early
-                                contractor_logger.flush_to_main_logger()
+                                contractor_logger.info("❌ No validated website found - skipping AI evaluation as requested")
+                                contractor_logger.info("✅ CONTRACTOR PROCESSING COMPLETE")
+                                contractor_logger.info("=" * 80)
                                 return
                         
                         # EXTRA STRICT validation for domain guessed results
@@ -1520,18 +1513,13 @@ Respond with valid JSON only.
                 }
                 await self.update_contractor_results(contractor, analysis, search_results or [], None)
             
-            # Completion separator - log immediately
-            logger.info("✅ CONTRACTOR PROCESSING COMPLETE")
-            logger.info("=" * 80)
-            
-            # Flush all logs for this contractor as a complete group
-            contractor_logger.flush_to_main_logger()
+            # Completion separator
+            contractor_logger.info("✅ CONTRACTOR PROCESSING COMPLETE")
+            contractor_logger.info("=" * 80)
             
         except Exception as e:
-            logger.error(f"❌ ERROR processing contractor {contractor['business_name']}: {e}")
-            logger.info("=" * 80)
-            # Flush logs even on error
-            contractor_logger.flush_to_main_logger()
+            contractor_logger.error(f"❌ ERROR processing contractor {contractor['business_name']}: {e}")
+            contractor_logger.info("=" * 80)
             self.stats['failed'] += 1
     
     async def process_batch(self, batch: List[Dict[str, Any]]):
