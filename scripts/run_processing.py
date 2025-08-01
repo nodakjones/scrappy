@@ -326,6 +326,9 @@ class ContractorProcessor:
                     # Extract meaningful content using simple text processing
                     website_content = self.extract_website_content(content)
                     
+                    # Add raw HTML for phone number detection fallback
+                    website_content['raw_html'] = content
+                    
                     logger.info(f"✅ Successfully crawled {url} ({content_length} chars)")
                     return website_content
                 else:
@@ -946,7 +949,8 @@ Respond with valid JSON only.
             return False
             
         # STEP 3: Location Verification (CRITICAL)
-        location_match = self.verify_wa_location(website_text, contractor_city)
+        raw_html = crawled_content.get('raw_html', '')
+        location_match = self.verify_wa_location(website_text, contractor_city, raw_html)
         if not location_match:
             logger.warning(f"❌ ULTRA STRICT validation FAILED: No Washington location match")
             return False
@@ -1005,20 +1009,42 @@ Respond with valid JSON only.
         logger.warning(f"❌ No contractor services found: Only {matches} service keywords")
         return False
     
-    def verify_wa_location(self, website_text: str, contractor_city: str) -> bool:
+    def verify_wa_location(self, website_text: str, contractor_city: str, raw_html: str = None) -> bool:
         """Verify Washington state location indicators"""
         import re
         
-        # Extract all phone numbers from website content
-        phone_patterns = re.findall(r'\(?(253|206|360|425|509)\)?[-.\s]?(\d{3})[-.\s]?(\d{4})', website_text)
+        # Try both extracted text and raw HTML for phone number detection
+        search_texts = [website_text]
+        if raw_html:
+            search_texts.append(raw_html)
         
-        if phone_patterns:
-            # Check if ANY phone number has Washington area codes
-            wa_area_codes = {'253', '206', '360', '425', '509'}
-            website_area_codes = [match[0] for match in phone_patterns]
+        found_wa_phones = []
+        
+        for text_source in search_texts:
+            # Extract all potential phone number patterns (with any formatting, including HTML entities)
+            # Look for 3-3-4 digit patterns with flexible separators (spaces, dashes, dots, HTML entities, etc.)
+            phone_candidates = re.findall(r'(?:^|[^\d])(\d{3})[^\d]{1,10}?(\d{3})[^\d]{1,10}?(\d{4})(?=[^\d]|$)', text_source)
             
-            if any(code in wa_area_codes for code in website_area_codes):
-                logger.info(f"✅ WA location verified: Found area code(s): {website_area_codes}")
+            # Convert to 10-digit strings for easier processing
+            digit_sequences = [''.join(match) for match in phone_candidates]
+            
+            # Washington area codes we care about
+            wa_area_codes = {'253', '206', '360', '425', '509', '564'}  # Added 564 (new WA area code)
+            
+            for sequence in digit_sequences:
+                # Check if it starts with a WA area code
+                if len(sequence) >= 10:
+                    area_code = sequence[:3]
+                    if area_code in wa_area_codes:
+                        # Format as readable phone number for logging
+                        formatted_phone = f"({area_code}) {sequence[3:6]}-{sequence[6:10]}"
+                        if formatted_phone not in found_wa_phones:  # Avoid duplicates
+                            found_wa_phones.append(formatted_phone)
+        
+        logger.info(f"🔍 Found {len(found_wa_phones)} WA phone numbers across all sources")
+        
+        if found_wa_phones:
+                logger.info(f"✅ WA location verified: Found phone number(s): {found_wa_phones}")
                 
                 # Additional check: must mention contractor's city or nearby cities (case-insensitive)
                 if contractor_city.upper() in website_text.upper():
