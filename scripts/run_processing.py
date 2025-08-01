@@ -1008,12 +1008,38 @@ Respond with valid JSON only.
         clean_name = re.sub(r'\s+(LLC|INC|CORP|CO|LTD|COMPANY)\s*$', '', contractor_name)
         name_words = clean_name.split()
         
-        # Must match at least 2 significant words (ignore numbers and common words)
+        # Strategy 1: Check for exact string match (with and without spaces)
+        if clean_name in website_text:
+            logger.info(f"✅ Business name match: Exact string match found")
+            return True
+        
+        # Strategy 2: Check concatenated version (remove spaces)
+        concatenated_name = ''.join(name_words)
+        if concatenated_name in website_text:
+            logger.info(f"✅ Business name match: Concatenated string match found ({concatenated_name})")
+            return True
+        
+        # Strategy 3: Check concatenated with common variations
+        variations = [
+            concatenated_name + 'LLC',
+            concatenated_name + 'INC', 
+            concatenated_name + 'CORP',
+            concatenated_name + 'CO',
+            concatenated_name + 'COMPANY'
+        ]
+        
+        for variation in variations:
+            if variation in website_text:
+                logger.info(f"✅ Business name match: Concatenated variation found ({variation})")
+                return True
+        
+        # Strategy 4: Traditional word-by-word matching (fallback)
         significant_words = [word for word in name_words if len(word) > 2 and word not in ['THE', 'AND', 'OR']]
         
         if len(significant_words) < 2:
-            # For single word companies, need exact match
-            return clean_name in website_text
+            # For single word companies, already checked exact match above
+            logger.warning(f"❌ Business name mismatch: Single word '{clean_name}' not found")
+            return False
         
         # Check if at least 2 significant words appear on the website
         matches = sum(1 for word in significant_words if word in website_text)
