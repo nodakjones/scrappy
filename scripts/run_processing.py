@@ -183,7 +183,26 @@ class ContractorProcessor:
             
             logger.info(f"🔍 Trying free enrichment for: {clean_name}")
             
-            # Try common domain patterns (completely free)
+            # Step 1: Try Clearbit Autocomplete API (free, no auth required)
+            try:
+                clearbit_url = "https://autocomplete.clearbit.com/v1/companies/suggest"
+                params = {'query': clean_name}
+                
+                async with self.session.get(clearbit_url, params=params, timeout=5) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        if data and len(data) > 0:
+                            domain = data[0].get('domain')
+                            if domain:
+                                website_url = f"https://{domain}"
+                                logger.info(f"✅ Clearbit found website: {website_url}")
+                                return website_url
+                    elif response.status != 404:  # 404 is normal "not found"
+                        logger.info(f"⚠️ Clearbit API status {response.status}")
+            except Exception as e:
+                logger.info(f"⚠️ Clearbit unavailable: {e}")
+            
+            # Step 2: Try common domain patterns (completely free)
             logger.info(f"🎯 Trying domain guessing for: {clean_name}")
             
             # Generate potential domains from company name
