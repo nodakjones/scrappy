@@ -30,7 +30,7 @@ class Config:
     OPENAI_TIMEOUT: int = int(os.getenv('OPENAI_TIMEOUT', '60'))
     
     # Processing Configuration
-    BATCH_SIZE: int = int(os.getenv('BATCH_SIZE', '10'))
+    BATCH_SIZE: int = int(os.getenv('BATCH_SIZE', '1'))
     MAX_CONCURRENT_CRAWLS: int = int(os.getenv('MAX_CONCURRENT_CRAWLS', '3'))
     CRAWL_TIMEOUT: int = int(os.getenv('CRAWL_TIMEOUT', '30'))
     RETRY_ATTEMPTS: int = int(os.getenv('RETRY_ATTEMPTS', '3'))
