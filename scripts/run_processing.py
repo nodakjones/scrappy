@@ -248,6 +248,7 @@ class ContractorProcessor:
                 query_parts.append(contractor['state'])
             
             search_query = " ".join(query_parts)
+            logger.info(f"🔍 Google Search Query: '{search_query}'")
             
             # Google Custom Search API call
             search_url = "https://www.googleapis.com/customsearch/v1"
@@ -261,7 +262,15 @@ class ContractorProcessor:
             async with self.session.get(search_url, params=params) as response:
                 if response.status == 200:
                     data = await response.json()
-                    return data.get('items', [])
+                    results = data.get('items', [])
+                    logger.info(f"📊 Google returned {len(results)} search results")
+                    for i, result in enumerate(results[:3], 1):  # Log first 3 results
+                        title = result.get('title', 'No title')[:50]
+                        link = result.get('link', 'No link')
+                        logger.info(f"   📄 Result #{i}: {title} -> {link}")
+                    if len(results) > 3:
+                        logger.info(f"   ... and {len(results) - 3} more results")
+                    return results
                 elif response.status == 429:
                     logger.warning("Google API rate limit reached, waiting...")
                     await asyncio.sleep(5)
@@ -932,8 +941,9 @@ Respond with valid JSON only.
         contractor_city = contractor.get('city', '').upper()
         contractor_state = contractor.get('state', 'WA').upper()
         contractor_name = contractor.get('business_name', '').upper()
+        contractor_id = contractor.get('id', 'Unknown')
         
-        logger.info(f"🔍 ULTRA STRICT validation for: {contractor['business_name']}")
+        logger.info(f"🔍 ULTRA STRICT validation for: {contractor['business_name']} (ID: {contractor_id})")
         
         # STEP 1: Business Name Verification (CRITICAL)
         business_name_match = self.verify_business_name_match(website_text, contractor_name)
@@ -1533,8 +1543,12 @@ Respond with valid JSON only.
             async with semaphore:
                 await self.process_contractor(contractor)
         
-        tasks = [process_with_semaphore(contractor) for contractor in batch]
-        await asyncio.gather(*tasks, return_exceptions=True)
+        # Process contractors sequentially to prevent variable scoping issues
+        for contractor in batch:
+            try:
+                await process_with_semaphore(contractor)
+            except Exception as e:
+                logger.error(f"Error processing contractor {contractor.get('business_name', 'Unknown')}: {e}")
         
         # Print batch completion summary
         elapsed = (datetime.now() - self.stats['start_time']).total_seconds()
