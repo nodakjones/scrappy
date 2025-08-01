@@ -1297,13 +1297,20 @@ Respond with valid JSON only.
     async def process_contractor(self, contractor: Dict[str, Any]):
         """Process a single contractor"""
         try:
+            # Clear separator for new contractor
+            logger.info("=" * 80)
+            logger.info(f"🏢 PROCESSING CONTRACTOR #{contractor.get('id', 'Unknown')}")
+            logger.info(f"📋 Business: {contractor['business_name']}")
+            logger.info(f"📍 Location: {contractor.get('city', 'Unknown')}, {contractor.get('state', 'Unknown')}")
+            logger.info(f"📞 Phone: {contractor.get('phone_number', 'None')}")
+            logger.info(f"🏗️  License: {contractor.get('contractor_license_type_code_desc', 'Unknown')}")
+            logger.info("=" * 80)
+            
             # Step 0: Validate location first
             if not self.is_local_contractor(contractor):
-                logger.info(f"⏭️ Skipping non-local contractor: {contractor['business_name']} ({contractor.get('city', 'Unknown')}, {contractor.get('state', 'Unknown')}) - Phone: {contractor.get('phone_number', 'None')}")
+                logger.info(f"⏭️ SKIPPING: Non-local contractor (outside Puget Sound area)")
                 self.stats['failed'] += 1
                 return
-                
-            logger.info(f"Processing: {contractor['business_name']} ({contractor['city']}, {contractor['state']})")
             
             # Step 1: Google Search FIRST (accuracy over cost for data quality)
             website_content = None
@@ -1422,8 +1429,13 @@ Respond with valid JSON only.
                 }
                 await self.update_contractor_results(contractor, analysis, search_results or [], None)
             
+            # Completion separator
+            logger.info("✅ CONTRACTOR PROCESSING COMPLETE")
+            logger.info("=" * 80)
+            
         except Exception as e:
-            logger.error(f"Error processing contractor {contractor['business_name']}: {e}")
+            logger.error(f"❌ ERROR processing contractor {contractor['business_name']}: {e}")
+            logger.info("=" * 80)
             self.stats['failed'] += 1
     
     async def process_batch(self, batch: List[Dict[str, Any]]):
@@ -1440,17 +1452,19 @@ Respond with valid JSON only.
         tasks = [process_with_semaphore(contractor) for contractor in batch]
         await asyncio.gather(*tasks, return_exceptions=True)
         
-        # Print progress
+        # Print batch completion summary
         elapsed = (datetime.now() - self.stats['start_time']).total_seconds()
         rate = self.stats['processed'] / elapsed if elapsed > 0 else 0
         
-        logger.info(f"📊 Progress: {self.stats['processed']} processed, "
-                   f"{self.stats['auto_approved']} auto-approved, "
-                   f"{self.stats['manual_review']} manual review, "
-                   f"{self.stats['failed']} failed "
-                   f"({rate:.2f} contractors/sec)")
-        logger.info(f"💰 Cost: {self.stats['clearbit_success']} Clearbit (free), "
-                   f"{self.stats['google_fallback']} Google (paid)")
+        logger.info("🎯" + "=" * 78)
+        logger.info(f"📊 BATCH COMPLETE - Progress Summary:")
+        logger.info(f"   • Total processed: {self.stats['processed']}")
+        logger.info(f"   • Auto-approved: {self.stats['auto_approved']}")
+        logger.info(f"   • Manual review: {self.stats['manual_review']}")
+        logger.info(f"   • Failed/Skipped: {self.stats['failed']}")
+        logger.info(f"   • Processing rate: {rate:.2f} contractors/sec")
+        logger.info(f"💰 API Usage: {self.stats['clearbit_success']} Clearbit (free), {self.stats['google_fallback']} Google (paid)")
+        logger.info("🎯" + "=" * 78)
     
     async def run(self, max_contractors: Optional[int] = None, reprocess_no_website: bool = False):
         """Main processing loop"""
