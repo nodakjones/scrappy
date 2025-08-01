@@ -1020,26 +1020,26 @@ Respond with valid JSON only.
             if any(code in wa_area_codes for code in website_area_codes):
                 logger.info(f"✅ WA location verified: Found area code(s): {website_area_codes}")
                 
-                # Additional check: must mention contractor's city or nearby cities
-                if contractor_city in website_text:
+                # Additional check: must mention contractor's city or nearby cities (case-insensitive)
+                if contractor_city.upper() in website_text.upper():
                     logger.info(f"✅ City match verified: {contractor_city}")
                     return True
                 
-                # Check for Puget Sound area cities
+                # Check for Puget Sound area cities (case-insensitive)
                 puget_sound_cities = ['SEATTLE', 'BELLEVUE', 'TACOMA', 'EVERETT', 'SPOKANE', 'KIRKLAND', 'REDMOND', 'BOTHELL', 'LYNNWOOD', 'RENTON', 'KENT', 'FEDERAL WAY', 'BURIEN']
-                if any(city in website_text for city in puget_sound_cities):
-                    found_cities = [city for city in puget_sound_cities if city in website_text]
+                if any(city in website_text.upper() for city in puget_sound_cities):
+                    found_cities = [city for city in puget_sound_cities if city in website_text.upper()]
                     logger.info(f"✅ WA cities verified: {found_cities}")
                     return True
         
-        # Check for Washington-specific service area mentions
+        # Check for Washington-specific service area mentions (case-insensitive)
         wa_service_indicators = [
             'WASHINGTON STATE', 'PUGET SOUND', 'GREATER SEATTLE', 'EASTSIDE', 'SERVING SEATTLE',
             'KING COUNTY', 'PIERCE COUNTY', 'SNOHOMISH COUNTY', 'THURSTON COUNTY'
         ]
         
         for indicator in wa_service_indicators:
-            if indicator in website_text:
+            if indicator in website_text.upper():
                 logger.info(f"✅ WA service area verified: {indicator}")
                 return True
         
