@@ -100,10 +100,18 @@ class ContractorService:
         confidence += random.uniform(-0.1, 0.1)
         confidence = max(0.0, min(1.0, confidence))
         
-        # Mock website URL
+        # Mock website URL with safe character handling
         if confidence > 0.6:
-            business_name = contractor.business_name.lower().replace(' ', '').replace('&', 'and')
-            contractor.website_url = f"https://www.{business_name[:20]}.com"
+            # Clean business name for URL generation
+            business_name = contractor.business_name.lower()
+            # Remove/replace problematic characters
+            business_name = business_name.replace('#', '').replace('@', '').replace('$', '')
+            business_name = business_name.replace(' ', '').replace('&', 'and').replace('-', '')
+            business_name = business_name.replace('.', '').replace(',', '').replace('!', '')
+            # Keep only alphanumeric characters
+            business_name_clean = ''.join(c for c in business_name if c.isalnum())
+            
+            contractor.website_url = f"https://www.{business_name_clean[:20]}.com"
             contractor.website_status = 'found'
         else:
             contractor.website_status = 'not_found'
@@ -135,16 +143,49 @@ class ContractorService:
         
         confidence = max(0.0, min(1.0, confidence))
         
-        # Mock GPT analysis data
+        # Mock GPT analysis data with safe string handling
+        business_name_safe = contractor.business_name.replace('"', '\\"').replace('\n', ' ').replace('\r', ' ')
         contractor.gpt4mini_analysis = {
             "is_home_contractor": confidence > 0.5,
             "confidence": confidence,
-            "reasoning": f"Business name analysis suggests home contractor likelihood of {confidence:.2f}",
+            "reasoning": f"Business name '{business_name_safe}' analysis suggests home contractor likelihood of {confidence:.2f}",
             "keywords_found": keyword_matches,
+            "business_name": business_name_safe,
             "processed_at": datetime.utcnow().isoformat()
         }
         
         return confidence
+    
+    def _safe_json_dumps(self, data: dict, business_name: str = "") -> Optional[str]:
+        """Safely serialize data to JSON with error handling"""
+        if not data:
+            return None
+            
+        try:
+            # First attempt: standard JSON serialization
+            return json.dumps(data, ensure_ascii=False)
+        except (TypeError, ValueError) as e:
+            logger.warning(f"JSON serialization failed for {business_name}: {e}")
+            
+            try:
+                # Second attempt: with ASCII encoding
+                return json.dumps(data, ensure_ascii=True)
+            except (TypeError, ValueError) as e2:
+                logger.error(f"Safe JSON serialization also failed for {business_name}: {e2}")
+                
+                # Fallback: create a minimal safe JSON structure
+                safe_data = {
+                    "error": "JSON serialization failed",
+                    "business_name": business_name.replace('"', '\\"')[:100],  # Truncate and escape
+                    "original_error": str(e),
+                    "timestamp": datetime.utcnow().isoformat()
+                }
+                
+                try:
+                    return json.dumps(safe_data, ensure_ascii=True)
+                except:
+                    # Ultimate fallback
+                    return '{"error": "Critical JSON serialization failure"}'
     
     def assign_category(self, contractor: Contractor) -> str:
         """Assign mailer category based on business analysis"""
@@ -204,7 +245,7 @@ class ContractorService:
             contractor.mailer_category,
             contractor.website_url,
             contractor.website_status,
-            json.dumps(contractor.gpt4mini_analysis) if contractor.gpt4mini_analysis else None,
+            self._safe_json_dumps(contractor.gpt4mini_analysis, contractor.business_name),
             contractor.last_processed,
             contractor.error_message,
             datetime.utcnow(),
