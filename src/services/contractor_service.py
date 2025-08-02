@@ -41,7 +41,7 @@ class ContractorService:
             session = await self._get_session()
             
             # Generate business name variations for Clearbit
-            business_name_variations = self._generate_business_name_variations(business_name)
+            business_name_variations = [business_name, self._generate_simple_business_name(business_name)]
             
             # Try each variation
             for name_variation in business_name_variations:
@@ -87,8 +87,9 @@ class ContractorService:
             
             session = await self._get_session()
             
-            # Query specifically for local business results
-            query = f'"{business_name}" {city} {state} local business'
+            # Use simplified query for local pack
+            queries = self._generate_search_queries(business_name, city, state)
+            query = f'{queries[0]} local business'  # Use first query with "local business" modifier
             
             # Google Custom Search API endpoint with local business focus
             url = "https://www.googleapis.com/customsearch/v1"
@@ -144,16 +145,8 @@ class ContractorService:
             
             session = await self._get_session()
             
-            # Generate business name variations
-            business_name_variations = self._generate_business_name_variations(business_name)
-            
-            # Multiple query strategies in order of preference (without quotes for broader matching)
-            query_strategies = []
-            for name_variation in business_name_variations:
-                query_strategies.extend([
-                    f'{name_variation} {city} {state}',
-                    f'{name_variation} {state} contractor'
-                ])
+            # Generate simplified search queries
+            query_strategies = self._generate_search_queries(business_name, city, state)
             
             for query in query_strategies:
                 # Google Custom Search API endpoint
@@ -190,7 +183,8 @@ class ContractorService:
                                         item, business_name, city, state
                                     )
                                     domain_valid = "YES"
-                                    domain_reason = f"Confidence: {confidence:.3f} | Threshold: 0.7"
+                                    confidence_str = f"{confidence:.3f}" if confidence is not None else "None"
+                                    domain_reason = f"Confidence: {confidence_str} | Threshold: 0.7"
                                     
                                     if confidence >= 0.7:  # Only return high-confidence matches
                                         # Log consolidated results for this query before returning
@@ -198,7 +192,7 @@ class ContractorService:
                                             logger_ctx.log_search_results([{
                                                 'title': f'Google Search: "{query}"',
                                                 'url': f'Status: {response.status} | Items: {len(data["items"])} | Response Keys: {list(data.keys())}',
-                                                'snippet': f'Found {len(all_search_results)} results with analysis. High confidence match found: {website_url} (confidence: {confidence:.3f})'
+                                                'snippet': f'Found {len(all_search_results)} results with analysis. High confidence match found: {website_url} (confidence: {confidence_str})'
                                             }])
                                         
                                         return {
@@ -253,36 +247,37 @@ class ContractorService:
             logger.error(f"Google API search error for {business_name}: {e}")
             return None
     
-    def _generate_business_name_variations(self, business_name: str) -> List[str]:
-        """Generate variations of business name by removing common business designations"""
-        variations = [business_name]  # Start with original name
+    def _generate_simple_business_name(self, business_name: str) -> str:
+        """Generate simple business name by removing INC, LLC, etc."""
+        simple_name = business_name
         
-        # Common business designations to remove (but keep CONSTRUCTION, ELECTRIC, etc.)
+        # Common business designations to remove
         designations = [
             ' INC', ' LLC', ' CORP', ' CORPORATION', ' CO', ' COMPANY',
             ' LP', ' LLP', ' LPA', ' PA', ' PLLC', ' PC', ' PLLC',
             ' LTD', ' LIMITED', ' GROUP', ' ENTERPRISES', ' ENTERPRISE',
             ' SERVICES', ' SERVICE', ' BUILDING'
-            # Removed ' CONTRACTING', ' CONTRACTORS', ' CONTRACTOR' to preserve CONSTRUCTION
         ]
         
-        # Remove each designation and add to variations
+        # Remove each designation
         for designation in designations:
-            if designation in business_name.upper():
-                variation = business_name.upper().replace(designation, '').strip()
-                if variation and variation not in [v.upper() for v in variations]:
-                    variations.append(variation)
+            if designation in simple_name.upper():
+                simple_name = simple_name.upper().replace(designation, '').strip()
+                break  # Only remove the first one found
         
-        # Also try with just the first few words (common pattern)
-        words = business_name.split()
-        if len(words) > 2:
-            # Try first 2-3 words
-            for i in range(2, min(4, len(words) + 1)):
-                variation = ' '.join(words[:i])
-                if variation not in variations:
-                    variations.append(variation)
+        return simple_name
+    
+    def _generate_search_queries(self, business_name: str, city: str, state: str) -> List[str]:
+        """Generate simplified search queries in order of preference"""
+        simple_name = self._generate_simple_business_name(business_name)
         
-        return variations
+        queries = [
+            f'"{business_name}" {city} {state}',           # 1. Full business name with city/state
+            f'"{simple_name}" {city} {state}',             # 2. Simple business name with city/state
+            f'"{simple_name}" {state}'                     # 3. Simple business name with state only
+        ]
+        
+        return queries
     
     def _calculate_search_confidence(self, search_item: Dict[str, Any], business_name: str, city: str, state: str) -> float:
         """Calculate confidence score for a search result"""
@@ -335,8 +330,9 @@ class ContractorService:
             
             session = await self._get_session()
             
-            # Query specifically for knowledge panel type results
-            query = f'"{business_name}" {city} {state}'
+            # Use simplified query for knowledge panel
+            queries = self._generate_search_queries(business_name, city, state)
+            query = queries[0]  # Use the first query (full business name with city/state)
             
             # Google Custom Search API endpoint with knowledge panel focus
             url = "https://www.googleapis.com/customsearch/v1"
@@ -382,6 +378,48 @@ class ContractorService:
     
     async def crawl_website(self, url: str) -> Optional[str]:
         """Crawl website content for validation with improved SSL handling"""
+        return await self._crawl_single_page(url)
+    
+    async def _get_raw_html(self, url: str) -> Optional[str]:
+        """Get raw HTML content for navigation extraction"""
+        try:
+            session = await self._get_session()
+            
+            # Create SSL context that's more permissive for certificate issues
+            import ssl
+            ssl_context = ssl.create_default_context()
+            ssl_context.check_hostname = False
+            ssl_context.verify_mode = ssl.CERT_NONE
+            
+            # Try with SSL context first
+            try:
+                async with session.get(url, timeout=10, ssl=ssl_context) as response:
+                    if response.status == 200:
+                        return await response.text()
+                    else:
+                        logger.warning(f"Raw HTML fetch failed for {url}: status {response.status}")
+                        
+            except Exception as ssl_error:
+                logger.warning(f"SSL raw HTML fetch failed for {url}, trying without SSL: {ssl_error}")
+                
+                # Try without SSL context
+                try:
+                    async with session.get(url, timeout=10, ssl=False) as response:
+                        if response.status == 200:
+                            return await response.text()
+                        else:
+                            logger.warning(f"Raw HTML fetch failed for {url}: status {response.status}")
+                            
+                except Exception as no_ssl_error:
+                    logger.error(f"Raw HTML fetch error for {url}: {no_ssl_error}")
+                    
+        except Exception as e:
+            logger.error(f"Raw HTML fetch error for {url}: {e}")
+            
+        return None
+    
+    async def _crawl_single_page(self, url: str) -> Optional[str]:
+        """Crawl a single page with improved SSL handling"""
         try:
             session = await self._get_session()
             
@@ -397,13 +435,13 @@ class ContractorService:
                     if response.status == 200:
                         content = await response.text()
                         
-                        # Extract meaningful content (first 1000 characters)
+                        # Extract meaningful content
                         content = re.sub(r'<script[^>]*>.*?</script>', '', content, flags=re.DOTALL)
                         content = re.sub(r'<style[^>]*>.*?</style>', '', content, flags=re.DOTALL)
                         content = re.sub(r'<[^>]+>', '', content)
                         content = re.sub(r'\s+', ' ', content).strip()
                         
-                        return content[:1000] if content else None
+                        return content if content else None
                     else:
                         logger.warning(f"Website crawl failed for {url}: status {response.status}")
                         
@@ -416,13 +454,13 @@ class ContractorService:
                         if response.status == 200:
                             content = await response.text()
                             
-                            # Extract meaningful content (first 1000 characters)
+                            # Extract meaningful content
                             content = re.sub(r'<script[^>]*>.*?</script>', '', content, flags=re.DOTALL)
                             content = re.sub(r'<style[^>]*>.*?</style>', '', content, flags=re.DOTALL)
                             content = re.sub(r'<[^>]+>', '', content)
                             content = re.sub(r'\s+', ' ', content).strip()
                             
-                            return content[:1000] if content else None
+                            return content if content else None
                         else:
                             logger.warning(f"Website crawl failed for {url}: status {response.status}")
                             
@@ -433,6 +471,149 @@ class ContractorService:
             logger.error(f"Website crawl error for {url}: {e}")
             
         return None
+    
+    async def crawl_website_comprehensive(self, url: str) -> Optional[Dict[str, Any]]:
+        """Comprehensive website crawling - multiple pages with navigation analysis"""
+        try:
+            session = await self._get_session()
+            
+            # First, get the raw HTML for navigation extraction
+            raw_html = await self._get_raw_html(url)
+            if not raw_html:
+                return None
+            
+            # Extract navigation links from raw HTML
+            nav_links = self._extract_navigation_links(url, raw_html)
+            
+            # Now crawl the main page for content
+            main_content = await self._crawl_single_page(url)
+            if not main_content:
+                return None
+            
+            # Crawl additional pages (limit to 5 pages to avoid overwhelming)
+            additional_content = []
+            crawled_pages = 0
+            max_pages = 5
+            
+            for link in nav_links[:max_pages]:
+                try:
+                    page_content = await self._crawl_single_page(link)
+                    if page_content:
+                        additional_content.append(page_content)
+                        crawled_pages += 1
+                        
+                        # Add delay to be respectful
+                        await asyncio.sleep(0.5)
+                        
+                except Exception as e:
+                    logger.warning(f"Failed to crawl additional page {link}: {e}")
+                    continue
+            
+            # Combine all content
+            all_content = main_content
+            if additional_content:
+                all_content += "\n\n" + "\n\n".join(additional_content)
+            
+            return {
+                'main_content': main_content,
+                'additional_content': additional_content,
+                'combined_content': all_content,
+                'pages_crawled': 1 + crawled_pages,
+                'nav_links_found': len(nav_links)
+            }
+            
+        except Exception as e:
+            logger.error(f"Comprehensive website crawl error for {url}: {e}")
+            return None
+    
+    def _extract_navigation_links(self, base_url: str, html_content: str) -> List[str]:
+        """Extract navigation links from HTML content with improved selectors"""
+        try:
+            from bs4 import BeautifulSoup
+            import urllib.parse
+            import re
+            
+            soup = BeautifulSoup(html_content, 'html.parser')
+            links = []
+            
+            # Comprehensive navigation selectors for modern websites
+            nav_selectors = [
+                # Standard navigation
+                'nav a', 'header a', '.nav a', '.navigation a', 
+                '.menu a', '.navbar a', '#nav a', '#navigation a',
+                # Modern frameworks
+                '.navbar-nav a', '.nav-menu a', '.main-menu a', '.primary-menu a',
+                '.site-nav a', '.main-nav a', '.top-nav a', '.header-nav a',
+                # Common class patterns
+                '[class*="nav"] a', '[class*="menu"] a', '[class*="header"] a',
+                # Specific modern patterns
+                '.navbar-nav .nav-link', '.nav-menu .menu-item a', '.main-menu .menu-item a',
+                # Generic link extraction (fallback)
+                'a[href]'
+            ]
+            
+            for selector in nav_selectors:
+                try:
+                    elements = soup.select(selector)
+                    for element in elements:
+                        href = element.get('href')
+                        if href and href.strip():
+                            # Convert relative URLs to absolute
+                            absolute_url = urllib.parse.urljoin(base_url, href)
+                            
+                            # Only include links to the same domain
+                            if urllib.parse.urlparse(absolute_url).netloc == urllib.parse.urlparse(base_url).netloc:
+                                # Filter out common non-content pages and patterns
+                                exclude_patterns = [
+                                    '/admin', '/login', '/cart', '/checkout', '/search',
+                                    '/privacy', '/terms', '/sitemap', '/feed', '/rss',
+                                    '/wp-admin', '/wp-login', '/cgi-bin', '/api',
+                                    'mailto:', 'tel:', 'javascript:', '#'
+                                ]
+                                
+                                # Check if URL contains excluded patterns
+                                if not any(pattern in absolute_url.lower() for pattern in exclude_patterns):
+                                    # Focus on content-rich pages with specific keywords
+                                    content_keywords = [
+                                        'service', 'offering', 'about', 'contact', 
+                                        'capabilities', 'capability', 'location'
+                                    ]
+                                    
+                                    # Check if URL path or link text contains content keywords
+                                    url_lower = absolute_url.lower()
+                                    link_text = element.get_text(strip=True).lower()
+                                    
+                                    # Look for keywords in URL path or link text
+                                    has_content_keyword = any(keyword in url_lower for keyword in content_keywords) or \
+                                                        any(keyword in link_text for keyword in content_keywords)
+                                    
+                                    if has_content_keyword:
+                                        links.append(absolute_url)
+                                    elif len(links) < 2:  # Limit non-content pages to 2
+                                        links.append(absolute_url)
+                                        
+                except Exception as selector_error:
+                    logger.debug(f"Selector '{selector}' failed: {selector_error}")
+                    continue
+            
+            # Remove duplicates while preserving order
+            seen = set()
+            unique_links = []
+            for link in links:
+                if link not in seen:
+                    seen.add(link)
+                    unique_links.append(link)
+            
+            # Log what we found
+            logger.info(f"Extracted {len(unique_links)} navigation links from {base_url}")
+            for i, link in enumerate(unique_links[:5]):  # Log first 5
+                logger.debug(f"  Link {i+1}: {link}")
+            
+            return unique_links[:10]  # Limit to 10 links
+            
+        except Exception as e:
+            logger.warning(f"Failed to extract navigation links from {base_url}: {e}")
+            return []
     
     def _is_valid_website(self, url: str) -> bool:
         """Check if URL is a valid business website (not directory/social)"""
@@ -463,18 +644,31 @@ class ContractorService:
             clearbit_domain = await self.try_clearbit_enrichment(business_name)
             if clearbit_domain:
                 clearbit_url = f"https://{clearbit_domain}"
-                crawled_content = await self.crawl_website(clearbit_url)
+                crawled_data = await self.crawl_website_comprehensive(clearbit_url)
                 
-                if crawled_content:
+                if crawled_data and crawled_data['combined_content']:
+                    # Store the website for validation, but don't assign high confidence yet
                     validated_website = {
                         'url': clearbit_url,
-                        'content': crawled_content,
+                        'content': crawled_data['combined_content'],
+                        'main_content': crawled_data['main_content'],
+                        'additional_content': crawled_data['additional_content'],
+                        'pages_crawled': crawled_data['pages_crawled'],
+                        'nav_links_found': crawled_data['nav_links_found'],
                         'source': 'clearbit_api',
-                        'confidence': 0.90
+                        'confidence': 0.0  # Will be calculated after validation
                     }
                     best_result = validated_website
-                    best_confidence = 0.90
-                    logger_ctx.log_website_selection(clearbit_url, 0.90)
+                    best_confidence = 0.0  # Start with 0, will be updated after validation
+                    logger_ctx.log_website_selection(clearbit_url, 0.0)
+                    
+                    # Log comprehensive crawl results
+                    logger_ctx.log_search_results([{
+                        'title': f'Comprehensive Crawl Results - {clearbit_domain}',
+                        'url': clearbit_url,
+                        'snippet': f'Crawled {crawled_data["pages_crawled"]} pages, found {crawled_data["nav_links_found"]} nav links, content length: {len(crawled_data["combined_content"])} chars',
+                        'source': 'clearbit_api'
+                    }])
                 else:
                     logger_ctx.log_search_results([{
                         'title': 'Clearbit domain found but crawl failed',
@@ -501,13 +695,26 @@ class ContractorService:
                 
                 google_api_result = await self.search_google_api(business_name, city, state, logger_ctx)
                 if google_api_result:
-                    crawled_content = await self.crawl_website(google_api_result['url'])
-                    if crawled_content:
-                        google_api_result['content'] = crawled_content
+                    crawled_data = await self.crawl_website_comprehensive(google_api_result['url'])
+                    if crawled_data and crawled_data['combined_content']:
+                        google_api_result['content'] = crawled_data['combined_content']
+                        google_api_result['main_content'] = crawled_data['main_content']
+                        google_api_result['additional_content'] = crawled_data['additional_content']
+                        google_api_result['pages_crawled'] = crawled_data['pages_crawled']
+                        google_api_result['nav_links_found'] = crawled_data['nav_links_found']
+                        
                         if google_api_result['confidence'] > best_confidence:
                             best_result = google_api_result
                             best_confidence = google_api_result['confidence']
                             logger_ctx.log_website_selection(google_api_result['url'], google_api_result['confidence'])
+                        
+                        # Log comprehensive crawl results
+                        logger_ctx.log_search_results([{
+                            'title': f'Comprehensive Crawl Results - Google API',
+                            'url': google_api_result['url'],
+                            'snippet': f'Crawled {crawled_data["pages_crawled"]} pages, found {crawled_data["nav_links_found"]} nav links, content length: {len(crawled_data["combined_content"])} chars',
+                            'source': 'google_api'
+                        }])
                     else:
                         logger_ctx.log_search_results([{
                             'title': 'Google API result found but crawl failed',
@@ -623,7 +830,7 @@ class ContractorService:
             return 0.0
     
     async def enhanced_content_analysis(self, contractor: Contractor, logger_ctx) -> float:
-        """AI-powered business categorization and analysis"""
+        """AI-powered business categorization and analysis using OpenAI"""
         try:
             if not contractor.website_url or contractor.website_status != 'found':
                 return 0.5  # Base confidence for no website
@@ -632,81 +839,209 @@ class ContractorService:
             content = contractor.data_sources.get('crawled_content', '') if contractor.data_sources else ''
             
             if not content:
-                # Try to crawl the website again
-                content = await self.crawl_website(contractor.website_url)
-                if content and contractor.data_sources:
-                    contractor.data_sources['crawled_content'] = content[:1000]  # Store more content for analysis
+                # Try to crawl the website again with comprehensive crawling
+                crawled_data = await self.crawl_website_comprehensive(contractor.website_url)
+                if crawled_data and crawled_data['combined_content'] and contractor.data_sources:
+                    contractor.data_sources['crawled_content'] = crawled_data['combined_content']
+                    content = crawled_data['combined_content']
             
             if not content:
                 return 0.5
             
-            # AI Analysis for Business Categorization
-            # This analyzes: residential vs commercial focus, service categories, business legitimacy
+            # Check if OpenAI API key is configured
+            openai_api_key = getattr(config, 'OPENAI_API_KEY', None)
+            if not openai_api_key:
+                logger.warning("OpenAI API key not configured, using fallback keyword analysis")
+                return self._fallback_content_analysis(content, contractor.business_name, logger_ctx)
             
-            # Simple keyword-based analysis (placeholder for AI)
-            content_lower = content.lower()
-            business_name_lower = contractor.business_name.lower()
+            # Prepare content for AI analysis (limit to 10K chars for cost efficiency)
+            analysis_content = content[:10000]  # Limit to 10K chars for cost-effective analysis
             
-            confidence = 0.0
+            # Log the content being sent to OpenAI
+            logger_ctx.log_ai_call("openai_gpt4_mini", {
+                "business_name": contractor.business_name,
+                "content_length": len(analysis_content),
+                "content_preview": analysis_content[:500] + "..." if len(analysis_content) > 500 else analysis_content,
+                "estimated_tokens": len(analysis_content) // 4,  # Rough estimate: 1 token ≈ 4 characters
+                "estimated_cost": (len(analysis_content) // 4) * 0.0000005  # GPT-4o-mini input cost
+            })
             
-            # 1. Residential Focus Analysis (40% weight)
-            residential_keywords = [
-                'residential', 'home', 'house', 'family', 'residential services',
-                'home improvement', 'home repair', 'home maintenance', 'homeowner',
-                'residential contractor', 'home contractor', 'residential services'
-            ]
+            # OpenAI GPT-4o-mini analysis
+            import openai
+            client = openai.OpenAI(api_key=openai_api_key)
             
-            residential_score = 0.0
-            for keyword in residential_keywords:
-                if keyword in content_lower:
-                    residential_score += 0.1
-            residential_score = min(residential_score, 1.0)
-            confidence += residential_score * 0.4
+            # Get categories from config
+            try:
+                from src.categories_config import ALL_CATEGORIES, PRIORITY_CATEGORIES
+                categories_list = ALL_CATEGORIES
+                priority_categories = PRIORITY_CATEGORIES
+            except ImportError:
+                # Fallback if categories config doesn't exist
+                categories_list = [
+                    "Plumbing", "Electrical", "HVAC", "Roofing", "General Contractor",
+                    "Heating and Cooling", "Flooring", "Pools and Spas", "Security Systems",
+                    "Window/Door", "Bathroom/Kitchen Remodel", "Storage & Closets",
+                    "Decks & Patios", "Fence", "Fireplace", "Sprinklers", "Blinds",
+                    "Awning/Patio/Carport", "Media Systems", "Exterior Solutions"
+                ]
+                priority_categories = [
+                    "Heating and Cooling", "Plumbing", "Electrical", "HVAC"
+                ]
             
-            # 2. Contractor Service Analysis (30% weight)
-            contractor_services = [
-                'plumbing', 'electrical', 'hvac', 'heating', 'cooling', 'roofing',
-                'painting', 'carpentry', 'landscaping', 'concrete', 'foundation',
-                'remodeling', 'renovation', 'repair', 'installation', 'maintenance',
-                'construction', 'contractor', 'contracting', 'home services'
-            ]
+            prompt = f"""
+Analyze this contractor business website and provide categorization:
+
+Business: {contractor.business_name}
+Location: {contractor.city}, {contractor.state}
+License: {contractor.contractor_license_number}
+
+Available Categories: {', '.join(categories_list)}
+
+Priority Categories (high-value residential services): {', '.join(priority_categories)}
+
+Website Content:
+{analysis_content}
+
+Please provide a JSON response with:
+1. "category" - Specific contractor category from the available categories list above
+2. "confidence" - Confidence score 0-1 based on content analysis
+3. "residential_focus" - true if primarily serves homeowners, false if commercial, null if unclear
+4. "services_offered" - Array of main services mentioned
+5. "business_legitimacy" - true if appears to be a legitimate business
+6. "reasoning" - Brief explanation of categorization decision
+
+IMPORTANT: 
+- Choose category from the provided list, prioritizing priority categories when appropriate
+- Base category on actual services mentioned, not business name
+- Look for specific service keywords in the content
+- Provide a lower confidence score based on if this website looks to be related to a business directory, a business listing site, a business/industry/trade association, a software/service product listing contractor customers, and other non-contractor related websites.
+- If content suggests a focus on home services, mark residential_focus as true. Look for words or phrases similar to: "residential" or "homeowners" or "home services" or "home improvement"
+- If content suggests a focus on non residential services, mark residential_focus as false. Look for words or phrases similar to: "commercial" or "business services" or "industrial"
+
+Respond with valid JSON only.
+"""
+
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=500,
+                temperature=0.2
+            )
             
-            service_score = 0.0
-            for service in contractor_services:
-                if service in content_lower:
-                    service_score += 0.05
-            service_score = min(service_score, 1.0)
-            confidence += service_score * 0.3
+            # Parse AI response
+            ai_response = response.choices[0].message.content.strip()
             
-            # 3. Business Legitimacy Analysis (20% weight)
-            legitimacy_keywords = [
-                'licensed', 'insured', 'bonded', 'certified', 'professional',
-                'experience', 'years', 'established', 'trusted', 'reliable',
-                'quality', 'warranty', 'guarantee', 'satisfaction', 'customer'
-            ]
+            # Log AI response
+            logger_ctx.log_ai_call("openai_gpt4_mini", {
+                "business_name": contractor.business_name,
+                "input_content": analysis_content[:500] + "..." if len(analysis_content) > 500 else analysis_content,
+                "ai_response": ai_response
+            })
             
-            legitimacy_score = 0.0
-            for keyword in legitimacy_keywords:
-                if keyword in content_lower:
-                    legitimacy_score += 0.05
-            legitimacy_score = min(legitimacy_score, 1.0)
-            confidence += legitimacy_score * 0.2
-            
-            # 4. Business Name Relevance (10% weight)
-            # Check if business name appears in content
-            if business_name_lower in content_lower:
-                confidence += 0.1
-            
-            # Determine category based on content analysis
-            category = self._determine_category_from_content(content.lower(), contractor.business_name.lower())
-            
-            logger_ctx.log_classification(category, confidence)
-            
-            return confidence
+            try:
+                import json
+                import re
+                
+                # Clean the response - remove markdown code blocks if present
+                cleaned_response = ai_response.strip()
+                if cleaned_response.startswith('```json'):
+                    cleaned_response = cleaned_response[7:]  # Remove ```json
+                if cleaned_response.endswith('```'):
+                    cleaned_response = cleaned_response[:-3]  # Remove ```
+                cleaned_response = cleaned_response.strip()
+                
+                ai_data = json.loads(cleaned_response)
+                
+                category = ai_data.get('category', 'General Contractor')
+                confidence = float(ai_data.get('confidence', 0.5))
+                residential_focus = ai_data.get('residential_focus')
+                services_offered = ai_data.get('services_offered', [])
+                business_legitimacy = ai_data.get('business_legitimacy', True)
+                reasoning = ai_data.get('reasoning', '')
+                
+                # Store AI analysis results
+                if contractor.data_sources:
+                    contractor.data_sources['ai_analysis'] = {
+                        'category': category,
+                        'confidence': confidence,
+                        'residential_focus': residential_focus,
+                        'services_offered': services_offered,
+                        'business_legitimacy': business_legitimacy,
+                        'reasoning': reasoning
+                    }
+                
+                logger_ctx.log_classification(category, confidence)
+                
+                return confidence
+                
+            except json.JSONDecodeError:
+                logger.error(f"Failed to parse OpenAI response for {contractor.business_name}: {ai_response}")
+                return self._fallback_content_analysis(content, contractor.business_name, logger_ctx)
             
         except Exception as e:
-            logger.error(f"Content analysis failed for {contractor.business_name}: {e}")
-            return 0.5
+            logger.error(f"OpenAI analysis failed for {contractor.business_name}: {e}")
+            return self._fallback_content_analysis(content, contractor.business_name, logger_ctx)
+    
+    def _fallback_content_analysis(self, content: str, business_name: str, logger_ctx) -> float:
+        """Fallback keyword-based analysis when OpenAI is not available"""
+        content_lower = content.lower()
+        business_name_lower = business_name.lower()
+        
+        confidence = 0.0
+        
+        # 1. Residential Focus Analysis (40% weight)
+        residential_keywords = [
+            'residential', 'home', 'house', 'family', 'residential services',
+            'home improvement', 'home repair', 'home maintenance', 'homeowner',
+            'residential contractor', 'home contractor', 'residential services'
+        ]
+        
+        residential_score = 0.0
+        for keyword in residential_keywords:
+            if keyword in content_lower:
+                residential_score += 0.1
+        residential_score = min(residential_score, 1.0)
+        confidence += residential_score * 0.4
+        
+        # 2. Contractor Service Analysis (30% weight)
+        contractor_services = [
+            'plumbing', 'electrical', 'hvac', 'heating', 'cooling', 'roofing',
+            'painting', 'carpentry', 'landscaping', 'concrete', 'foundation',
+            'remodeling', 'renovation', 'repair', 'installation', 'maintenance',
+            'construction', 'contractor', 'contracting', 'home services'
+        ]
+        
+        service_score = 0.0
+        for service in contractor_services:
+            if service in content_lower:
+                service_score += 0.05
+        service_score = min(service_score, 1.0)
+        confidence += service_score * 0.3
+        
+        # 3. Business Legitimacy Analysis (20% weight)
+        legitimacy_keywords = [
+            'licensed', 'insured', 'bonded', 'certified', 'professional',
+            'experience', 'years', 'established', 'trusted', 'reliable',
+            'quality', 'warranty', 'guarantee', 'satisfaction', 'customer'
+        ]
+        
+        legitimacy_score = 0.0
+        for keyword in legitimacy_keywords:
+            if keyword in content_lower:
+                legitimacy_score += 0.05
+        legitimacy_score = min(legitimacy_score, 1.0)
+        confidence += legitimacy_score * 0.2
+        
+        # 4. Business Name Relevance (10% weight)
+        if business_name_lower in content_lower:
+            confidence += 0.1
+        
+        # Determine category based on content analysis
+        category = self._determine_category_from_content(content.lower(), business_name.lower())
+        
+        logger_ctx.log_classification(category, confidence)
+        
+        return confidence
     
     async def _comprehensive_website_validation(self, contractor: Contractor, content: str, logger_ctx) -> Dict[str, Any]:
         """Perform comprehensive website validation checks"""
@@ -918,26 +1253,54 @@ class ContractorService:
         if not principal_name:
             return False
         
-        # Clean principal name (remove common formatting and convert to lowercase)
-        clean_principal = re.sub(r'[^\w\s]', '', principal_name).strip().lower()
-        
         # Convert content to lowercase for case-insensitive matching
         content_lower = content.lower()
         
-        # Direct match (case insensitive)
-        if clean_principal in content_lower:
-            return True
-        
-        # Split principal name into words and look for individual word matches
-        principal_words = clean_principal.split()
-        
-        # Look for principal name patterns (individual words)
-        for word in principal_words:
-            if len(word) > 2:  # Only match words longer than 2 characters
-                # Look for word boundaries to avoid partial matches
-                pattern = r'\b' + re.escape(word) + r'\b'
-                if re.search(pattern, content_lower):
-                    return True
+        # Parse principal name format: "Last, First Middle" -> "First Last"
+        # Handle various formats: "Last, First", "Last, First M", "First Last", etc.
+        principal_parts = principal_name.split(',')
+        if len(principal_parts) >= 2:
+            # Format: "Last, First Middle" -> "First Last"
+            last_name = principal_parts[0].strip()
+            first_part = principal_parts[1].strip()
+            first_parts = first_part.split()
+            first_name = first_parts[0] if first_parts else ""
+            
+            # Create reformatted name: "First Last"
+            reformatted_name = f"{first_name} {last_name}".strip()
+            
+            # Clean and convert to lowercase
+            clean_reformatted = re.sub(r'[^\w\s]', '', reformatted_name).strip().lower()
+            
+            # Check for reformatted name match
+            if clean_reformatted in content_lower:
+                return True
+            
+            # Also check individual words from reformatted name
+            reformatted_words = clean_reformatted.split()
+            for word in reformatted_words:
+                if len(word) > 2:  # Only match words longer than 2 characters
+                    pattern = r'\b' + re.escape(word) + r'\b'
+                    if re.search(pattern, content_lower):
+                        return True
+        else:
+            # Original format (no comma) - try as is
+            clean_principal = re.sub(r'[^\w\s]', '', principal_name).strip().lower()
+            
+            # Direct match (case insensitive)
+            if clean_principal in content_lower:
+                return True
+            
+            # Split principal name into words and look for individual word matches
+            principal_words = clean_principal.split()
+            
+            # Look for principal name patterns (individual words)
+            for word in principal_words:
+                if len(word) > 2:  # Only match words longer than 2 characters
+                    # Look for word boundaries to avoid partial matches
+                    pattern = r'\b' + re.escape(word) + r'\b'
+                    if re.search(pattern, content_lower):
+                        return True
         
         return False
     
@@ -1015,9 +1378,26 @@ class ContractorService:
                         logger_ctx.log_search_results([{
                             'title': '5-Factor Validation Results',
                             'url': contractor.website_url,
-                            'snippet': f'Business Name Match: {validation_results["business_name_match"]} | License Match: {validation_results["license_match"]} | Phone Match: {validation_results["phone_match"]} | Address Match: {validation_results["address_match"]} | Principal Match: {validation_results["principal_name_match"]} | Validation Confidence: {website_confidence:.3f} | Website Confidence: {contractor.website_confidence:.3f if contractor.website_confidence is not None else "N/A"}',
+                            'snippet': f'Business Name Match: {validation_results["business_name_match"]} | License Match: {validation_results["license_match"]} | Phone Match: {validation_results["phone_match"]} | Address Match: {validation_results["address_match"]} | Principal Match: {validation_results["principal_name_match"]} | Validation Confidence: {f"{website_confidence:.3f}" if website_confidence is not None else "None"} | Website Confidence: {f"{contractor.website_confidence:.3f}" if contractor.website_confidence is not None else "N/A"}',
                             'source': 'validation_system'
                         }])
+                        
+                        # Only proceed with AI classification if website validation meets minimum threshold
+                        if website_confidence >= 0.25:  # Lowered threshold for website acceptance
+                            # Step 3: AI Classification (only for validated websites)
+                            try:
+                                classification_confidence = await self.enhanced_content_analysis(contractor, logger_ctx)
+                            except Exception as e:
+                                logger.error(f"AI classification failed for {contractor.business_name}: {e}")
+                                classification_confidence = 0.0
+                        else:
+                            logger_ctx.log_search_results([{
+                                'title': 'Website Validation Failed',
+                                'url': contractor.website_url,
+                                'snippet': f'Website confidence {website_confidence:.3f} below minimum threshold of 0.4 - skipping AI analysis',
+                                'source': 'validation_system'
+                            }])
+                            classification_confidence = 0.0
                     else:
                         # No content to validate - set confidence to 0
                         website_confidence = 0.0
@@ -1027,18 +1407,11 @@ class ContractorService:
                             'snippet': 'No content available for validation - website crawl failed',
                             'source': 'validation_system'
                         }])
-                    
-                    # Step 3: AI Classification (run if we have a website, regardless of validation score)
-                    try:
-                        classification_confidence = await self.enhanced_content_analysis(contractor, logger_ctx)
-                    except Exception as e:
-                        logger.error(f"AI classification failed for {contractor.business_name}: {e}")
-                        classification_confidence = 0.0
                 
-                # Calculate overall confidence using proper formula
-                if website_confidence >= 0.4:  # Website validation threshold
-                    # Combined confidence: (Website Confidence × 60%) + (AI Confidence × 40%)
-                    overall_confidence = (website_confidence * 0.6) + (classification_confidence * 0.4)
+                # Calculate overall confidence - use AI classification confidence directly
+                if website_confidence >= 0.25:  # Lowered website validation threshold
+                    # Use AI classification confidence as the overall confidence
+                    overall_confidence = classification_confidence
                 elif website_discovery_confidence > 0.0:
                     # Website was found but validation failed - show actual validation results
                     overall_confidence = website_confidence  # Use actual validation confidence

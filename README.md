@@ -26,18 +26,25 @@ The Contractor Data Enrichment System processes contractor license data to ident
     ↓
 🔍 Website Discovery (Google Search + Clearbit API)
     ↓
+🕷️ Comprehensive Crawling (Multi-page analysis)
+    ↓
 🛡️ Website Validation (5-Factor Confidence Scoring)
     ↓
 🤖 AI Analysis (GPT-4o-mini categorization)
     ↓
-📊 Combined Confidence Calculation
+📊 AI Confidence Direct Assignment
     ↓
 🎯 Status Assignment (Auto-approve/Manual Review/Reject)
 ```
 
 ### Enhanced Discovery Features
 
-**Business Name Variations**: The system generates multiple search queries by removing common business designations (LLC, INC, CORP) while preserving important descriptive words like "CONSTRUCTION", "ELECTRIC", "REMODELING".
+**Simplified Search Queries**: The system uses 3 focused search strategies:
+1. `"{full business name}" {city} {state}` - Exact business name with location
+2. `"{simple business name}" {city} {state}` - Business name without LLC/INC with location  
+3. `"{simple business name}" {state}` - Business name without LLC/INC with state only
+
+**Business Name Simplification**: Removes common business designations (LLC, INC, CORP) while preserving important descriptive words like "CONSTRUCTION", "ELECTRIC", "REMODELING".
 
 **Consolidated Logging**: Google search results are logged in a single, comprehensive entry showing the query, status, response keys, and result summary instead of multiple separate debug entries.
 
@@ -111,9 +118,9 @@ The system uses a **two-stage validation process** to ensure discovered websites
 
 ### Website Validation Threshold
 
-**Minimum 0.4 confidence required** (at least 2 factors must match) for website acceptance:
-- **≥ 0.4**: Website accepted, proceed to AI analysis
-- **< 0.4**: Website rejected, continue searching other results
+**Minimum 0.25 confidence required** (at least 1 factor must match) for website acceptance:
+- **≥ 0.25**: Website accepted, proceed to AI analysis
+- **< 0.25**: Website rejected, continue searching other results
 
 ### Stage 2: AI Business Classification
 
@@ -140,44 +147,44 @@ The system calculates a final confidence score that determines the contractor's 
 2. **Website Validation**: Apply 5-factor validation system (business name, license, phone, principal, address)
 3. **Website Confidence**: 0.0-1.0 based on 5-factor validation results
 
-**Stage 2: AI Classification (Only if Website Confidence ≥ 0.4)**
-1. **AI Analysis**: Analyze website content for business categorization
+**Stage 2: AI Classification (Only if Website Confidence ≥ 0.25)**
+1. **AI Analysis**: Analyze website content for business categorization using comprehensive crawling
 2. **Classification Confidence**: 0.0-1.0 based on AI analysis of residential focus, service types, legitimacy
 
 **Final Combined Formula:**
 ```
-When Website Confidence ≥ 0.4:
-    Final Confidence = (Website Confidence × 60%) + (AI Confidence × 40%)
+When Website Confidence ≥ 0.25:
+    Final Confidence = AI Classification Confidence (direct use)
 
-When Website Confidence < 0.4:
-    Final Confidence = 0.0 (AI analysis skipped)
+When Website Confidence < 0.25:
+    Final Confidence = Website Confidence (AI analysis skipped)
 ```
 
 ### Example Scenarios
 
-**High Confidence Contractor (Best Plumbing):**
-- Website Discovery: Found `bestplumbing.com`
-- Website Validation: 4 factors match (business name, license, phone, address)
-- Website Confidence: 1.0 (4 factors × 0.25 each)
-- AI Analysis: High residential focus, legitimate business
-- AI Confidence: 0.9
-- Final Confidence: (1.0 × 0.6) + (0.9 × 0.4) = **0.96**
-- Status: `approved_download` ✅
-
-**Medium Confidence Contractor:**
-- Website Discovery: Found `abcplumbing.com`
+**High Confidence Contractor (4D Electric):**
+- Website Discovery: Found `4delectric.com`
 - Website Validation: 2 factors match (business name, phone)
 - Website Confidence: 0.5 (2 factors × 0.25 each)
-- AI Analysis: Medium residential focus
-- AI Confidence: 0.7
-- Final Confidence: (0.5 × 0.6) + (0.7 × 0.4) = **0.58**
+- AI Analysis: High residential focus, comprehensive electrical services
+- AI Confidence: 0.9
+- Final Confidence: **0.9** (AI confidence used directly)
+- Status: `approved_download` ✅
+
+**Medium Confidence Contractor (425 Construction):**
+- Website Discovery: Found `425constructionllc.com`
+- Website Validation: 1 factor match (business name)
+- Website Confidence: 0.25 (1 factor × 0.25)
+- AI Analysis: General contractor focus, limited service details
+- AI Confidence: 0.6
+- Final Confidence: **0.6** (AI confidence used directly)
 - Status: `pending_review` ⚠️
 
 **Low Confidence Contractor:**
 - Website Discovery: Found `handymantips.org`
 - Website Validation: 0 factors match (wrong business)
 - Website Confidence: 0.0 (no factors match)
-- AI Analysis: **SKIPPED** (website confidence < 0.4)
+- AI Analysis: **SKIPPED** (website confidence < 0.25)
 - Final Confidence: **0.0**
 - Status: `rejected` ❌
 
@@ -214,26 +221,26 @@ Each contractor record has two key status fields that track processing progress:
 
 ### Status Workflow Examples
 
-**High Confidence Contractor (Best Plumbing):**
-- Website Confidence: 1.0 (4 factors matched)
-- AI Confidence: 0.9 (high confidence residential plumbing)
-- Final Confidence: (1.0 × 0.6) + (0.9 × 0.4) = **0.96**
+**High Confidence Contractor (4D Electric):**
+- Website Confidence: 0.5 (2 factors matched)
+- AI Confidence: 0.9 (high confidence electrical services)
+- Final Confidence: **0.9** (AI confidence used directly)
 - Status: `completed` → `approved_download` ✅
 
-**Medium Confidence Contractor:**
-- Website Confidence: 0.6 (2-3 factors matched)
-- AI Confidence: 0.7 (medium confidence)  
-- Final Confidence: (0.6 × 0.6) + (0.7 × 0.4) = **0.64**
+**Medium Confidence Contractor (425 Construction):**
+- Website Confidence: 0.25 (1 factor matched)
+- AI Confidence: 0.6 (medium confidence general contractor)
+- Final Confidence: **0.6** (AI confidence used directly)
 - Status: `completed` → `pending_review` ⚠️
 
 **Low Confidence Contractor:**
-- Website Confidence: 0.5 (2 factors matched)
+- Website Confidence: 0.25 (1 factor matched)
 - AI Confidence: 0.4 (low confidence)
-- Final Confidence: (0.5 × 0.6) + (0.4 × 0.4) = **0.46**
+- Final Confidence: **0.4** (AI confidence used directly)
 - Status: `completed` → `rejected` ❌
 
 **No Website Found:**
-- Website Confidence: 0.0 (no websites passed 0.4 threshold)
+- Website Confidence: 0.0 (no websites passed 0.25 threshold)
 - AI Analysis: Skipped
 - Final Confidence: **0.0**
 - Status: `completed` → `rejected` ❌
@@ -297,6 +304,112 @@ WHERE id = [contractor_id];
 8. **Storage & Closets** - Closet organization, storage solutions, custom shelving, pantry systems
 9. **Decks & Patios** - Deck construction, patio installation, outdoor living spaces, deck repair
 10. **Electrician** - Electrical repairs, panel upgrades, outlet installation, lighting installation
+
+---
+
+## Comprehensive Website Crawling
+
+The system now uses **comprehensive website crawling** to provide much more detailed content analysis for AI classification.
+
+### Enhanced Crawling Features
+
+**Multi-Page Analysis**: 
+- Crawls main page + navigation pages (up to 5 additional pages)
+- Focuses on content-rich pages with keywords: "service", "offering", "about", "contact", "capabilities", "location"
+- Filters out non-content pages (admin, login, cart, etc.)
+
+**Content Quality Improvements**:
+- **Before**: 1,400-2,700 characters (single page)
+- **After**: 5,000-25,000 characters (multiple pages)
+- **AI Content Limit**: 10,000 characters for cost efficiency
+- **Quality**: 4-5x more comprehensive content for better AI analysis
+
+### Crawling Process
+
+1. **Main Page Crawl**: Extract raw HTML for navigation analysis
+2. **Navigation Extraction**: Find links using comprehensive CSS selectors
+3. **Content Filtering**: Prioritize pages with service/about/contact keywords
+4. **Multi-Page Crawling**: Crawl up to 5 additional pages with 0.5s delays
+5. **Content Combination**: Merge all page content for comprehensive analysis
+6. **AI Analysis**: Send up to 10K characters to OpenAI for classification
+
+### Example Results
+
+**425 Construction LLC**:
+- **Pages Crawled**: 4 (main + 3 additional)
+- **Content**: 5,157 characters (4x more than before)
+- **AI Tokens**: 1,289 tokens
+- **Cost**: $0.0006 per analysis
+
+**4D Electric LLC**:
+- **Pages Crawled**: 6 (main + 5 additional)
+- **Content**: 10,000 characters (capped for efficiency)
+- **AI Tokens**: 2,500 tokens
+- **Cost**: $0.0013 per analysis
+
+---
+
+## Scripts & Tools
+
+The system includes a comprehensive set of scripts for processing, analysis, and debugging.
+
+### Core Processing Scripts
+
+**Main Processing Pipeline**:
+```bash
+# Run batch processing
+docker-compose exec app python scripts/run_processing.py --count 100 --batch-size 10
+
+# Test specific contractor
+docker-compose exec app python scripts/test_specific_contractor.py --contractor "425 CONSTRUCTION"
+```
+
+### Analysis & Debugging Scripts
+
+**Content Analysis**:
+```bash
+# Comprehensive content analysis with crawl statistics
+docker-compose exec app python scripts/content_analysis.py --contractor "425 CONSTRUCTION"
+```
+
+**Navigation Debugging**:
+```bash
+# Detailed navigation link extraction debugging
+docker-compose exec app python scripts/navigation_debug.py --contractor "4D ELECTRIC"
+```
+
+### Data Management Scripts
+
+**Import/Export**:
+```bash
+# Import contractor data
+docker-compose exec app python scripts/import_data.py
+
+# Export processed results
+docker-compose exec app python scripts/export_contractors.py
+
+# Deduplicate exports
+docker-compose exec app python scripts/deduplicate_exports.py
+```
+
+**Setup & Maintenance**:
+```bash
+# Database setup
+docker-compose exec app python scripts/setup_database.py
+
+# Docker environment setup
+docker-compose exec app python scripts/docker_setup.py
+```
+
+### Script Categories
+
+| Category | Scripts | Purpose |
+|----------|---------|---------|
+| **Processing** | `run_processing.py`, `test_specific_contractor.py` | Main contractor processing pipeline |
+| **Analysis** | `content_analysis.py`, `navigation_debug.py` | Content analysis and debugging |
+| **Data Management** | `import_data.py`, `export_contractors.py`, `deduplicate_exports.py` | Data import/export operations |
+| **Setup** | `setup_database.py`, `docker_setup.py` | System initialization |
+| **Enhanced Discovery** | `enhanced_discovery.py`, `re_export_processed.py` | Advanced discovery features |
 11. **Fence** - Fence installation, gate installation, privacy fencing, fence repair
 12. **Fireplace** - Fireplace installation, chimney cleaning, gas fireplace repair, hearth construction
 13. **Garage Floors** - Epoxy garage floors, garage floor coating, concrete floor finishing, floor resurfacing

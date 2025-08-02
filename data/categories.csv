@@ -1,0 +1,196 @@
+Record Id,Mailer Category Name,Priority,AFB Name,Category,Modified Time
+zcrm_5352026000002539169,BBQ Cleaning,false,SERVICE-Other,Home Services,2025-07-18 19:11:31
+zcrm_5352026000002539791,Window Film,false,SERVICE-Other,Home Improvement,2025-01-27 17:08:46
+zcrm_5352026000002554044,Auto Glass/Repair,false,PROFESSIONAL-Other,Personal & Professional Services,2025-07-18 19:11:31
+zcrm_5352026000002554045,Automobile Dealerships,false,RETAIL-Automotive,Personal & Professional Services,2025-07-18 19:11:31
+zcrm_5352026000002554046,Car Wash & Detailing,false,RETAIL-Automotive,Personal & Professional Services,2025-07-18 19:11:31
+zcrm_5352026000002554047,Chiropractors,false,HEALTH-Medical Services,Personal & Professional Services,2025-07-18 19:11:31
+zcrm_5352026000002554048,Cool Sculpting,false,HEALTH-Medical Services,Personal & Professional Services,2025-07-18 19:11:31
+zcrm_5352026000002554049,Counseling Services,false,PROFESSIONAL-Counseling,Personal & Professional Services,2025-07-18 19:11:31
+zcrm_5352026000002554050,Dentists & Cosmetic Surgery,false,HEALTH-Medical Services,Personal & Professional Services,2025-07-18 19:11:31
+zcrm_5352026000002554052,Lasik Surgery,false,HEALTH-Vision Care/Lasik,Personal & Professional Services,2025-01-27 16:37:08
+zcrm_5352026000002554054,Flooring,false,HOME-Flooring,Home Improvement,2025-07-18 19:11:31
+zcrm_5352026000002554055,Heating and Cooling,true,HOME-HVAC,Home Improvement,2025-07-18 19:19:33
+zcrm_5352026000002554056,Media Systems,false,RETAIL-Other,Home Services,2025-07-18 19:11:31
+zcrm_5352026000002554057,Plumbing,true,SERVICE-Plumbing Services,Home Improvement,2025-01-27 16:55:25
+zcrm_5352026000002554058,Pools and Spas,false,HOME-Pool/Spa Builders,Home Improvement,2025-01-27 16:55:25
+zcrm_5352026000002554059,Roofing,false,HOME-Roofing,Home Improvement,2025-01-27 17:08:46
+zcrm_5352026000002554060,Exterior Solutions,false,HOME-Other,Home Improvement,2025-01-27 15:50:21
+zcrm_5352026000002554061,Security Screens & Doors,false,SERVICE-Security Serv/Equip.,Home Improvement,2025-01-27 17:08:46
+zcrm_5352026000002554062,Security Systems,false,SERVICE-Security Serv/Equip.,Home Improvement,2025-07-18 19:11:31
+zcrm_5352026000002554063,Sheds and Storage,false,HOME-Other,Home Improvement,2025-07-18 19:11:31
+zcrm_5352026000002554064,Shelving,false,SERVICE-Closet/Organization,Home Improvement,2025-01-27 17:08:46
+zcrm_5352026000002554065,Siding,false,HOME-Other,Home Improvement,2025-01-27 17:08:46
+zcrm_5352026000002554066,Skylights,false,HOME-Windows,Home Improvement,2025-01-27 17:08:46
+zcrm_5352026000002554067,Sprinklers,true,HOME-Sprinkler/Irrigation,Home Improvement,2025-01-27 17:08:46
+zcrm_5352026000002554068,Water Systems,false,HOME-Landscaping,Home Improvement,2025-07-18 19:11:31
+zcrm_5352026000002554069,Blinds,true,SERVICE-Window Treatments,Home Improvement,2025-07-18 19:14:29
+zcrm_5352026000002554070,Window/Door,true,HOME-Windows,Home Improvement,2025-07-18 19:16:40
+zcrm_5352026000002554071,Attic & Crawl Space,false,HOME-Other,Home Services,2025-01-27 15:39:33
+zcrm_5352026000002554072,Awning/Patio/Carport,true,HOME-Patio/Deck/Sunroom,Home Services,2025-01-27 15:39:33
+zcrm_5352026000002554073,Bathroom/Kitchen Remodel,true,HOME-Bathroom,Home Services,2025-07-18 19:14:29
+zcrm_5352026000002554074,Cabinet Refinishing,false,HOME-Kitchen,Home Services,2025-01-27 15:39:33
+zcrm_5352026000002554075,Storage & Closets,true,SERVICE-Closet/Organization,Home Services,2025-01-27 17:08:46
+zcrm_5352026000002554076,Countertops,false,HOME-Kitchen,Home Services,2025-01-27 15:44:06
+zcrm_5352026000002554077,Decks & Patios,true,HOME-Patio/Deck/Sunroom,Home Services,2025-01-27 15:44:06
+zcrm_5352026000002554078,Electrician,true,HOME-Electrical/Lighting,Home Services,2025-01-27 15:48:15
+zcrm_5352026000002554079,Fence,true,HOME-Fencing,Home Services,2025-01-27 15:50:21
+zcrm_5352026000002554080,Fireplace,true,SERVICE-Fireplace Services,Home Services,2025-01-27 15:50:21
+zcrm_5352026000002554081,Garage Floors,true,HOME-Garages,Home Services,2025-01-27 15:59:12
+zcrm_5352026000002554082,Gutter Cleaning,false,HOME-Gutters,Home Services,2025-01-27 15:59:12
+zcrm_5352026000002554083,Gutters,true,HOME-Gutters,Home Improvement,2025-07-18 19:14:29
+zcrm_5352026000002554084,Handyman,true,SERVICE-Handyman,Home Services,2025-07-18 19:14:29
+zcrm_5352026000002554085,Junk Removal,true,SERVICE-Junk/Hauling,Home Services,2025-07-18 19:24:53
+zcrm_5352026000002554086,Landscaping,true,HOME-Landscaping,Home Services,2025-07-18 19:25:20
+zcrm_5352026000002554087,Lighting,true,HOME-Electrical/Lighting,Home Services,2025-01-27 16:37:08
+zcrm_5352026000002554089,Rug Cleaning,false,SERVICE-Carpet/Floor Cleaning,Home Services,2025-07-18 19:11:31
+zcrm_5352026000002554090,Painting,false,HOME-Painting,Home Services,2025-01-27 16:48:26
+zcrm_5352026000002554091,Pest Control,false,SERVICE-Pest Control,Home Services,2025-01-27 16:48:26
+zcrm_5352026000002554092,Pets,false,RETAIL-Pet Care/Supplies,Home Services,2025-01-27 16:55:25
+zcrm_5352026000002554093,Pressure Washing,false,SERVICE-Pressure Washing,Home Services,2025-01-27 16:55:25
+zcrm_5352026000002554094,Roof Cleaning & Repair,false,HOME-Roofing,Home Services,2025-01-27 17:08:46
+zcrm_5352026000002554095,Tree Service,true,HOME-Trees,Home Services,2025-01-27 17:08:46
+zcrm_5352026000002554096,Window Cleaning,true,SERVICE-Other,Home Services,2025-07-18 19:16:40
+zcrm_5352026000002554097,Window/Glass Repair,true,HOME-Windows,Home Services,2025-01-27 17:08:46
+zcrm_5352026000002554098,"Fundraising, Events or Services",false,NONPROFIT-Charity,Experiences,2025-01-27 15:59:12
+zcrm_5352026000002554100,Hair Salon / Spa,false,BEAUTY-Salons,Personal & Professional Services,2025-07-18 19:11:31
+zcrm_5352026000002554101,Laser Hair Removal,false,HEALTH-Spa Services,Personal & Professional Services,2025-07-18 19:11:31
+zcrm_5352026000002554102,Massage,false,HEALTH-Massage,Personal & Professional Services,2025-07-18 19:11:31
+zcrm_5352026000002554103,Skin,false,HEALTH-Spa Services,Personal & Professional Services,2025-07-18 19:11:31
+zcrm_5352026000002554104,Dentist,false,HEALTH-Dental,Personal & Professional Services,2025-07-18 19:11:31
+zcrm_5352026000002554105,Event Planning / Catering,false,DINING-Other,Personal & Professional Services,2025-07-18 19:11:31
+zcrm_5352026000002554106,Financial Planning,false,PROFESSIONAL-Financial,Personal & Professional Services,2025-07-18 19:11:31
+zcrm_5352026000002554107,Insurance Providers,false,PROFESSIONAL-Insurance,Personal & Professional Services,2025-07-18 19:11:31
+zcrm_5352026000002554108,Interior Design,false,PROFESSIONAL-Interior Design,Personal & Professional Services,2025-07-18 19:11:31
+zcrm_5352026000002554109,Legal,false,PROFESSIONAL-Legal,Personal & Professional Services,2025-07-18 19:11:31
+zcrm_5352026000002554110,Mortgage / Loans,false,PROFESSIONAL-Mortgage,Personal & Professional Services,2025-07-18 19:11:31
+zcrm_5352026000002554111,Moving,false,PROFESSIONAL-Moving,Personal & Professional Services,2025-07-18 19:11:31
+zcrm_5352026000002554112,Photographers,false,PROFESSIONAL-Photography,Personal & Professional Services,2025-07-18 19:11:31
+zcrm_5352026000002554114,Dining,false,DINING-Other,Experiences,2025-01-27 15:48:15
+zcrm_5352026000002554115,Recreation,false,RECREATION-Other,Retail,2025-07-18 19:11:31
+zcrm_5352026000002554116,Clothing,false,RETAIL-Clothing/Shoes,Retail,2025-01-27 15:41:03
+zcrm_5352026000002554117,ECommerce,false,RETAIL-Other,Retail,2025-01-27 15:48:15
+zcrm_5352026000002554118,Home Items,false,RETAIL-Other,Retail,2025-01-27 16:27:56
+zcrm_5352026000002554119,Jewelers,false,RETAIL-Jewelry & Watches,Retail,2025-01-27 16:37:08
+zcrm_5352026000002554120,Mattress,false,RETAIL-Other,Retail,2025-07-18 19:11:31
+zcrm_5352026000002554121,Piano,false,RETAIL-Instruments,Retail,2025-07-18 19:11:31
+zcrm_5352026000002554122,Cruises,false,TRAVEL-Cruises,Experiences,2025-07-18 19:11:31
+zcrm_5352026000002554123,Hotels & Resorts,false,TRAVEL-Resorts,Experiences,2025-07-18 19:11:31
+zcrm_5352026000002554124,Travel Agent,false,TRAVEL-Agency Services,Experiences,2025-07-18 19:11:31
+zcrm_5352026000002554125,Vacation Property Rental,false,TRAVEL-Resorts,Experiences,2025-07-18 19:11:31
+zcrm_5352026000002723399,Outdoor Living,false,HOME-Patio/Deck/Sunroom,Home Improvement,2025-01-27 16:48:26
+zcrm_5352026000003054049,Fitness,false,HEALTH-Gym/Fitness,Personal & Professional Services,2025-07-18 19:11:31
+zcrm_5352026000004080098,Trade Show,false,ENTERTAIN-Other,Experiences,2025-01-27 17:08:46
+zcrm_5352026000004080339,Sporting Goods,false,RETAIL-Sports Equipment/Gear,Retail,2025-01-27 17:08:46
+zcrm_5352026000004529174,Pavers,false,HOME-Landscaping,Home Improvement,2025-01-27 16:48:26
+zcrm_5352026000005525318,Remodel,false,HOME-Construction,Home Improvement,2025-01-27 16:55:25
+zcrm_5352026000006656302,Store,false,RETAIL-Other,Retail,2025-01-27 17:08:46
+zcrm_5352026000006800059,Real Estate,false,PROFESSIONAL-Real Estate,Personal & Professional Services,2025-07-18 19:11:31
+zcrm_5352026000006800176,House Cleaning,true,SERVICE-Maid/Cleaning,Home Services,2025-07-18 19:14:29
+zcrm_5352026000007172652,Garage Doors,true,HOME-Garages,Home Improvement,2025-07-18 19:14:29
+zcrm_5352026000007653783,Animals,false,RETAIL-Pet Care/Supplies,Personal & Professional Services,2025-01-27 15:39:33
+zcrm_5352026000007916153,RV Sales,false,RETAIL-Other,Retail,2025-07-18 19:11:31
+zcrm_5352026000008075001,Senior Care,false,PROFESSIONAL-Other,Personal & Professional Services,2025-07-18 19:11:31
+zcrm_5352026000008176312,Solar,true,HOME-Electrical/Lighting,Home Improvement,2025-01-27 17:08:46
+zcrm_5352026000008176406,Hardscaping,false,HOME-Landscaping,Home Improvement,2025-07-18 19:11:31
+zcrm_5352026000008185065,Railings,false,HOME-Fencing,Home Improvement,2025-07-18 19:11:31
+zcrm_5352026000008185456,Events,false,ENTERTAIN-Other,Experiences,2025-07-18 19:11:31
+zcrm_5352026000008266001,Grout cleaning,false,SERVICE-Carpet/Floor Cleaning,Home Improvement,2025-07-18 19:11:31
+zcrm_5352026000008436164,Septic,false,SERVICE-Other,Home Services,2025-07-18 19:11:31
+zcrm_5352026000008436485,ADU Contractor,false,HOME-Construction,Home Improvement,2025-07-18 19:11:31
+zcrm_5352026000008436497,Tile,false,HOME-Flooring,Home Improvement,2025-07-18 19:11:31
+zcrm_5352026000008535737,Duct Cleaning,true,SERVICE-Air Ducts,Home Services,2025-07-18 19:14:29
+zcrm_5352026000008663103,Kitchen Remodel,false,HOME-Kitchen,Home Improvement,2025-01-27 16:37:08
+zcrm_5352026000008663118,Home Improvement,false,HOME-Other,Home Improvement,2025-01-27 15:59:12
+zcrm_5352026000008794359,Entertainment,false,ENTERTAIN-Other,Experiences,2025-01-27 15:39:33
+zcrm_5352026000008794630,Restoration Cleaning,false,SERVICE-Maid/Cleaning,Home Services,2025-01-27 17:08:46
+zcrm_5352026000008843323,Synthetic Turf,false,HOME-Landscaping,Home Improvement,2025-01-27 17:08:46
+zcrm_5352026000008866544,Carpet Cleaning,true,SERVICE-Carpet/Floor Cleaning,Home Services,2025-01-27 15:39:33
+zcrm_5352026000009227073,Church,false,NONPROFIT-Church,Personal & Professional Services,2025-01-27 15:40:13
+zcrm_5352026000009227205,Health,false,HEALTH-Other,Personal & Professional Services,2025-01-27 15:59:12
+zcrm_5352026000009227322,Adult Home,false,PROFESSIONAL-Other,Personal & Professional Services;Home Services,2025-01-27 15:39:33
+zcrm_5352026000009479075,Home Services,false,HOME-Other,Home Improvement,2025-01-27 16:27:56
+zcrm_5352026000009877117,Banking,false,PROFESSIONAL-Financial,Personal & Professional Services,2025-01-27 15:39:33
+zcrm_5352026000009877370,Non Profit / Fundraiser,false,NONPROFIT-Charity,Personal & Professional Services;Experiences,2025-01-27 16:48:26
+zcrm_5352026000009877820,Staging,false,PROFESSIONAL-Real Estate,Personal & Professional Services;Home Services,2025-01-27 17:08:46
+zcrm_5352026000010280041,Home Builder,false,HOME-Construction,Home Improvement,2025-01-27 15:59:12
+zcrm_5352026000010280067,Furniture,false,RETAIL-Furniture/Décor,Retail,2025-07-18 19:11:31
+zcrm_5352026000010286091,Music,false,RETAIL-Instruments,Retail,2025-01-27 16:48:26
+zcrm_5352026000010352069,Sleep,false,PROFESSIONAL-Other,Personal & Professional Services,2025-01-27 17:08:46
+zcrm_5352026000011129003,Appliances,false,RETAIL-Other,Home Improvement,2025-01-27 15:39:33
+zcrm_5352026000011129011,Boat Share,false,RETAIL-Boats,Experiences,2025-01-27 15:39:33
+zcrm_5352026000011129019,Closets,true,SERVICE-Closet/Organization,Home Improvement,2025-07-18 19:14:29
+zcrm_5352026000011129031,Play Equipment,false,RETAIL-Sports Equipment/Gear,Home Improvement,2025-01-27 16:55:25
+zcrm_5352026000011129039,Retirement Living,false,PROFESSIONAL-Other,Personal & Professional Services,2025-01-27 17:08:46
+zcrm_5352026000011129047,Rugs,false,SERVICE-Carpet/Floor Cleaning,Retail,2025-01-27 17:08:46
+zcrm_5352026000011129055,Upholstery,false,RETAIL-Furniture/Décor,Home Improvement,2025-01-27 17:08:46
+zcrm_5352026000011129063,Outdoor Lighting,false,HOME-Electrical/Lighting,Home Improvement,2025-01-27 16:48:26
+zcrm_5352026000011140001,Generators,false,HOME-Electrical/Lighting,Home Improvement,2025-01-27 15:59:12
+zcrm_5352026000011140009,Gutter Guards,false,HOME-Gutters,Home Improvement,2025-01-27 15:59:12
+zcrm_5352026000011140039,Asphalt,false,HOME-Concrete,Home Improvement,2025-01-27 15:39:33
+zcrm_5352026000011140047,Concrete,true,HOME-Concrete,Home Improvement,2025-07-18 19:19:33
+zcrm_5352026000011140055,Mold Remediation,false,SERVICE-Mold Remediation,Home Services,2025-01-27 16:48:26
+zcrm_5352026000011140063,Sliding Shelves,false,SERVICE-Closet/Organization,Home Improvement,2025-01-27 17:08:46
+zcrm_5352026000011140071,Plumbing Fixtures,false,RETAIL-Other,Home Improvement,2025-01-27 16:55:25
+zcrm_5352026000011284349,Outdoor,false,RECREATION-Other,Retail,2025-01-27 16:48:26
+zcrm_5352026000011490015,Tires,false,RETAIL-Automotive,Retail,2025-01-27 17:08:46
+zcrm_5352026000011490065,Portable Buildings,false,HOME-Other,Retail,2025-01-27 16:55:25
+zcrm_5352026000011490081,Masonry,false,SERVICE-Other,Home Improvement,2025-01-27 16:48:26
+zcrm_5352026000011490173,Automobile Service,false,PROFESSIONAL-Other,Personal & Professional Services,2025-01-27 15:39:33
+zcrm_5352026000011505001,Greenhouse,false,HOME-Patio/Deck/Sunroom,Home Improvement,2025-01-27 15:59:12
+zcrm_5352026000013602008,Foundations,true,HOME-Other,Home Improvement,2025-07-18 19:14:29
+zcrm_5352026000014576475,Art,false,RETAIL-Art/Rugs,Retail,2025-01-27 15:39:33
+zcrm_5352026000014591327,Radiant Floor Heating,false,SERVICE-Plumbing Services,Home Improvement,2025-01-27 16:55:25
+zcrm_5352026000014975623,Life Coachingq,false,PROFESSIONAL-Counseling,Personal & Professional Services,2025-01-27 16:37:08
+zcrm_5352026000014975638,Life Coaching,false,PROFESSIONAL-Counseling,Personal & Professional Services,2025-01-27 16:37:08
+zcrm_5352026000014975719,Boat Sales,false,RETAIL-Boats,Retail,2025-01-27 15:39:33
+zcrm_5352026000015107032,Golf,false,RECREATION-Golf,Experiences,2025-01-27 15:59:12
+zcrm_5352026000016035175,Cabinets,false,HOME-Kitchen,Home Improvement,2025-01-27 15:39:33
+zcrm_5352026000016523030,Retrofit,false,SERVICE-Other,Home Improvement,2025-01-27 17:08:46
+zcrm_5352026000016725001,Doors,false,HOME-Doors,Home Improvement,2025-01-27 15:48:15
+zcrm_5352026000017206122,Home Decor,false,PROFESSIONAL-Interior Design,Home Improvement,2025-01-27 15:59:12
+zcrm_5352026000019453001,Marketing,false,PROFESSIONAL-Other,Personal & Professional Services,2025-01-27 16:48:26
+zcrm_5352026000021004727,Retail,false,RETAIL-Other,Retail,2025-01-27 17:08:46
+zcrm_5352026000021043008,Safes,false,SERVICE-Security Serv/Equip.,Home Services,2025-01-27 17:08:46
+zcrm_5352026000021539201,Healthcare Services,false,HEALTH-Medical Services,Personal & Professional Services,2025-01-27 15:59:12
+zcrm_5352026000022372027,Chimneys,false,SERVICE-Fireplace Services,Home Services,2025-01-27 15:39:33
+zcrm_5352026000022383123,Home Equipment/furnishings,false,RETAIL-Furniture/Décor,Retail,2025-01-27 15:59:12
+zcrm_5352026000023098095,Professional Services,false,PROFESSIONAL-Other,Personal & Professional Services,2025-01-27 16:55:25
+zcrm_5352026000023518244,Appliance Repair,false,SERVICE-Appliance Repair,Home Services,2025-01-27 15:39:33
+zcrm_5352026000023695316,Exterior Cleaning,true,SERVICE-Pressure Washing,Home Improvement;Home Services,2025-07-18 19:14:29
+zcrm_5352026000023773001,Dry Wall,false,SERVICE-Handyman,Home Services,2025-01-27 15:48:15
+zcrm_5352026000024758051,Photo Archiving,false,PROFESSIONAL-Other,Personal & Professional Services,2025-01-27 16:55:25
+zcrm_5352026000024758962,Wood Floor,false,HOME-Flooring,Home Improvement,2025-01-27 17:08:46
+zcrm_5352026000024758977,Wood Floor,false,HOME-Flooring,Home Improvement,2025-01-27 17:08:46
+zcrm_5352026000024905001,Med Spa,false,HEALTH-Spa Services,Personal & Professional Services,2025-01-27 16:48:26
+zcrm_5352026000025449469,Employment Opportunity,false,PROFESSIONAL-Other,Personal & Professional Services,2025-01-27 15:39:33
+zcrm_5352026000029353001,Home Inspection,false,PROFESSIONAL-Other,Home Services,2025-01-27 15:59:12
+zcrm_5352026000031085007,Restaurant,false,DINING-Other,Experiences,2025-01-27 16:55:25
+zcrm_5352026000034365166,Funeral Home,false,PROFESSIONAL-Other,Personal & Professional Services,2025-01-27 15:59:12
+zcrm_5352026000034365203,Consulting,false,PROFESSIONAL-Other,Personal & Professional Services,2025-01-27 15:41:46
+zcrm_5352026000037730655,Dry Wall Repair,false,SERVICE-Handyman,Home Services,2025-01-27 15:48:15
+zcrm_5352026000042850003,Water Feature,false,HOME-Landscaping,Home Improvement,2025-01-27 17:08:46
+zcrm_5352026000043033207,Roof Restoration,false,HOME-Roofing,Home Improvement,2025-01-27 17:08:46
+zcrm_5352026000043317007,Medical Supply,false,RETAIL-Other,Retail,2025-01-27 16:48:26
+zcrm_5352026000046487016,Yard Maintenance,false,HOME-Landscaping,Home Services,2025-01-27 17:08:46
+zcrm_5352026000047545170,Pergolas,false,HOME-Patio/Deck/Sunroom,Home Improvement,2025-01-27 16:48:26
+zcrm_5352026000047545293,Gates,false,HOME-Other,Home Improvement,2025-01-27 15:59:12
+zcrm_5352026000048431013,Auto Wrap,false,PROFESSIONAL-Other,Personal & Professional Services,2025-01-27 15:39:33
+zcrm_5352026000054591151,Hottub,false,HOME-Pool/Spa Builders,Home Improvement,2025-01-27 16:27:56
+zcrm_5352026000064998001,Education,false,EDUCATION-Tutoring,Personal & Professional Services,2025-01-27 15:48:15
+zcrm_5352026000074400003,Property Management,false,PROFESSIONAL-Other,Personal & Professional Services,2025-01-27 16:55:25
+zcrm_5352026000079451011,LEAD Card,false,LABEL-Lead,Personal & Professional Services,2025-01-27 16:37:08
+zcrm_5352026000080906615,Custom Window Treatments,false,SERVICE-Window Treatments,Home Improvement,2025-01-27 15:44:06
+zcrm_5352026000088144240,Notary,false,,Personal & Professional Services,2025-02-21 16:17:55
+zcrm_5352026000088423085,Nursery,false,,Experiences,2025-02-24 13:18:30
+zcrm_5352026000088423203,Academy,false,,Personal & Professional Services,2025-02-24 13:34:31
+zcrm_5352026000089823055,Attorney,false,,Personal & Professional Services,2025-03-06 12:15:34
+zcrm_5352026000090541198,Printing services,false,,Personal & Professional Services,2025-03-13 14:44:16
+zcrm_5352026000090541366,Bakery,false,,Experiences,2025-03-13 15:06:37
+zcrm_5352026000091135264,Accounting Services,false,,Personal & Professional Services,2025-03-18 15:38:45
+zcrm_5352026000091135286,IT & Networks,false,,Personal & Professional Services,2025-03-18 15:41:55
+zcrm_5352026000093675001,Construction Services,false,,Home Improvement,2025-04-09 08:24:55
+zcrm_5352026000093889091,Sewer,false,,Home Improvement,2025-04-10 15:24:09
+zcrm_5352026000096573087,Cooperative,false,,Personal & Professional Services,2025-05-07 13:16:31
+zcrm_5352026000097959402,Label,false,,Personal & Professional Services,2025-05-16 15:18:49
+zcrm_5352026000098654036,Home Automation,false,,Home Improvement,2025-05-27 11:17:31

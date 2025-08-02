@@ -252,6 +252,8 @@ def main():
                        help='Batch size for imports (default: 1000)')
     parser.add_argument('--verify', '-v', action='store_true',
                        help='Only verify existing data (no import)')
+    parser.add_argument('--import-categories', action='store_true',
+                       help='Also import categories from data/categories.csv')
     
     args = parser.parse_args()
     
@@ -272,6 +274,25 @@ def main():
             return False
         
         try:
+            # Import categories if requested
+            if args.import_categories:
+                print("🔄 Importing categories...")
+                from import_categories import import_categories, export_categories_to_config
+                
+                # Import categories to database
+                success = await import_categories()
+                if not success:
+                    logger.error("Failed to import categories")
+                    return False
+                
+                # Export categories to config
+                success = await export_categories_to_config()
+                if not success:
+                    logger.error("Failed to export categories to config")
+                    return False
+                
+                print("✅ Categories imported successfully!")
+            
             # Run the import
             stats = await import_contractors(str(csv_path), args.batch_size)
             

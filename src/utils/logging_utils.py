@@ -51,7 +51,15 @@ class ContractorLogger:
     """Enhanced logger for contractor processing with grouping and structured output"""
     
     def __init__(self, log_dir: Path = None):
-        self.log_dir = log_dir or Path("/app/logs")
+        # Use current directory if not in Docker
+        if log_dir is None:
+            current_dir = Path.cwd()
+            if current_dir.name == "scrappy":
+                self.log_dir = current_dir / "logs"
+            else:
+                self.log_dir = Path("/app/logs")  # Docker fallback
+        else:
+            self.log_dir = log_dir
         self.log_dir.mkdir(exist_ok=True)
         
         # Task-local storage for contractor processing logs
@@ -362,7 +370,8 @@ class ContractorLogger:
         
         # Buffer human-readable output
         task_storage['log_buffer'].append(f"  🌐 WEBSITE SELECTED: {website}")
-        task_storage['log_buffer'].append(f"    Confidence: {confidence:.3f}")
+        confidence_str = f"{confidence:.3f}" if confidence is not None else "None"
+        task_storage['log_buffer'].append(f"    Confidence: {confidence_str}")
         
         # JSON output (buffered like human-readable logs)
         json_log_entry = {
@@ -387,7 +396,8 @@ class ContractorLogger:
         
         # Buffer human-readable output
         task_storage['log_buffer'].append(f"  🏷️  CLASSIFICATION: {category}")
-        task_storage['log_buffer'].append(f"    Confidence: {confidence:.3f}")
+        confidence_str = f"{confidence:.3f}" if confidence is not None else "None"
+        task_storage['log_buffer'].append(f"    Confidence: {confidence_str}")
         
         # JSON output (buffered like human-readable logs)
         json_log_entry = {
@@ -413,7 +423,8 @@ class ContractorLogger:
         
         # Buffer human-readable output
         task_storage['log_buffer'].append(f"  ✅ FINAL RESULT:")
-        task_storage['log_buffer'].append(f"    Overall Confidence: {confidence_score:.3f}")
+        confidence_str = f"{confidence_score:.3f}" if confidence_score is not None else "None"
+        task_storage['log_buffer'].append(f"    Overall Confidence: {confidence_str}")
         task_storage['log_buffer'].append(f"    Processing Status: {processing_status}")
         if error_message:
             task_storage['log_buffer'].append(f"    Error: {error_message}")
@@ -456,7 +467,8 @@ class ContractorLogger:
             if isinstance(data, dict):
                 count = data.get('count', 0)
                 avg_confidence = data.get('avg_confidence', 0)
-                self.human_logger.info(f"  {status.title()}: {count} records, avg confidence: {avg_confidence:.3f}")
+                avg_confidence_str = f"{avg_confidence:.3f}" if avg_confidence is not None else "None"
+                self.human_logger.info(f"  {status.title()}: {count} records, avg confidence: {avg_confidence_str}")
             else:
                 self.human_logger.info(f"  {status.title()}: {data}")
         
