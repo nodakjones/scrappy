@@ -11,10 +11,19 @@ from pathlib import Path
 from src.config import config
 from src.database.connection import db_pool
 
+# Create logs directory if it doesn't exist
+logs_dir = Path("/app/logs")
+logs_dir.mkdir(exist_ok=True)
+
+# Configure logging to both file and console
 logging.basicConfig(
     level=getattr(logging, config.LOG_LEVEL.upper()),
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S'
+    datefmt='%Y-%m-%d %H:%M:%S',
+    handlers=[
+        logging.FileHandler(logs_dir / "app.log"),
+        logging.StreamHandler()
+    ]
 )
 logger = logging.getLogger(__name__)
 

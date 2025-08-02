@@ -49,9 +49,13 @@ The Contractor Data Enrichment System processes contractor license data to ident
 
 ## Website Confidence Scoring System
 
-The system uses a comprehensive **5-factor validation framework** to ensure discovered websites actually belong to the correct contractor. This prevents false matches like pottery websites being matched to painting contractors.
+The system uses a **two-stage validation process** to ensure discovered websites actually belong to the correct contractor and are legitimate residential service providers.
 
-### 5-Factor Validation (0.25 points each, 1.0 maximum)
+### Stage 1: Website Validation (5-Factor System)
+
+**Purpose**: Determine if the discovered website belongs to the correct contractor business.
+
+**5-Factor Validation (0.25 points each, 1.0 maximum)**
 
 **Factor 1: Business Name Match (0.25 points)**
 - Exact business name found on website = 1.0 score
@@ -64,30 +68,37 @@ The system uses a comprehensive **5-factor validation framework** to ensure disc
 - Handles various formats (with/without asterisks)
 
 **Factor 3: Phone Number Match (0.25 points)**
-- Exact 10-digit phone number match = 1.0 score
-- Supports multiple formats: (206) 555-1234, 206-555-1234, 206.555.1234
-- No partial credit - either matches completely or gets 0.0
+- **Normalized Matching**: Removes all non-digits (dashes, parentheses, periods, spaces) from both database and website content
+- **Full String Match**: Matches the entire normalized phone number string (e.g., "2065551234")
+- **Pattern Matching**: Looks for phone numbers with labels (Phone:, Tel:, Call:, Contact:)
+- **Supports Multiple Formats**: (206) 555-1234, 206-555-1234, 206.555.1234, 2065551234
+- **Minimum Length**: Requires at least 10 digits for valid phone number matching
 
 **Factor 4: Principal Name Match (0.25 points)**
-- Business owner names found in "About Us" or contact sections
-- Matches against primary_principal_name field from contractor data
+- **Case Insensitive Matching**: Converts both database and website content to lowercase
+- **Word Boundary Matching**: Uses regex word boundaries to avoid partial matches
+- **Individual Word Matching**: Matches individual words from principal name (minimum 3 characters)
+- **Handles Variations**: Middle initials, suffixes, different formatting
+- **Context Aware**: Looks for names in "About Us", contact sections, owner information
 
 **Factor 5: Address Match (0.25 points)**
 - Exact street number match = 1.0 score
 - Partial credit for street name components
 - Most effective for contractors with physical storefronts
 
-### Geographic Validation Penalty (-0.20 points)
+### Geographic Validation (During Discovery)
 
-**CRITICAL ANTI-FRAUD PROTECTION**: Prevents accepting contractors from outside the Puget Sound service area.
+**CRITICAL ANTI-FRAUD PROTECTION**: Geographic validation happens during the website discovery phase, not as a penalty in the 5-factor validation.
 
-**Penalty Applied When:**
+**Websites are filtered out during discovery if:**
 - No Puget Sound area codes found (206, 253, 360, 425) **AND**
 - No local address references found (Seattle, Tacoma, Bellevue, etc.)
 
 **Multi-Area Service Logic:**
-- "Serving Seattle, Tacoma, and Spokane" = ✅ **NO PENALTY** (includes local areas)
-- "Serving Spokane and Yakima only" = ❌ **-0.20 PENALTY** (no local presence)
+- "Serving Seattle, Tacoma, and Spokane" = ✅ **ACCEPTED** (includes local areas)
+- "Serving Spokane and Yakima only" = ❌ **FILTERED OUT** (no local presence)
+
+**Implementation Note**: Geographic validation should be implemented in the website discovery methods (`enhanced_website_discovery`, `search_google_api`, etc.) to filter out non-local websites before they reach the 5-factor validation stage.
 
 ### Website Validation Threshold
 
@@ -95,30 +106,79 @@ The system uses a comprehensive **5-factor validation framework** to ensure disc
 - **≥ 0.4**: Website accepted, proceed to AI analysis
 - **< 0.4**: Website rejected, continue searching other results
 
+### Stage 2: AI Business Classification
+
+**Purpose**: Analyze website content to determine business type, service categories, and residential focus.
+
+**AI Analysis Components:**
+- **Residential Focus Analysis** (40% weight): Keywords like "residential", "home", "family"
+- **Contractor Service Analysis** (30% weight): Keywords like "plumbing", "electrical", "hvac"
+- **Business Legitimacy Analysis** (20% weight): Keywords like "licensed", "insured", "certified"
+- **Business Name Relevance** (10% weight): Business name appears in content
+
+**AI Confidence Score**: 0.0-1.0 based on content analysis
+
 ---
 
 ## Combined Confidence Scoring
 
-The system calculates a final confidence score that determines the contractor's processing status.
+The system calculates a final confidence score that determines the contractor's processing status using a **two-stage validation process**.
 
-### Confidence Calculation
+### Confidence Calculation Process
 
-**When Website Found & Validated (≥ 0.4 website confidence):**
+**Stage 1: Website Discovery & Validation**
+1. **Website Discovery**: Find potential websites using Google Search, Clearbit API
+2. **Website Validation**: Apply 5-factor validation system (business name, license, phone, principal, address)
+3. **Website Confidence**: 0.0-1.0 based on 5-factor validation results
+
+**Stage 2: AI Classification (Only if Website Confidence ≥ 0.4)**
+1. **AI Analysis**: Analyze website content for business categorization
+2. **Classification Confidence**: 0.0-1.0 based on AI analysis of residential focus, service types, legitimacy
+
+**Final Combined Formula:**
 ```
-Final Confidence = (Website Confidence × 60%) + (AI Confidence × 40%)
+When Website Confidence ≥ 0.4:
+    Final Confidence = (Website Confidence × 60%) + (AI Confidence × 40%)
+
+When Website Confidence < 0.4:
+    Final Confidence = 0.0 (AI analysis skipped)
 ```
 
-**When No Website Found (< 0.4 website confidence):**
-- **AI Analysis Skipped** - No further processing
-- Final Confidence = 0.0
-- Status = "rejected" (auto-rejected due to no validated website)
+### Example Scenarios
 
-### AI Confidence Component
+**High Confidence Contractor (Best Plumbing):**
+- Website Discovery: Found `bestplumbing.com`
+- Website Validation: 4 factors match (business name, license, phone, address)
+- Website Confidence: 1.0 (4 factors × 0.25 each)
+- AI Analysis: High residential focus, legitimate business
+- AI Confidence: 0.9
+- Final Confidence: (1.0 × 0.6) + (0.9 × 0.4) = **0.96**
+- Status: `approved_download` ✅
 
-- **Source**: OpenAI GPT-4o-mini analysis of website content
-- **Analyzes**: Residential vs commercial focus, service categories, business legitimacy
-- **Returns**: 0.0-1.0 confidence score for its categorization
-- **Weight**: 40% of final confidence score
+**Medium Confidence Contractor:**
+- Website Discovery: Found `abcplumbing.com`
+- Website Validation: 2 factors match (business name, phone)
+- Website Confidence: 0.5 (2 factors × 0.25 each)
+- AI Analysis: Medium residential focus
+- AI Confidence: 0.7
+- Final Confidence: (0.5 × 0.6) + (0.7 × 0.4) = **0.58**
+- Status: `pending_review` ⚠️
+
+**Low Confidence Contractor:**
+- Website Discovery: Found `handymantips.org`
+- Website Validation: 0 factors match (wrong business)
+- Website Confidence: 0.0 (no factors match)
+- AI Analysis: **SKIPPED** (website confidence < 0.4)
+- Final Confidence: **0.0**
+- Status: `rejected` ❌
+
+**No Website Found:**
+- Website Discovery: No websites found
+- Website Validation: **SKIPPED** (no website)
+- Website Confidence: 0.0
+- AI Analysis: **SKIPPED** (no website)
+- Final Confidence: **0.0**
+- Status: `rejected` ❌
 
 ---
 

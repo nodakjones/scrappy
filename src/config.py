@@ -2,8 +2,9 @@
 Configuration management for contractor enrichment system
 """
 import os
-from typing import Optional
+from typing import Optional, Dict, Any
 from dotenv import load_dotenv
+import re
 
 # Load environment variables
 load_dotenv()
@@ -45,8 +46,8 @@ class Config:
     LLM_DELAY: float = float(os.getenv('LLM_DELAY', '0.5'))
     
     # Search API Keys (optional)
-    SERPAPI_KEY: Optional[str] = os.getenv('SERPAPI_KEY')
-    BING_SEARCH_API_KEY: Optional[str] = os.getenv('BING_SEARCH_API_KEY')
+    GOOGLE_API_KEY: Optional[str] = os.getenv('GOOGLE_SEARCH_API_KEY') or os.getenv('GOOGLE_API_KEY')
+    GOOGLE_CSE_ID: Optional[str] = os.getenv('GOOGLE_SEARCH_ENGINE_ID') or os.getenv('GOOGLE_CSE_ID')
     
     # Application Settings
     DEBUG: bool = os.getenv('DEBUG', 'False').lower() == 'true'
@@ -81,13 +82,7 @@ class Config:
 config = Config()
 
 
-# SerpAPI Configuration
-SERPAPI_CONFIG = {
-    'results_per_search': 10,  # Get top 10 results per query
-    'max_queries_per_contractor': 4,  # Limit queries to prevent API overuse
-    'timeout': 15,  # 15 second timeout per search
-    'rate_limit': 1.0,  # 1 second between searches (SerpAPI allows 1 req/sec free)
-}
+
 
 # Query Generation Templates (in priority order)
 QUERY_TEMPLATES = [
@@ -102,8 +97,119 @@ EXCLUDED_DOMAINS = {
     'facebook.com', 'linkedin.com', 'instagram.com', 'twitter.com',
     'yelp.com', 'yellowpages.com', 'whitepages.com', 'bbb.org',
     'angi.com', 'homeadvisor.com', 'thumbtack.com', 'google.com',
-    'bing.com', 'yahoo.com', 'directories.com'
+    'bing.com', 'yahoo.com', 'directories.com', 'mapquest.com',
+    'taskrabbit.com', 'birdeye.com', 'rcrwa.com', 'redfin.com', 'zillow.com',
+    'data.wa.gov', 'data.gov', 'census.gov', 'irs.gov', 'usps.com',
+    'uscis.gov', 'ssa.gov', 'medicare.gov', 'va.gov', 'fbi.gov',
+    'whitehouse.gov', 'congress.gov', 'supremecourt.gov', 'federalreserve.gov',
+    'buildzoom.com', 'houzz.com', 'porch.com', 'thumbtack.com', 'angi.com',
+    'homeadvisor.com', 'nextdoor.com', 'neighborhoodscout.com', 'manta.com',
+    'superpages.com', 'whitepages.com', 'yellowpages.com', 'citysearch.com',
+    'opengovwa.com'
 }
+
+# Domain patterns to exclude (wildcards)
+EXCLUDED_DOMAIN_PATTERNS = {
+    '*.gov',  # Government websites
+    '*.org',  # Non-profit organizations
+    '*.codes',  # Code hosting sites
+    '*.co.uk',  # UK businesses
+}
+
+def is_valid_website_domain(url: str) -> bool:
+    """Check if URL is a valid business website (not directory/social)"""
+    if not url:
+        return False
+    
+    from urllib.parse import urlparse
+    domain = urlparse(url).netloc.lower()
+    
+    # Check for excluded domains
+    if any(excluded in domain for excluded in EXCLUDED_DOMAINS):
+        return False
+    
+    # Check for excluded domain patterns
+    if domain.endswith('.codes') or domain.endswith('.org') or domain.endswith('.gov'):
+        return False
+    
+    return True
+
+# Puget Sound Area Cities and Area Codes for Local Business Validation
+PUGET_SOUND_CITIES = {
+    'seattle', 'bellevue', 'redmond', 'kirkland', 'sammamish', 'issaquah', 'snoqualmie',
+    'north bend', 'fall city', 'carnation', 'duvall', 'monroe', 'snohomish',
+    'arlington', 'stanwood', 'camano island', 'oak harbor', 'coupeville', 'langley',
+    'freeland', 'clinton', 'mukilteo', 'edmonds', 'lynnwood', 'mill creek',
+    'brier', 'mountlake terrace', 'shoreline', 'lake forest park', 'kenmore',
+    'bothell', 'woodinville', 'tacoma', 'lakewood', 'federal way', 'auburn',
+    'renton', 'kent', 'mercer island', 'newcastle', 'sammamish', 'issaquah',
+    'snoqualmie', 'north bend', 'fall city', 'carnation', 'duvall', 'monroe',
+    'snohomish', 'arlington', 'stanwood', 'camano island', 'oak harbor', 'coupeville',
+    'langley', 'freeland', 'clinton', 'mukilteo', 'edmonds', 'lynnwood', 'mill creek',
+    'brier', 'mountlake terrace', 'shoreline', 'lake forest park', 'kenmore',
+    'bothell', 'woodinville', 'tacoma', 'lakewood', 'federal way', 'auburn',
+    'renton', 'kent', 'mercer island', 'newcastle', 'sammamish', 'issaquah',
+    'snoqualmie', 'north bend', 'fall city', 'carnation', 'duvall', 'monroe',
+    'snohomish', 'arlington', 'stanwood', 'camano island', 'oak harbor', 'coupeville',
+    'langley', 'freeland', 'clinton', 'mukilteo', 'edmonds', 'lynnwood', 'mill creek',
+    'brier', 'mountlake terrace', 'shoreline', 'lake forest park', 'kenmore'
+}
+
+PUGET_SOUND_AREA_CODES = {
+    '206',  # Seattle
+    '253',  # Tacoma
+    '360',  # Vancouver, Bellingham
+    '425',  # Bellevue, Redmond
+    '564'   # New Washington area code
+}
+
+def is_local_business_validation(contractor_city: str, contractor_state: str, contractor_phone: str, website_content: str) -> Dict[str, Any]:
+    """Comprehensive local business validation using city lists and area codes"""
+    validation_result = {
+        'is_local': False,
+        'city_match': False,
+        'area_code_match': False,
+        'local_keywords': 0,
+        'details': {}
+    }
+    
+    if not contractor_city or not contractor_state:
+        return validation_result
+    
+    # 1. City Validation
+    contractor_city_lower = contractor_city.lower().strip()
+    validation_result['city_match'] = contractor_city_lower in PUGET_SOUND_CITIES
+    validation_result['details']['city'] = contractor_city_lower
+    validation_result['details']['city_found'] = validation_result['city_match']
+    
+    # 2. Area Code Validation
+    if contractor_phone:
+        # Extract area code from phone number
+        phone_digits = re.sub(r'[^\d]', '', contractor_phone)
+        if len(phone_digits) >= 10:
+            area_code = phone_digits[:3]
+            validation_result['area_code_match'] = area_code in PUGET_SOUND_AREA_CODES
+            validation_result['details']['area_code'] = area_code
+            validation_result['details']['area_code_found'] = validation_result['area_code_match']
+    
+    # 3. Local Keywords in Website Content
+    if website_content:
+        local_keywords = [
+            'local', 'locally owned', 'family owned', 'community', 'neighborhood',
+            'serving', 'service area', 'coverage area', 'licensed in', 'licensed for',
+            'washington', 'wa', 'seattle', 'spokane', 'tacoma', 'vancouver', 'bellevue'
+        ]
+        content_lower = website_content.lower()
+        validation_result['local_keywords'] = sum(1 for keyword in local_keywords if keyword in content_lower)
+    
+    # 4. Determine if local business
+    validation_result['is_local'] = (
+        validation_result['city_match'] and 
+        validation_result['area_code_match'] and 
+        validation_result['local_keywords'] >= 1
+    )
+    
+    return validation_result
 
 # Resource Management for Virtual Server
 PERFORMANCE_CONFIG = {

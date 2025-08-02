@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
 """
-Main processing script for contractor enrichment system
-Orchestrates the complete pipeline: data processing -> export
+Processing orchestrator for contractor enrichment pipeline
 """
 import asyncio
-import argparse
 import logging
+import argparse
 import sys
-from datetime import datetime
 from pathlib import Path
+from typing import Optional
 
 # Add src to path
 sys.path.append(str(Path(__file__).parent.parent))
@@ -17,6 +16,7 @@ from src.config import config
 from src.database.connection import db_pool
 from src.services.contractor_service import ContractorService
 from src.services.export_service import ExportService
+from src.utils.logging_utils import contractor_logger
 
 # Configure logging
 logging.basicConfig(
@@ -58,7 +58,7 @@ class ProcessingOrchestrator:
         
         # Get initial stats
         initial_stats = await self.contractor_service.get_processing_stats()
-        logger.info(f"Initial processing stats: {initial_stats}")
+        contractor_logger.log_periodic_stats(initial_stats)
         
         total_processed = 0
         batch_number = 1
@@ -89,8 +89,16 @@ class ProcessingOrchestrator:
                 batch_results = await self.contractor_service.process_batch(contractors)
                 total_processed += batch_results['processed']
                 
+                # Log batch progress with logging
+                contractor_logger.log_batch_progress(batch_number, total_processed, batch_results)
+                
                 logger.info(f"Batch {batch_number} completed: {batch_results}")
                 logger.info(f"Total processed so far: {total_processed}")
+                
+                # Log periodic stats every 5 batches
+                if batch_number % 5 == 0:
+                    current_stats = await self.contractor_service.get_processing_stats()
+                    contractor_logger.log_periodic_stats(current_stats)
                 
                 # Add delay between batches if configured
                 if hasattr(config, 'BATCH_PROCESSING_DELAY') and config.BATCH_PROCESSING_DELAY > 0:
@@ -109,92 +117,79 @@ class ProcessingOrchestrator:
         
         # Get final stats
         final_stats = await self.contractor_service.get_processing_stats()
-        logger.info(f"Final processing stats: {final_stats}")
+        contractor_logger.log_periodic_stats(final_stats)
         
         return total_processed
     
     async def get_system_status(self):
-        """Get current system status and statistics"""
-        logger.info("Getting system status...")
-        
-        # Processing stats
-        processing_stats = await self.contractor_service.get_processing_stats()
-        
-        # Export stats  
-        export_stats = await self.export_service.get_export_stats()
-        
-        # Export files
-        export_files = self.export_service.list_export_files()
-        
-        status = {
-            'processing_stats': processing_stats,
-            'export_stats': export_stats, 
-            'export_files': export_files[:5],  # Show latest 5 files only
-            'timestamp': datetime.now().isoformat()
-        }
-        
-        return status
+        """Get current system status"""
+        try:
+            # Get processing stats
+            stats = await self.contractor_service.get_processing_stats()
+            
+            # Get logger stats
+            logger_stats = contractor_logger.get_stats()
+            
+            return {
+                'processing_stats': stats,
+                'logger_stats': logger_stats,
+                'config': {
+                    'batch_size': config.BATCH_SIZE,
+                    'max_concurrent_crawls': config.MAX_CONCURRENT_CRAWLS,
+                    'auto_approve_threshold': config.AUTO_APPROVE_THRESHOLD
+                }
+            }
+        except Exception as e:
+            logger.error(f"Error getting system status: {e}")
+            return {'error': str(e)}
     
     async def shutdown(self):
-        """Clean shutdown"""
-        logger.info("Shutting down...")
+        """Shutdown the system gracefully"""
+        logger.info("Shutting down system...")
+        
+        # Close contractor service
+        await self.contractor_service.close()
+        
+        # Close database pool
         await db_pool.close()
-        logger.info("Shutdown completed")
+        
+        logger.info("System shutdown completed")
 
 
 async def main():
-    """Main entry point"""
-    parser = argparse.ArgumentParser(description='Run contractor enrichment processing')
-    parser.add_argument('--count', '-c', type=int, default=None,
-                       help='Number of contractors to process (default: all pending)')
-    parser.add_argument('--batch-size', '-b', type=int, default=None,
-                       help='Batch size for processing (default: from config)')
-    parser.add_argument('--status', '-s', action='store_true',
-                       help='Show system status and exit')
-    parser.add_argument('--verbose', '-v', action='store_true',
-                       help='Enable verbose logging')
+    """Main processing function"""
+    parser = argparse.ArgumentParser(description='Process contractors through enrichment pipeline')
+    parser.add_argument('--count', '-c', type=int, help='Number of contractors to process')
+    parser.add_argument('--batch-size', '-b', type=int, help='Batch size for processing')
+    parser.add_argument('--verbose', '-v', action='store_true', help='Enable verbose logging')
     
     args = parser.parse_args()
     
-    # Set logging level
     if args.verbose:
         logging.getLogger().setLevel(logging.DEBUG)
     
     orchestrator = ProcessingOrchestrator()
     
     try:
+        # Initialize system
         await orchestrator.initialize()
         
-        if args.status:
-            # Show status and exit
-            status = await orchestrator.get_system_status()
-            print("\n=== SYSTEM STATUS ===")
-            print(f"Processing Stats: {status['processing_stats']}")
-            print(f"Export Stats: {status['export_stats']}")
-            print(f"Recent Export Files: {len(status['export_files'])}")
-            for file_info in status['export_files']:
-                print(f"  - {file_info['filename']} ({file_info['size_bytes']} bytes)")
-            return 0
+        # Process contractors
+        processed_count = await orchestrator.process_contractors(
+            target_count=args.count,
+            batch_size=args.batch_size
+        )
         
-        else:
-            # Process contractors
-            count = await orchestrator.process_contractors(
-                target_count=args.count,
-                batch_size=args.batch_size
-            )
-            print(f"\n✅ Processing completed: {count} contractors processed")
-    
+        print(f"✅ Processing completed: {processed_count} contractors processed")
+        
     except KeyboardInterrupt:
-        logger.info("Received keyboard interrupt, shutting down...")
-        return 1
+        logger.info("Processing interrupted by user")
     except Exception as e:
-        logger.error(f"Application error: {e}", exc_info=True)
-        return 1
+        logger.error(f"Processing failed: {e}")
+        raise
     finally:
         await orchestrator.shutdown()
-    
-    return 0
 
 
 if __name__ == "__main__":
-    sys.exit(asyncio.run(main()))
+    asyncio.run(main())

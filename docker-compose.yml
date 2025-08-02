@@ -60,9 +60,9 @@ services:
       SEARCH_DELAY: 1.0
       LLM_DELAY: 0.5
       
-      # Optional Search API Keys
-      SERPAPI_KEY: ${SERPAPI_KEY}
-      BING_SEARCH_API_KEY: ${BING_SEARCH_API_KEY}
+      # Optional Search API Keys (Google API keys can be set in .env file)
+      GOOGLE_API_KEY: ${GOOGLE_SEARCH_API_KEY}
+      GOOGLE_CSE_ID: ${GOOGLE_SEARCH_ENGINE_ID}
       
       # Application Settings
       DEBUG: false
@@ -71,6 +71,7 @@ services:
     volumes:
       - ./data:/app/data
       - ./exports:/app/exports
+      - ./logs:/app/logs
     ports:
       - "8000:8000"
     networks:

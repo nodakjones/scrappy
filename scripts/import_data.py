@@ -24,11 +24,13 @@ logger = logging.getLogger(__name__)
 
 def clean_phone_number(phone: Optional[str]) -> Optional[str]:
     """Standardize phone number to (XXX) XXX-XXXX format"""
-    if not phone or phone.strip() == '':
+    if phone is None or pd.isna(phone) or str(phone).strip() == '':
         return None
     
+    phone_str = str(phone).strip()
+    
     # Remove all non-digit characters
-    digits = re.sub(r'[^\d]', '', phone)
+    digits = re.sub(r'[^\d]', '', phone_str)
     
     # Check if we have exactly 10 digits
     if len(digits) == 10:
@@ -39,15 +41,15 @@ def clean_phone_number(phone: Optional[str]) -> Optional[str]:
         return f"({digits[:3]}) {digits[3:6]}-{digits[6:]}"
     
     # Return original if we can't parse it properly
-    return phone.strip()
+    return phone_str
 
 
 def parse_date(date_str: Optional[str]) -> Optional[datetime]:
     """Parse date in MM/DD/YYYY or YYYY-MM-DD format"""
-    if not date_str or date_str.strip() == '':
+    if date_str is None or pd.isna(date_str) or str(date_str).strip() == '':
         return None
     
-    date_str = date_str.strip()
+    date_str = str(date_str).strip()
     
     # Try MM/DD/YYYY format
     try:
@@ -73,9 +75,13 @@ def parse_date(date_str: Optional[str]) -> Optional[datetime]:
 
 def clean_text_field(value: Optional[str]) -> Optional[str]:
     """Clean and standardize text fields"""
-    if not value or str(value).strip() in ['', 'nan', 'NaN']:
+    if value is None or pd.isna(value):
         return None
-    return str(value).strip()
+    
+    value_str = str(value).strip()
+    if value_str in ['', 'nan', 'NaN', 'None']:
+        return None
+    return value_str
 
 
 def prepare_contractor_record(row: pd.Series) -> Dict[str, Any]:

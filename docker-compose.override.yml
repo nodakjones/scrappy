@@ -5,6 +5,7 @@ services:
       - .:/app
       - ./data:/app/data
       - ./exports:/app/exports
+      - ./logs:/app/logs
     environment:
       DEBUG: true
       LOG_LEVEL: DEBUG
