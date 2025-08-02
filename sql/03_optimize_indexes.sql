@@ -53,13 +53,13 @@ WHERE processing_status = 'completed';
 
 -- JSONB path indexes for frequently accessed fields
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_contractors_gpt4mini_reasoning 
-ON contractors USING gin ((gpt4mini_analysis->>'reasoning'));
+ON contractors USING gin ((gpt4mini_analysis->>'reasoning') gin_trgm_ops);
 
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_contractors_gpt4mini_classification 
-ON contractors USING gin ((gpt4mini_analysis->>'is_home_contractor'));
+ON contractors USING gin ((gpt4mini_analysis->>'is_home_contractor') gin_trgm_ops);
 
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_contractors_gpt4_verification 
-ON contractors USING gin ((gpt4_verification->>'verification_result'));
+ON contractors USING gin ((gpt4_verification->>'verification_result') gin_trgm_ops);
 
 -- 4. WORKFLOW-SPECIFIC INDEXES
 
@@ -118,15 +118,13 @@ ANALYZE manual_review_queue;
 
 -- 8. MONITORING INDEXES (for performance tracking)
 
--- Index usage monitoring
+-- Index usage monitoring (simplified without date functions)
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_contractors_created_at_monitoring 
-ON contractors (created_at) 
-WHERE created_at >= CURRENT_DATE - INTERVAL '30 days';
+ON contractors (created_at);
 
--- Performance monitoring for large datasets
+-- Performance monitoring for large datasets (simplified)
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_contractors_performance_monitoring 
-ON contractors (processing_status, confidence_score, created_at) 
-WHERE created_at >= CURRENT_DATE - INTERVAL '90 days';
+ON contractors (processing_status, confidence_score, created_at);
 
 -- 9. CONDITIONAL INDEXES FOR SPECIFIC SCENARIOS
 

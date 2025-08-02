@@ -8,8 +8,8 @@ import signal
 import sys
 from pathlib import Path
 
-from config import config
-from database.connection import db_pool
+from src.config import config
+from src.database.connection import db_pool
 
 logging.basicConfig(
     level=getattr(logging, config.LOG_LEVEL.upper()),

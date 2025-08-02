@@ -1,0 +1,14 @@
+services:
+  app:
+    # Development overrides
+    volumes:
+      - .:/app
+      - ./data:/app/data
+      - ./exports:/app/exports
+    environment:
+      DEBUG: true
+      LOG_LEVEL: DEBUG
+    command: ["python", "-m", "src.main"]
+    # Enable interactive mode for debugging
+    stdin_open: true
+    tty: true 

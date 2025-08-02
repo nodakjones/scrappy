@@ -1,0 +1,85 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: contractor_db
+    environment:
+      POSTGRES_DB: contractor_enrichment
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./sql:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - contractor_network
+
+  # Python Application
+  app:
+    build: .
+    container_name: contractor_app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      # Database Configuration
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: contractor_enrichment
+      DB_USER: postgres
+      DB_PASSWORD: postgres_password
+      DB_MIN_CONNECTIONS: 5
+      DB_MAX_CONNECTIONS: 20
+      
+      # OpenAI Configuration (set these in .env file)
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      GPT4_MINI_MODEL: gpt-4o-mini
+      GPT4_MODEL: gpt-4o
+      OPENAI_MAX_TOKENS: 4096
+      OPENAI_TEMPERATURE: 0.2
+      OPENAI_TIMEOUT: 60
+      
+      # Processing Configuration
+      BATCH_SIZE: 10
+      MAX_CONCURRENT_CRAWLS: 5
+      CRAWL_TIMEOUT: 30
+      RETRY_ATTEMPTS: 3
+      RETRY_DELAY: 5
+      
+      # Confidence Thresholds
+      AUTO_APPROVE_THRESHOLD: 0.8
+      MANUAL_REVIEW_THRESHOLD: 0.6
+      
+      # Rate Limiting
+      SEARCH_DELAY: 1.0
+      LLM_DELAY: 0.5
+      
+      # Optional Search API Keys
+      SERPAPI_KEY: ${SERPAPI_KEY}
+      BING_SEARCH_API_KEY: ${BING_SEARCH_API_KEY}
+      
+      # Application Settings
+      DEBUG: false
+      LOG_LEVEL: INFO
+      EXPORT_DIR: /app/exports
+    volumes:
+      - ./data:/app/data
+      - ./exports:/app/exports
+    ports:
+      - "8000:8000"
+    networks:
+      - contractor_network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+
+networks:
+  contractor_network:
+    driver: bridge 
