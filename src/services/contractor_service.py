@@ -919,13 +919,37 @@ Please provide a JSON response with:
 5. "business_legitimacy" - true if appears to be a legitimate business
 6. "reasoning" - Brief explanation of categorization decision
 
-IMPORTANT: 
-- Choose category from the provided list, prioritizing priority categories when appropriate
-- Base category on actual services mentioned, not business name
-- Look for specific service keywords in the content
-- Provide a lower confidence score based on if this website looks to be related to a business directory, a business listing site, a business/industry/trade association, a software/service product listing contractor customers, and other non-contractor related websites.
-- If content suggests a focus on home services, mark residential_focus as true. Look for words or phrases similar to: "residential" or "homeowners" or "home services" or "home improvement"
-- If content suggests a focus on non residential services, mark residential_focus as false. Look for words or phrases similar to: "commercial" or "business services" or "industrial"
+CRITICAL CATEGORIZATION RULES:
+- ALWAYS choose the MOST SPECIFIC category that matches the actual services
+- AVOID generic categories like "General Contractor" unless no specific category fits
+- Look for these specific service keywords in the content:
+  * "roofing", "shingles", "roof" → Roofing Contractor
+  * "plumbing", "pipe", "drain", "water heater" → Plumbing Contractor  
+  * "electrical", "wiring", "outlet", "panel" → Electrical Contractor
+  * "hvac", "heating", "cooling", "furnace", "ac" → HVAC Contractor
+  * "flooring", "carpet", "hardwood", "tile" → Flooring Contractor
+  * "painting", "paint", "interior", "exterior" → Painting Contractor
+  * "landscaping", "lawn", "garden", "irrigation" → Landscaping Contractor
+  * "concrete", "driveway", "patio", "foundation" → Concrete Contractor
+  * "window", "door", "glass" → Window/Door Contractor
+  * "kitchen", "bathroom", "remodel" → Bathroom/Kitchen Remodel
+  * "deck", "patio", "outdoor" → Decks & Patios
+  * "fence", "fencing" → Fence Contractor
+  * "fireplace", "chimney" → Fireplace Contractor
+  * "sprinkler", "irrigation" → Sprinklers Contractor
+  * "blind", "shade", "window treatment" → Blinds Contractor
+  * "awning", "patio cover", "carport" → Awning/Patio/Carport
+  * "storage", "closet", "shelving" → Storage & Closets
+  * "pool", "spa", "hot tub" → Pools and Spas
+  * "security", "alarm", "camera" → Security Systems
+  * "media", "audio", "video", "home theater" → Media Systems
+
+- Base category on actual services mentioned, NOT business name
+- If multiple specific services are mentioned, choose the most prominent one
+- Only use "General Contractor" if no specific category applies
+- Provide lower confidence for directory sites, software platforms, or non-contractor websites
+- Look for residential keywords: "homeowners", "residential", "home services", "family"
+- Look for commercial keywords: "commercial", "business", "industrial", "corporate"
 
 Respond with valid JSON only.
 """
