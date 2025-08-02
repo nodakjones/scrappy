@@ -86,7 +86,7 @@ OPENAI_MAX_TOKENS=4096
 OPENAI_TEMPERATURE=0.2
 
 # Google Search Configuration
-GOOGLE_API_KEY=your_google_api_key_here
+GOOGLE_SEARCH_API_KEY=your_google_search_api_key_here
 GOOGLE_SEARCH_ENGINE_ID=your_search_engine_id_here
 
 # Processing Configuration
@@ -157,38 +157,72 @@ beautifulsoup4>=4.12.0
 
 ### Search Configuration
 
-**Query Generation Templates:**
+**Query Generation with Business Name Variations:**
 ```python
-QUERY_TEMPLATES = [
-    '"{business_name}" {city} {state} contractor',  # Primary query
-    '"{business_name}" {city} {state}',             # Secondary without "contractor"
-    '"{business_name}" {phone}',                    # Phone-based search
-    '"{business_name}" contractor {state}'          # State-level fallback
-]
+def generate_business_name_variations(business_name):
+    variations = [business_name]  # Start with original name
+    
+    # Remove common business designations (but keep CONSTRUCTION, ELECTRIC, etc.)
+    designations = [
+        ' INC', ' LLC', ' CORP', ' CORPORATION', ' CO', ' COMPANY',
+        ' LP', ' LLP', ' LPA', ' PA', ' PLLC', ' PC', ' PLLC',
+        ' LTD', ' LIMITED', ' GROUP', ' ENTERPRISES', ' ENTERPRISE',
+        ' SERVICES', ' SERVICE', ' BUILDING'
+    ]
+    
+    for designation in designations:
+        if designation in business_name.upper():
+            variation = business_name.upper().replace(designation, '').strip()
+            if variation and variation not in [v.upper() for v in variations]:
+                variations.append(variation)
+    
+    return variations
+
+# Query strategies for each business name variation
+query_strategies = []
+for name_variation in business_name_variations:
+    query_strategies.extend([
+        f'{name_variation} {city} {state}',
+        f'{name_variation} {state} contractor'
+    ])
 ```
 
-**Excluded Domains:**
+**Comprehensive Domain Filtering:**
 ```python
 EXCLUDED_DOMAINS = [
     'yelp.com', 'bbb.org', 'angieslist.com', 'angi.com', 'homeadvisor.com',
     'thumbtack.com', 'yellowpages.com', 'facebook.com', 'linkedin.com',
-    'google.com/maps', 'zillow.com', 'buildzoom.com'
+    'google.com/maps', 'zillow.com', 'buildzoom.com', 'redfin.com',
+    'taskrabbit.com', 'birdeye.com', 'rcrwa.com', 'opengovwa.com'
 ]
+
+EXCLUDED_DOMAIN_PATTERNS = [
+    '*.gov', '*.org', '*.codes', '*.co.uk'  # Government and non-business domains
+]
+```
 ```
 
 ### 7-Step Processing Implementation
 
 **Step 1: Google Custom Search API Query**
 ```python
-# Build search query with contractor information
-query = f'"{contractor.business_name}" {contractor.city} {contractor.state} contractor'
-params = {
-    'key': GOOGLE_API_KEY,
-    'cx': SEARCH_ENGINE_ID, 
-    'q': query,
-    'num': 10  # Maximum 10 results per query
-}
-search_results = google_custom_search_api.get(params)
+# Build search queries with business name variations
+business_name_variations = generate_business_name_variations(contractor.business_name)
+query_strategies = []
+for name_variation in business_name_variations:
+    query_strategies.extend([
+        f'{name_variation} {contractor.city} {contractor.state}',
+        f'{name_variation} {contractor.state} contractor'
+    ])
+
+for query in query_strategies:
+    params = {
+        'key': GOOGLE_SEARCH_API_KEY,
+        'cx': GOOGLE_SEARCH_ENGINE_ID, 
+        'q': query,
+        'num': 10  # Maximum 10 results per query
+    }
+    search_results = google_custom_search_api.get(params)
 ```
 
 **Step 2: Directory & Listing Website Filtering**
@@ -245,15 +279,11 @@ def calculate_confidence_score(website_content, contractor):
     # Factor 5: Address Match (0.25 points)
     address_score = score_address_match(website_text, contractor.address)
     
-    # Calculate base confidence
+    # Calculate base confidence (no geographic penalty - validation happens during discovery)
     base_confidence = (name_score + license_score + phone_score + 
                       principal_score + address_score) * 0.25
     
-    # Apply geographical penalty if needed
-    geographic_penalty = calculate_geographic_penalty(website_text)
-    
-    final_confidence = min(base_confidence + geographic_penalty, 1.0)
-    return final_confidence
+    return min(base_confidence, 1.0)
 ```
 
 **Step 5: Confidence Threshold Validation**

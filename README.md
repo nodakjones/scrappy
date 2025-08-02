@@ -24,7 +24,7 @@ The Contractor Data Enrichment System processes contractor license data to ident
 ```
 📥 Import Contractor Data
     ↓
-🔍 Website Discovery (Google Search)
+🔍 Website Discovery (Google Search + Clearbit API)
     ↓
 🛡️ Website Validation (5-Factor Confidence Scoring)
     ↓
@@ -34,6 +34,14 @@ The Contractor Data Enrichment System processes contractor license data to ident
     ↓
 🎯 Status Assignment (Auto-approve/Manual Review/Reject)
 ```
+
+### Enhanced Discovery Features
+
+**Business Name Variations**: The system generates multiple search queries by removing common business designations (LLC, INC, CORP) while preserving important descriptive words like "CONSTRUCTION", "ELECTRIC", "REMODELING".
+
+**Consolidated Logging**: Google search results are logged in a single, comprehensive entry showing the query, status, response keys, and result summary instead of multiple separate debug entries.
+
+**Comprehensive Domain Filtering**: Excludes government sites (`.gov`, `.org`, `.codes`), directory sites, and social media platforms to focus on legitimate business websites.
 
 ### Detailed Steps
 
@@ -73,6 +81,7 @@ The system uses a **two-stage validation process** to ensure discovered websites
 - **Pattern Matching**: Looks for phone numbers with labels (Phone:, Tel:, Call:, Contact:)
 - **Supports Multiple Formats**: (206) 555-1234, 206-555-1234, 206.555.1234, 2065551234
 - **Minimum Length**: Requires at least 10 digits for valid phone number matching
+- **Case Insensitive**: Converts both database and website content to lowercase for matching
 
 **Factor 4: Principal Name Match (0.25 points)**
 - **Case Insensitive Matching**: Converts both database and website content to lowercase
@@ -98,7 +107,7 @@ The system uses a **two-stage validation process** to ensure discovered websites
 - "Serving Seattle, Tacoma, and Spokane" = ✅ **ACCEPTED** (includes local areas)
 - "Serving Spokane and Yakima only" = ❌ **FILTERED OUT** (no local presence)
 
-**Implementation Note**: Geographic validation should be implemented in the website discovery methods (`enhanced_website_discovery`, `search_google_api`, etc.) to filter out non-local websites before they reach the 5-factor validation stage.
+**Implementation Note**: Geographic validation is implemented in the website discovery methods (`enhanced_website_discovery`, `search_google_api`, etc.) to filter out non-local websites before they reach the 5-factor validation stage. The system also uses business name variations and consolidated logging for improved search accuracy.
 
 ### Website Validation Threshold
 
@@ -387,6 +396,23 @@ ORDER BY confidence_score DESC;
 ```
 
 ---
+
+## Recent System Improvements
+
+### Enhanced Website Discovery
+- **Business Name Variations**: Automatically generates multiple search queries by removing common business designations (LLC, INC, CORP) while preserving important descriptive words like "CONSTRUCTION", "ELECTRIC", "REMODELING"
+- **Consolidated Logging**: Google search results are logged in single, comprehensive entries showing query, status, response keys, and result summary
+- **Comprehensive Domain Filtering**: Excludes government sites (`.gov`, `.org`, `.codes`), directory sites, and social media platforms
+
+### Improved Validation System
+- **5-Factor Validation**: Business name, license number, phone number, principal name, and address matching
+- **Geographic Validation**: Applied during discovery phase, not as a penalty in confidence calculation
+- **Enhanced Phone Matching**: Full string normalization and case-insensitive matching
+
+### Architecture Simplification
+- **Unified Service**: Consolidated `ContractorService` (formerly `EnhancedContractorService`)
+- **Removed Redundancy**: Eliminated separate `website_discovery_service.py` file
+- **Streamlined Processing**: Integrated discovery, validation, and AI analysis in single service
 
 ## Technical Implementation
 
