@@ -105,7 +105,7 @@ EXCLUDED_DOMAINS = {
     'buildzoom.com', 'houzz.com', 'porch.com', 'thumbtack.com', 'angi.com',
     'homeadvisor.com', 'nextdoor.com', 'neighborhoodscout.com', 'manta.com',
     'superpages.com', 'whitepages.com', 'yellowpages.com', 'citysearch.com',
-    'opengovwa.com'
+    'opengovwa.com', 'bestplumbers.com'
 }
 
 # Domain patterns to exclude (wildcards)
@@ -124,9 +124,10 @@ def is_valid_website_domain(url: str) -> bool:
     from urllib.parse import urlparse
     domain = urlparse(url).netloc.lower()
     
-    # Check for excluded domains
-    if any(excluded in domain for excluded in EXCLUDED_DOMAINS):
-        return False
+    # Check for excluded domains (exact match or subdomain)
+    for excluded in EXCLUDED_DOMAINS:
+        if domain == excluded or domain.endswith('.' + excluded):
+            return False
     
     # Check for excluded domain patterns
     if domain.endswith('.codes') or domain.endswith('.org') or domain.endswith('.gov'):

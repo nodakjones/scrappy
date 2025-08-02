@@ -184,9 +184,9 @@ class ContractorService:
                                     )
                                     domain_valid = "YES"
                                     confidence_str = f"{confidence:.3f}" if confidence is not None else "None"
-                                    domain_reason = f"Confidence: {confidence_str} | Threshold: 0.7"
+                                    domain_reason = f"Confidence: {confidence_str} | Threshold: 0.25"
                                     
-                                    if confidence >= 0.7:  # Only return high-confidence matches
+                                    if confidence >= 0.25:  # Lower threshold for website discovery (will be validated later)
                                         # Log consolidated results for this query before returning
                                         if logger_ctx:
                                             logger_ctx.log_search_results([{
@@ -268,36 +268,45 @@ class ContractorService:
         return simple_name
     
     def _generate_search_queries(self, business_name: str, city: str, state: str) -> List[str]:
-        """Generate simplified search queries in order of preference"""
+        """Generate search queries without quotes for better matching"""
         simple_name = self._generate_simple_business_name(business_name)
         
         queries = [
-            f'"{business_name}" {city} {state}',           # 1. Full business name with city/state
-            f'"{simple_name}" {city} {state}',             # 2. Simple business name with city/state
-            f'"{simple_name}" {state}'                     # 3. Simple business name with state only
+            f'{business_name} {city} {state}',             # 1. Full business name with city/state
+            f'{simple_name} {city} {state}',               # 2. Simple business name with city/state
+            f'{simple_name} {state}',                      # 3. Simple business name with state only
+            f'{business_name} {city}',                     # 4. Full business name with city only
+            f'{simple_name} {city}'                        # 5. Simple business name with city only
         ]
         
         return queries
     
     def _calculate_search_confidence(self, search_item: Dict[str, Any], business_name: str, city: str, state: str) -> float:
-        """Calculate confidence score for a search result"""
+        """Calculate confidence score for a search result with improved business name matching"""
         title = search_item.get('title', '').lower()
         snippet = search_item.get('snippet', '').lower()
         url = search_item.get('link', '').lower()
         
         business_name_lower = business_name.lower()
+        simple_name = self._generate_simple_business_name(business_name).lower()
         city_lower = city.lower()
         state_lower = state.lower()
         
         confidence = 0.0
         
-        # Business name match (highest weight)
+        # Business name match (highest weight) - try exact match first, then simple name
         if business_name_lower in title:
             confidence += 0.4
+        elif simple_name in title:
+            confidence += 0.35  # Slightly lower for simple name match
         elif business_name_lower in snippet:
             confidence += 0.3
+        elif simple_name in snippet:
+            confidence += 0.25  # Slightly lower for simple name match
         elif business_name_lower in url:
             confidence += 0.2
+        elif simple_name in url:
+            confidence += 0.15  # Slightly lower for simple name match
         
         # Location match
         if city_lower in title or city_lower in snippet:
@@ -310,7 +319,7 @@ class ContractorService:
             confidence += 0.1
         
         # Contractor-related keywords
-        contractor_keywords = ['contractor', 'construction', 'plumbing', 'electrical', 'hvac', 'roofing']
+        contractor_keywords = ['contractor', 'construction', 'plumbing', 'electrical', 'hvac', 'roofing', 'insulation', 'mold', 'attic']
         for keyword in contractor_keywords:
             if keyword in title or keyword in snippet:
                 confidence += 0.1
@@ -357,7 +366,7 @@ class ContractorService:
                                     item, business_name, city, state
                                 )
                                 
-                                if confidence >= 0.75:  # Higher threshold for knowledge panel
+                                if confidence >= 0.25:  # Lower threshold for website discovery (will be validated later)
                                     return {
                                         'url': website_url,
                                         'source': 'google_knowledge_panel',
@@ -1368,17 +1377,20 @@ Respond with valid JSON only.
                 classification_confidence = 0.0
                 
                 if contractor.website_url and contractor.website_status == 'found':
-                    # Validate the discovered website using 5-factor system
+                    # Use the search confidence as the primary website confidence
+                    website_confidence = website_discovery_confidence
+                    
+                    # Validate the discovered website using 5-factor system for additional validation
                     crawled_content = contractor.data_sources.get('crawled_content', '')
                     if crawled_content:  # Only validate if we have content to validate
                         validation_results = await self._comprehensive_website_validation(contractor, crawled_content, logger_ctx)
-                        website_confidence = self._calculate_validation_confidence(validation_results)
+                        validation_confidence = self._calculate_validation_confidence(validation_results)
                         
                         # Log validation results
                         logger_ctx.log_search_results([{
                             'title': '5-Factor Validation Results',
                             'url': contractor.website_url,
-                            'snippet': f'Business Name Match: {validation_results["business_name_match"]} | License Match: {validation_results["license_match"]} | Phone Match: {validation_results["phone_match"]} | Address Match: {validation_results["address_match"]} | Principal Match: {validation_results["principal_name_match"]} | Validation Confidence: {f"{website_confidence:.3f}" if website_confidence is not None else "None"} | Website Confidence: {f"{contractor.website_confidence:.3f}" if contractor.website_confidence is not None else "N/A"}',
+                            'snippet': f'Search Confidence: {f"{website_confidence:.3f}"} | Business Name Match: {validation_results["business_name_match"]} | License Match: {validation_results["license_match"]} | Phone Match: {validation_results["phone_match"]} | Address Match: {validation_results["address_match"]} | Principal Match: {validation_results["principal_name_match"]} | Validation Confidence: {f"{validation_confidence:.3f}" if validation_confidence is not None else "None"}',
                             'source': 'validation_system'
                         }])
                         
