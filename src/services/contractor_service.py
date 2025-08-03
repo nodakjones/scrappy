@@ -1599,29 +1599,25 @@ Respond with valid JSON only.
                             'source': 'validation_system'
                         }])
                 
-                # Calculate overall confidence - use AI classification confidence directly
-                if website_confidence >= 0.4:  # Stricter website validation threshold
-                    # Use AI classification confidence as the overall confidence
+                # Calculate overall confidence - use AI classification confidence as the primary metric
+                if website_discovery_confidence >= 0.4:  # Gatekeeper threshold for AI analysis
+                    # Website was found and validated - use AI classification confidence
                     overall_confidence = classification_confidence
-                elif website_discovery_confidence > 0.0:
-                    # Website was found but validation failed - use validation confidence only
-                    overall_confidence = website_confidence  # Use actual validation confidence
-                    classification_confidence = 0.0  # No AI analysis for failed validation
                 else:
-                    # No website found
+                    # No website found or validation failed - no confidence
                     overall_confidence = 0.0
                     classification_confidence = 0.0
                 
                 # Update contractor with results
-                contractor.website_confidence = website_confidence  # Always use actual validation confidence
-                contractor.classification_confidence = classification_confidence
-                contractor.confidence_score = overall_confidence
+                contractor.website_confidence = website_discovery_confidence  # Discovery confidence (gatekeeper)
+                contractor.classification_confidence = classification_confidence  # AI classification confidence
+                contractor.confidence_score = overall_confidence  # Overall = AI classification confidence
                 
-                # Update the log object to reflect the actual validation confidence
+                # Update the log object to reflect the discovery confidence
                 if logger_ctx:
                     task_storage = logger_ctx._get_task_storage()
                     if task_storage and task_storage['contractor_log']:
-                        task_storage['contractor_log'].website_confidence = website_confidence
+                        task_storage['contractor_log'].website_confidence = website_discovery_confidence
                 
                 # Status assignment based on confidence thresholds
                 if overall_confidence >= 0.8:
@@ -1695,8 +1691,9 @@ Respond with valid JSON only.
             data_sources = $9,
             last_processed = $10,
             error_message = $11,
+            review_status = $12,
             updated_at = NOW()
-        WHERE id = $12
+        WHERE id = $13
         """
         
         await db_pool.execute(
@@ -1712,6 +1709,7 @@ Respond with valid JSON only.
             json.dumps(contractor.data_sources) if contractor.data_sources else None,
             contractor.last_processed,
             contractor.error_message,
+            contractor.review_status,
             contractor.id
         )
     
