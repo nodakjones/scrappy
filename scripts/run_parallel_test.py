@@ -11,15 +11,19 @@ USAGE:
 OPTIONS:
     --limit N        Number of contractors to process (default: 100)
     --processes N    Number of parallel processes (default: 3)
+    --all           Process all contractors (overrides default Puget Sound filter)
     --show-details   Show detailed results table (default: summary only)
     --help          Show this help message
 
 EXAMPLES:
-    # Run 100 contractors with 3 parallel processes
+    # Run 100 Puget Sound contractors with 3 parallel processes (default)
     python scripts/run_parallel_test.py --limit 100 --processes 3
     
-    # Run 50 contractors with 2 parallel processes
+    # Run 50 Puget Sound contractors with 2 parallel processes
     python scripts/run_parallel_test.py --limit 50 --processes 2
+    
+    # Run 100 all contractors with 3 parallel processes
+    python scripts/run_parallel_test.py --limit 100 --processes 3 --all
 """
 
 import asyncio
@@ -38,8 +42,9 @@ from src.database.connection import db_pool
 from src.services.contractor_service import ContractorService
 
 class ParallelTestSuite:
-    def __init__(self, num_processes: int = 3):
+    def __init__(self, num_processes: int = 3, puget_sound_only: bool = True):
         self.num_processes = num_processes
+        self.puget_sound_only = puget_sound_only
         self.results = []
         self.start_time = None
         self.end_time = None
@@ -49,6 +54,10 @@ class ParallelTestSuite:
         print("🚀 INITIALIZING PARALLEL TEST SUITE")
         print("=" * 60)
         print(f"📊 Parallel Processes: {self.num_processes}")
+        if self.puget_sound_only:
+            print("🏔️ Puget Sound Filter: ENABLED")
+        else:
+            print("🌍 All Contractors: ENABLED")
         
         # Initialize database and service
         await db_pool.initialize()
@@ -115,9 +124,26 @@ class ParallelTestSuite:
         self.start_time = datetime.now()
         
         try:
-            # Get pending contractors
+            # Get pending contractors with optional Puget Sound filter
             service = ContractorService()
-            contractors = await service.get_pending_contractors(limit=limit)
+            
+            if self.puget_sound_only:
+                # Get Puget Sound contractors only
+                contractors = await db_pool.fetch('''
+                    SELECT * FROM contractors 
+                    WHERE processing_status = 'pending' 
+                    AND puget_sound = TRUE
+                    ORDER BY created_at ASC 
+                    LIMIT $1
+                ''', limit)
+                
+                # Convert to Contractor objects
+                from src.database.models import Contractor
+                contractors = [Contractor.from_dict(dict(row)) for row in contractors]
+            else:
+                # Get all pending contractors
+                contractors = await service.get_pending_contractors(limit=limit)
+            
             await service.close()
             
             if not contractors:
@@ -287,12 +313,14 @@ async def main():
     parser = argparse.ArgumentParser(description="Parallel Contractor Processing Test Suite")
     parser.add_argument("--limit", type=int, default=100, help="Number of contractors to process")
     parser.add_argument("--processes", type=int, default=3, help="Number of parallel processes")
+    parser.add_argument("--all", action="store_true", help="Process all contractors (overrides default Puget Sound filter)")
     parser.add_argument("--show-details", action="store_true", help="Show detailed results table")
     
     args = parser.parse_args()
     
-    # Create and run test suite
-    test_suite = ParallelTestSuite(num_processes=args.processes)
+    # Create and run test suite (default to Puget Sound, override with --all)
+    puget_sound_only = not args.all  # Default True, False if --all is specified
+    test_suite = ParallelTestSuite(num_processes=args.processes, puget_sound_only=puget_sound_only)
     
     try:
         await test_suite.initialize()
