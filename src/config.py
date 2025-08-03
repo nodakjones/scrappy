@@ -105,7 +105,27 @@ EXCLUDED_DOMAINS = {
     'buildzoom.com', 'houzz.com', 'porch.com', 'thumbtack.com', 'angi.com',
     'homeadvisor.com', 'nextdoor.com', 'neighborhoodscout.com', 'manta.com',
     'superpages.com', 'whitepages.com', 'yellowpages.com', 'citysearch.com',
-    'opengovwa.com', 'bestplumbers.com', 'procore.com', 'reddit.com', 'issuu.com'
+    'opengovwa.com', 'bestplumbers.com', 'procore.com', 'reddit.com', 'issuu.com',
+    # News outlets and media sites
+    'spokanejournal.com', 'seattletimes.com', 'seattlepi.com', 'king5.com',
+    'komonews.com', 'q13fox.com', 'kiro7.com', 'myballard.com', 'westseattleblog.com',
+    'capitolhillseattle.com', 'centraldistrictnews.com', 'eastlakeavenue.com',
+    'fremontuniverse.com', 'greenlakeseattle.com', 'magnoliavoice.com',
+    'phinneywood.com', 'queenanneview.com', 'southlakeunion.com', 'wallingfordseattle.com',
+    # Government data and API endpoints
+    'hub.arcgis.com', 'arcgis.com', 'data.wa.gov', 'data.gov', 'census.gov',
+    'geodata.gov', 'geoplatform.gov', 'nationalmap.gov', 'usgs.gov',
+    # Additional problematic domains from test results
+    '19thnews.org', 'investmentsandwealth.org', 'aandacarpets-bedford.co.uk',
+    'aaconstruct.com.au', 'aa-construction-llc.com', 'aeagc.com',
+    'aandacarpets-bedford.co.uk', 'aahomebuilders.com', 'aainc.co.jp',
+    'aapropertyuk.com', 'abconcretepumping.com', 'abfabricators.com',
+    'abflooringllc.com', 'abhomeimprovementsni.co.uk', 'ab-lawncare.net',
+    'aandbsheetmetal.com', 'abtransportation.com', 'abtreeconroe.com',
+    'acllc.com', 'aandcconcrete.com', 'ac1construction.co.uk',
+    'a-celectric.com', 'aandcglass.com', 'ac-heatingandcooling.com.au',
+    'acmechanical.ca', 'abelectricalonline.co.uk', 'drillerdb.com',
+    'wausaudailyherald.com', 'fayranches.com', 'gutter-cleaning-services.cmac.ws'
 }
 
 # Domain patterns to exclude (wildcards)
@@ -122,7 +142,9 @@ def is_valid_website_domain(url: str) -> bool:
         return False
     
     from urllib.parse import urlparse
-    domain = urlparse(url).netloc.lower()
+    parsed_url = urlparse(url)
+    domain = parsed_url.netloc.lower()
+    path = parsed_url.path.lower()
     
     # Check for excluded domains (exact match or subdomain)
     for excluded in EXCLUDED_DOMAINS:
@@ -132,6 +154,31 @@ def is_valid_website_domain(url: str) -> bool:
     # Check for excluded domain patterns
     if domain.endswith('.codes') or domain.endswith('.org') or domain.endswith('.gov'):
         return False
+    
+    # Check for news article patterns in URL path
+    news_patterns = [
+        '/articles/', '/news/', '/story/', '/article/', '/business-licenses',
+        '/business-directory/', '/company-profiles', '/business-profiles',
+        '/property-details/', '/real-estate/', '/homes/', '/apartments/',
+        '/api/download/', '/api/items/', '/csv?', '/data/', '/datasets/',
+        '/business-licenses-may-9', '/business-licenses-june-', '/business-licenses-july-',
+        '/business-licenses-august-', '/business-licenses-september-', '/business-licenses-october-',
+        '/business-licenses-november-', '/business-licenses-december-'
+    ]
+    
+    for pattern in news_patterns:
+        if pattern in path:
+            return False
+    
+    # Check for government data API patterns
+    gov_data_patterns = [
+        '/api/download/', '/api/items/', '/csv?', '/data/', '/datasets/',
+        'redirect=true', 'layers=', 'where=1=1', 'items/', 'download/v1/'
+    ]
+    
+    for pattern in gov_data_patterns:
+        if pattern in url.lower():
+            return False
     
     return True
 
