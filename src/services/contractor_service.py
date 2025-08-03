@@ -276,7 +276,15 @@ class ContractorService:
             f'{simple_name} {city}'                        # 5. Simple business name with city only
         ]
         
-        return queries
+        # Remove duplicates while preserving order
+        seen = set()
+        unique_queries = []
+        for query in queries:
+            if query not in seen:
+                seen.add(query)
+                unique_queries.append(query)
+        
+        return unique_queries
     
     def _calculate_search_confidence(self, search_item: Dict[str, Any], business_name: str, city: str, state: str) -> float:
         """Calculate confidence score for a search result with improved business name matching"""
@@ -632,11 +640,14 @@ class ContractorService:
     async def enhanced_website_discovery(self, contractor: Contractor, logger_ctx) -> float:
         """Website discovery using multiple sources"""
         try:
-            logger_ctx.log_search_query(f"Discovery for: {contractor.business_name}")
-            
             business_name = contractor.business_name
             city = contractor.city or ""
             state = contractor.state or ""
+            
+            # Log the actual search queries that will be used
+            queries = self._generate_search_queries(business_name, city, state)
+            for i, query in enumerate(queries, 1):
+                logger_ctx.log_search_query(f"Query #{i}: {query}")
             
             best_result = None
             best_confidence = 0.0
