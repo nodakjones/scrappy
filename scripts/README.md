@@ -30,6 +30,18 @@ docker-compose exec app python scripts/test_specific_contractor.py --contractor 
 - Confidence breakdown
 - Content preview
 
+#### `test_contractor_batch.py`
+**Purpose**: Test batch processing of contractors with formatted results
+**Usage**:
+```bash
+docker-compose exec app python scripts/test_contractor_batch.py
+```
+**Features**:
+- Processes 10 pending contractors
+- Displays results in formatted table
+- Shows business name, website, category, confidence, and city
+- Includes summary statistics and category distribution
+
 ### 📊 Analysis & Debugging Scripts
 
 #### `content_analysis.py`

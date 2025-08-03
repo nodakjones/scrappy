@@ -105,7 +105,7 @@ EXCLUDED_DOMAINS = {
     'buildzoom.com', 'houzz.com', 'porch.com', 'thumbtack.com', 'angi.com',
     'homeadvisor.com', 'nextdoor.com', 'neighborhoodscout.com', 'manta.com',
     'superpages.com', 'whitepages.com', 'yellowpages.com', 'citysearch.com',
-    'opengovwa.com', 'bestplumbers.com', 'procore.com'
+    'opengovwa.com', 'bestplumbers.com', 'procore.com', 'reddit.com', 'issuu.com'
 }
 
 # Domain patterns to exclude (wildcards)

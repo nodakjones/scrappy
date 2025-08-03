@@ -167,6 +167,9 @@ class ContractorService:
                             all_search_results = []
                             
                             # Process all results to find the best match
+                            best_result = None
+                            best_confidence = 0.0
+                            
                             for i, item in enumerate(data['items'], 1):
                                 website_url = item.get('link')
                                 title = item.get('title', '')
@@ -186,16 +189,9 @@ class ContractorService:
                                     confidence_str = f"{confidence:.3f}" if confidence is not None else "None"
                                     domain_reason = f"Confidence: {confidence_str} | Threshold: 0.25"
                                     
-                                    if confidence >= 0.25:  # Lower threshold for website discovery (will be validated later)
-                                        # Log consolidated results for this query before returning
-                                        if logger_ctx:
-                                            logger_ctx.log_search_results([{
-                                                'title': f'Google Search: "{query}"',
-                                                'url': f'Status: {response.status} | Items: {len(data["items"])} | Response Keys: {list(data.keys())}',
-                                                'snippet': f'Found {len(all_search_results)} results with analysis. High confidence match found: {website_url} (confidence: {confidence_str})'
-                                            }])
-                                        
-                                        return {
+                                    # Track best result but don't return early
+                                    if confidence >= 0.25 and confidence > best_confidence:
+                                        best_result = {
                                             'url': website_url,
                                             'source': 'google_api',
                                             'confidence': confidence,
@@ -203,6 +199,7 @@ class ContractorService:
                                             'snippet': item.get('snippet', ''),
                                             'query_used': query
                                         }
+                                        best_confidence = confidence
                                 elif website_url:
                                     domain_reason = "Excluded domain or invalid URL"
                                 
@@ -213,13 +210,13 @@ class ContractorService:
                                     'snippet': f'Title: {title[:100]}... | Domain valid: {domain_valid} | {domain_reason}'
                                 })
                             
-                            # Log consolidated results for this query
+                            # Log all search results for this query
                             if logger_ctx:
-                                logger_ctx.log_search_results([{
-                                    'title': f'Google Search: "{query}"',
-                                    'url': f'Status: {response.status} | Items: {len(data["items"])} | Response Keys: {list(data.keys())}',
-                                    'snippet': f'Found {len(all_search_results)} results. No high confidence matches found.'
-                                }])
+                                logger_ctx.log_search_results(all_search_results)
+                            
+                            # Return best result if found
+                            if best_result:
+                                return best_result
                         else:
                             # No items in response
                             if logger_ctx:
@@ -921,35 +918,53 @@ Please provide a JSON response with:
 
 CRITICAL CATEGORIZATION RULES:
 - ALWAYS choose the MOST SPECIFIC category that matches the actual services
-- AVOID generic categories like "General Contractor" unless no specific category fits
-- Look for these specific service keywords in the content:
-  * "roofing", "shingles", "roof" → Roofing Contractor
-  * "plumbing", "pipe", "drain", "water heater" → Plumbing Contractor  
-  * "electrical", "wiring", "outlet", "panel" → Electrical Contractor
-  * "hvac", "heating", "cooling", "furnace", "ac" → HVAC Contractor
-  * "flooring", "carpet", "hardwood", "tile" → Flooring Contractor
-  * "painting", "paint", "interior", "exterior" → Painting Contractor
-  * "landscaping", "lawn", "garden", "irrigation" → Landscaping Contractor
-  * "concrete", "driveway", "patio", "foundation" → Concrete Contractor
-  * "window", "door", "glass" → Window/Door Contractor
+- AVOID generic categories like "General Contractor" or "HVAC Contractor" unless no specific category fits
+- FIRST check the business name for obvious category indicators:
+  * Business name contains "ROOFING" → Roofing
+  * Business name contains "PLUMBING" → Plumbing  
+  * Business name contains "ELECTRIC" or "ELECTRICAL" → Electrician
+  * Business name contains "HVAC" or "HEATING" or "COOLING" → Heating and Cooling
+  * Business name contains "LANDSCAPING" or "LANDSCAPE" → Landscaping
+  * Business name contains "TREE" → Tree Service
+  * Business name contains "CONCRETE" → Concrete
+  * Business name contains "PAINTING" → Painting
+  * Business name contains "FLOORING" → Flooring
+  * Business name contains "HANDYMAN" → Handyman
+
+- THEN look for these specific service keywords in the content:
+  * "roofing", "shingles", "roof", "roofer" → Roofing
+  * "plumbing", "pipe", "drain", "water heater", "plumber" → Plumbing  
+  * "electrical", "wiring", "outlet", "panel", "electrician" → Electrician
+  * "hvac", "heating", "cooling", "furnace", "ac", "air conditioning" → Heating and Cooling
+  * "flooring", "carpet", "hardwood", "tile", "floor" → Flooring
+  * "painting", "paint", "interior", "exterior" → Painting
+  * "landscaping", "lawn", "garden", "irrigation", "landscape" → Landscaping
+  * "concrete", "driveway", "patio", "foundation", "cement" → Concrete
+  * "window", "door", "glass" → Window/Door
   * "kitchen", "bathroom", "remodel" → Bathroom/Kitchen Remodel
   * "deck", "patio", "outdoor" → Decks & Patios
-  * "fence", "fencing" → Fence Contractor
-  * "fireplace", "chimney" → Fireplace Contractor
-  * "sprinkler", "irrigation" → Sprinklers Contractor
-  * "blind", "shade", "window treatment" → Blinds Contractor
+  * "fence", "fencing" → Fence
+  * "fireplace", "chimney" → Fireplace
+  * "sprinkler", "irrigation" → Sprinklers
+  * "blind", "shade", "window treatment" → Blinds
   * "awning", "patio cover", "carport" → Awning/Patio/Carport
   * "storage", "closet", "shelving" → Storage & Closets
   * "pool", "spa", "hot tub" → Pools and Spas
   * "security", "alarm", "camera" → Security Systems
   * "media", "audio", "video", "home theater" → Media Systems
+  * "tree", "tree service", "arborist" → Tree Service
+  * "handyman", "handy man" → Handyman
 
 - Base category on actual services mentioned, NOT business name
 - If multiple specific services are mentioned, choose the most prominent one
 - Only use "General Contractor" if no specific category applies
+- NEVER default to "HVAC Contractor" unless heating/cooling is the primary service
 - Provide lower confidence for directory sites, software platforms, or non-contractor websites
 - Look for residential keywords: "homeowners", "residential", "home services", "family"
 - Look for commercial keywords: "commercial", "business", "industrial", "corporate"
+- CRITICAL: If the website content does not match the business name or services, provide LOW confidence (0.2-0.4)
+- CRITICAL: If the website appears to be a hotel, restaurant, retail store, or other non-contractor business, provide LOW confidence
+- CRITICAL: Only provide high confidence if the website content clearly describes contractor services that match the business name
 
 Respond with valid JSON only.
 """
@@ -1149,30 +1164,52 @@ Respond with valid JSON only.
         return validation_results
     
     def _advanced_business_name_matching(self, business_name: str, content: str) -> float:
-        """Advanced business name matching with fuzzy logic"""
+        """Advanced business name matching with stricter validation"""
         # Clean business name
         clean_name = re.sub(r'[^\w\s]', '', business_name).strip()
         words = clean_name.split()
         
         if len(words) <= 1:
-            return 1.0 if clean_name in content else 0.0
+            return 1.0 if clean_name.lower() in content.lower() else 0.0
         
-        # Calculate word-by-word match score
+        # For multi-word business names, require at least 50% of words to match
+        # AND at least one word must be a significant business identifier
         matched_words = 0
         total_words = len(words)
+        significant_words = []
         
+        # Identify significant business words (likely to be unique identifiers)
         for word in words:
             if len(word) > 2:  # Only consider words longer than 2 characters
-                if word in content:
-                    matched_words += 1
-                else:
-                    # Try partial matches for longer words
-                    for content_word in content.split():
-                        if len(content_word) > 3 and word in content_word:
-                            matched_words += 0.5
-                            break
+                # Skip common business suffixes
+                if word.upper() not in ['LLC', 'INC', 'CORP', 'CO', 'COMPANY', 'SERVICES', 'SERVICE']:
+                    significant_words.append(word)
         
-        return matched_words / total_words if total_words > 0 else 0.0
+        # Check for word matches
+        for word in words:
+            if len(word) > 2:  # Only consider words longer than 2 characters
+                if word.lower() in content.lower():
+                    matched_words += 1
+        
+        # Calculate base score
+        base_score = matched_words / total_words if total_words > 0 else 0.0
+        
+        # Require at least one significant word to match for high confidence
+        significant_match = False
+        for word in significant_words:
+            if word.lower() in content.lower():
+                significant_match = True
+                break
+        
+        # If no significant words match, reduce confidence significantly
+        if not significant_match and significant_words:
+            base_score *= 0.3  # Reduce confidence by 70%
+        
+        # Require minimum 50% word match for any confidence
+        if base_score < 0.5:
+            base_score = 0.0
+        
+        return base_score
     
     def _keyword_business_name_matching(self, business_name: str, content: str) -> float:
         """Extract key business name components and match against content"""
@@ -1338,14 +1375,14 @@ Respond with valid JSON only.
         return False
     
     def _calculate_validation_confidence(self, validation_results: Dict[str, Any]) -> float:
-        """Calculate confidence score based on 5-factor validation system"""
+        """Calculate confidence score based on 5-factor validation system with stricter business name requirements"""
         confidence = 0.0
         
-        # Factor 1: Business Name Match (0.25 points)
+        # Factor 1: Business Name Match (0.25 points) - REQUIRED for high confidence
         if validation_results['business_name_match']:
             confidence += 0.25
         elif validation_results['keyword_business_name_match']:
-            confidence += 0.15  # Partial credit for keyword match
+            confidence += 0.10  # Reduced partial credit for keyword match
         
         # Factor 2: License Number Match (0.25 points)
         if validation_results['license_match']:
@@ -1362,6 +1399,10 @@ Respond with valid JSON only.
         # Factor 5: Address Match (0.25 points)
         if validation_results['address_match']:
             confidence += 0.25
+        
+        # Additional validation: If no business name match, cap confidence at 0.5
+        if not validation_results['business_name_match'] and not validation_results['keyword_business_name_match']:
+            confidence = min(confidence, 0.5)
         
         return max(confidence, 0.0)  # Ensure non-negative
     
@@ -1449,11 +1490,9 @@ Respond with valid JSON only.
                     # Use AI classification confidence as the overall confidence
                     overall_confidence = classification_confidence
                 elif website_discovery_confidence > 0.0:
-                    # Website was found but validation failed - show actual validation results
+                    # Website was found but validation failed - use validation confidence only
                     overall_confidence = website_confidence  # Use actual validation confidence
-                    # Still run AI classification for better analysis
-                    if contractor.website_url and contractor.website_status == 'found':
-                        classification_confidence = await self.enhanced_content_analysis(contractor, logger_ctx)
+                    classification_confidence = 0.0  # No AI analysis for failed validation
                 else:
                     # No website found
                     overall_confidence = 0.0
@@ -1482,10 +1521,20 @@ Respond with valid JSON only.
                     contractor.review_status = 'rejected'
                 
                 contractor.is_home_contractor = overall_confidence > 0.5
-                contractor.mailer_category = self._determine_category_from_content(
-                    contractor.data_sources.get('crawled_content', '').lower() if contractor.data_sources else '',
-                    contractor.business_name.lower()
-                )
+                
+                # Use AI category if available, otherwise fall back to keyword-based method
+                ai_category = None
+                if contractor.data_sources and 'ai_analysis' in contractor.data_sources:
+                    ai_category = contractor.data_sources['ai_analysis'].get('category')
+                
+                if ai_category:
+                    contractor.mailer_category = ai_category
+                else:
+                    contractor.mailer_category = self._determine_category_from_content(
+                        contractor.data_sources.get('crawled_content', '').lower() if contractor.data_sources else '',
+                        contractor.business_name.lower()
+                    )
+                
                 contractor.last_processed = datetime.utcnow()
                 
                 # Log final result
