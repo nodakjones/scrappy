@@ -15,8 +15,8 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from src.database.connection import db_pool
 from src.services.contractor_service import ContractorService
 
-async def test_batch_with_city():
-    """Process 10 pending contractors and display results with city info"""
+async def test_batch_with_city(limit=10):
+    """Process pending contractors and display results with city info"""
     print("🚀 Starting batch test with city information...")
     print("=" * 60)
     
@@ -25,8 +25,8 @@ async def test_batch_with_city():
     service = ContractorService()
     
     try:
-        # Get 10 pending contractors
-        contractors = await service.get_pending_contractors(limit=10)
+        # Get pending contractors
+        contractors = await service.get_pending_contractors(limit=limit)
         
         if not contractors:
             print("❌ No pending contractors found!")
@@ -106,4 +106,10 @@ async def test_batch_with_city():
         await db_pool.close()
 
 if __name__ == "__main__":
-    asyncio.run(test_batch_with_city()) 
+    import argparse
+    
+    parser = argparse.ArgumentParser(description='Test contractor batch processing')
+    parser.add_argument('--limit', type=int, default=10, help='Number of contractors to process (default: 10)')
+    
+    args = parser.parse_args()
+    asyncio.run(test_batch_with_city(args.limit)) 

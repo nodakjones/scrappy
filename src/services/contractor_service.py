@@ -190,7 +190,7 @@ class ContractorService:
                                     domain_reason = f"Confidence: {confidence_str} | Threshold: 0.25"
                                     
                                     # Track best result but don't return early
-                                    if confidence >= 0.25 and confidence > best_confidence:
+                                    if confidence >= 0.4 and confidence > best_confidence:
                                         best_result = {
                                             'url': website_url,
                                             'source': 'google_api',
@@ -287,7 +287,7 @@ class ContractorService:
         return unique_queries
     
     def _calculate_search_confidence(self, search_item: Dict[str, Any], business_name: str, city: str, state: str) -> float:
-        """Calculate confidence score for a search result with improved business name matching"""
+        """Calculate confidence score for a search result with STRICT business name and geographic validation"""
         title = search_item.get('title', '').lower()
         snippet = search_item.get('snippet', '').lower()
         url = search_item.get('link', '').lower()
@@ -299,50 +299,86 @@ class ContractorService:
         
         confidence = 0.0
         
-        # Business name match (highest weight) - try exact match first, then simple name
+        # STRICT BUSINESS NAME VALIDATION - Must have strong business name match
+        business_name_found = False
         if business_name_lower in title:
             confidence += 0.4
+            business_name_found = True
         elif simple_name in title:
-            confidence += 0.35  # Slightly lower for simple name match
+            confidence += 0.35
+            business_name_found = True
         elif business_name_lower in snippet:
             confidence += 0.3
+            business_name_found = True
         elif simple_name in snippet:
-            confidence += 0.25  # Slightly lower for simple name match
+            confidence += 0.25
+            business_name_found = True
         elif business_name_lower in url:
             confidence += 0.2
+            business_name_found = True
         elif simple_name in url:
-            confidence += 0.15  # Slightly lower for simple name match
+            confidence += 0.15
+            business_name_found = True
         
-        # Location match
+        # If no business name match found, return very low confidence
+        if not business_name_found:
+            return 0.05  # Almost certainly wrong
+        
+        # STRICT GEOGRAPHIC VALIDATION - Must have WA location indicators
+        location_found = False
         if city_lower in title or city_lower in snippet:
             confidence += 0.2
+            location_found = True
         if state_lower in title or state_lower in snippet:
             confidence += 0.1
+            location_found = True
         
-        # Domain quality check
+        # Additional WA location validation
+        if self._has_wa_location_indicators(url, title, snippet):
+            confidence += 0.15
+            location_found = True
+        
+        # Domain quality check with STRICT validation
         if self._is_valid_website(url):
             confidence += 0.1
             
-            # Bonus for domain name relevance
+            # STRICT DOMAIN NAME VALIDATION
             domain = url.lower().replace('https://', '').replace('http://', '').split('/')[0]
+            
+            # Check for exact business name in domain (highest confidence)
             if business_name_lower.replace(' ', '') in domain or simple_name.replace(' ', '') in domain:
-                confidence += 0.3  # Significant bonus for domain name match
+                confidence += 0.4  # Major bonus for exact domain match
+                location_found = True  # Domain match counts as location validation
             elif any(word in domain for word in business_name_lower.split()):
-                confidence += 0.2  # Partial domain match
+                # Partial match - but require location validation
+                confidence += 0.2
+                if not location_found:
+                    confidence -= 0.3  # Penalty for partial match without location
+            else:
+                # No business name in domain - require strong location validation
+                if not location_found:
+                    confidence -= 0.4  # Major penalty for no business name AND no location
         
-        # Penalty for directory/association sites
-        directory_indicators = ['association', 'directory', 'listing', 'find', 'search', 'pros', 'contractors']
+        # STRICT PENALTY for directory/association sites
+        directory_indicators = ['association', 'directory', 'listing', 'find', 'search', 'pros', 'contractors', 'bizprofile', 'bizapedia', 'yellowpages', 'whitepages', 'superpages', 'manta', 'zoominfo']
         if any(indicator in title.lower() or indicator in snippet.lower() for indicator in directory_indicators):
-            confidence -= 0.2  # Penalty for directory sites
+            confidence -= 0.5  # Major penalty for directory sites
         
-        # Contractor-related keywords
+        # Contractor-related keywords (minor bonus)
         contractor_keywords = ['contractor', 'construction', 'plumbing', 'electrical', 'hvac', 'roofing', 'insulation', 'mold', 'attic']
         for keyword in contractor_keywords:
             if keyword in title or keyword in snippet:
-                confidence += 0.1
+                confidence += 0.05  # Reduced bonus
                 break
         
-        return min(confidence, 0.95)  # Cap at 0.95
+        # FINAL VALIDATION: Require minimum confidence for acceptance
+        final_confidence = min(confidence, 0.95)
+        
+        # If confidence is too low, return 0 to reject the result
+        if final_confidence < 0.3:
+            return 0.0
+        
+        return final_confidence
     
     async def search_google_knowledge_panel(self, business_name: str, city: str, state: str) -> Optional[Dict[str, Any]]:
         """Search Google Knowledge Panel using Custom Search API with specific parameters"""
@@ -383,7 +419,7 @@ class ContractorService:
                                     item, business_name, city, state
                                 )
                                 
-                                if confidence >= 0.25:  # Lower threshold for website discovery (will be validated later)
+                                if confidence >= 0.4:  # Stricter threshold for website discovery
                                     return {
                                         'url': website_url,
                                         'source': 'google_knowledge_panel',
@@ -648,6 +684,61 @@ class ContractorService:
         
         # Use the centralized domain validation function
         return is_valid_website_domain(url)
+    
+    def _has_wa_location_indicators(self, url: str, title: str, snippet: str) -> bool:
+        """Check if the website has Washington state location indicators"""
+        wa_indicators = [
+            'wa', 'washington', 'seattle', 'spokane', 'tacoma', 'bellevue', 'everett', 'kent', 
+            'auburn', 'federal way', 'yakima', 'vancouver', 'olympia', 'bellingham', 'kennewick', 
+            'puyallup', 'lynnwood', 'renton', 'spokane valley', 'bremerton', 'pasco', 'marysville', 
+            'lakewood', 'redmond', 'sammamish', 'kirkland', 'bothell', 'mercer island', 'woodinville', 
+            'edmonds', 'mount vernon', 'bainbridge island', 'gig harbor', 'port orchard', 'silverdale', 
+            'poulsbo', 'kingston', 'port townsend', 'sequim', 'port angeles', 'forks', 'aberdeen', 
+            'hoquiam', 'centralia', 'chehalis', 'lacey', 'tumwater', 'shelton', 'colbert', 'oroville', 
+            'moxee', 'selah', 'naches', 'cle elum', 'ellensburg', 'connell', 'richland', 'kennewick', 
+            'pasco', 'west richland', 'prosser', 'grandview', 'sunnyside', 'toppenish', 'granger', 
+            'zillah', 'wapato', 'mabton', 'benton city', 'kiona', 'paterson', 'bickleton', 'klickitat', 
+            'goldendale', 'white salmon', 'stevenson', 'carson', 'wishram', 'lyle', 'dallesport', 
+            'husum', 'trout lake', 'glenwood', 'klickitat', 'centerville', 'appleton', 'bickleton', 
+            'cle elum', 'ellensburg', 'kittitas', 'thorp', 'rosellyn', 'south cle elum', 'liberty', 
+            'kittitas', 'vantage', 'george', 'quincy', 'moses lake', 'soap lake', 'ephrata', 'mattawa', 
+            'royal city', 'warden', 'odessa', 'wilbur', 'almira', 'creston', 'davenport', 'reardan', 
+            'medical lake', 'airway heights', 'deer park', 'newport', 'colville', 'chewelah', 'kettle falls', 
+            'republic', 'curlew', 'oriente', 'malo', 'danville', 'boyds', 'barstow', 'northport', 
+            'laurier', 'orient', 'addy', 'valley', 'springdale', 'chelan', 'mansfield', 'pateros', 
+            'brewer', 'methow', 'twisp', 'winthrop', 'mazama', 'carlton', 'tonasket', 'omak', 'orondo', 
+            'rock island', 'malaga', 'walla walla', 'college place', 'dayton', 'waitsburg', 'prescott', 
+            'burbank', 'lowden', 'touchet', 'dixie', 'staples', 'huntsville', 'milton-freewater', 
+            'clarkston', 'asotin', 'anatone', 'cloverland', 'weston', 'anatom', 'lewiston', 'clarkston', 
+            'pullman', 'moscow', 'colfax', 'palouse', 'garfield', 'albion', 'uniontown', 'farmington', 
+            'endicott', 'st john', 'lamont', 'oakesdale', 'tekoa', 'rosalia', 'malden', 'thornton', 
+            'steptoe', 'hay', 'benge', 'washtucna', 'lind', 'ritzville', 'davenport', 'creston', 'wilbur', 
+            'odessa', 'almira', 'reardan', 'medical lake', 'airway heights', 'deer park', 'newport', 
+            'colville', 'chewelah', 'kettle falls', 'republic', 'curlew', 'oriente', 'malo', 'danville', 
+            'boyds', 'barstow', 'northport', 'laurier', 'orient', 'addy', 'valley', 'springdale', 
+            'chelan', 'mansfield', 'pateros', 'brewer', 'methow', 'twisp', 'winthrop', 'mazama', 
+            'carlton', 'tonasket', 'omak', 'orondo', 'rock island', 'malaga', 'walla walla', 
+            'college place', 'dayton', 'waitsburg', 'prescott', 'burbank', 'lowden', 'touchet', 
+            'dixie', 'staples', 'huntsville', 'milton-freewater', 'clarkston', 'asotin', 'anatone', 
+            'cloverland', 'weston', 'anatom', 'lewiston', 'clarkston', 'pullman', 'moscow', 'colfax', 
+            'palouse', 'garfield', 'albion', 'uniontown', 'farmington', 'endicott', 'st john', 
+            'lamont', 'oakesdale', 'tekoa', 'rosalia', 'malden', 'thornton', 'steptoe', 'hay', 
+            'benge', 'washtucna', 'lind', 'ritzville'
+        ]
+        
+        # Check domain for location indicators
+        domain = url.lower().replace('https://', '').replace('http://', '').split('/')[0]
+        for indicator in wa_indicators:
+            if indicator in domain:
+                return True
+        
+        # Check title and snippet for location indicators
+        content = f"{title} {snippet}".lower()
+        for indicator in wa_indicators:
+            if indicator in content:
+                return True
+        
+        return False
     
     async def enhanced_website_discovery(self, contractor: Contractor, logger_ctx) -> float:
         """Website discovery using multiple sources"""
@@ -942,7 +1033,7 @@ Please provide a JSON response with:
 CRITICAL CATEGORIZATION RULES:
 - ALWAYS choose the MOST SPECIFIC category that matches the actual services
 - AVOID generic categories like "General Contractor" or "HVAC Contractor" unless no specific category fits
-- FIRST check the business name for obvious category indicators:
+- FIRST check the business name for obvious category indicators (these are examples, not exhaustive):
   * Business name contains "ROOFING" → Roofing
   * Business name contains "PLUMBING" → Plumbing  
   * Business name contains "ELECTRIC" or "ELECTRICAL" → Electrician
@@ -954,7 +1045,7 @@ CRITICAL CATEGORIZATION RULES:
   * Business name contains "FLOORING" → Flooring
   * Business name contains "HANDYMAN" → Handyman
 
-- THEN look for these specific service keywords in the content:
+- THEN look for these specific service keywords in the content (these are examples, not exhaustive):
   * "roofing", "shingles", "roof", "roofer" → Roofing
   * "plumbing", "pipe", "drain", "water heater", "plumber" → Plumbing  
   * "electrical", "wiring", "outlet", "panel", "electrician" → Electrician
@@ -982,12 +1073,12 @@ CRITICAL CATEGORIZATION RULES:
 - If multiple specific services are mentioned, choose the most prominent one
 - Only use "General Contractor" if no specific category applies
 - NEVER default to "HVAC Contractor" unless heating/cooling is the primary service
-- Provide lower confidence for directory sites, software platforms, or non-contractor websites
+- Provide very low confidence for directory sites, software platforms, or non-contractor website (0.0 score)
 - Look for residential keywords: "homeowners", "residential", "home services", "family"
 - Look for commercial keywords: "commercial", "business", "industrial", "corporate"
-- CRITICAL: If the website content does not match the business name or services, provide LOW confidence (0.2-0.4)
+- CRITICAL: If the website content does not match the business name or services, provide LOW confidence (under 0.2)
 - CRITICAL: If the website appears to be a hotel, restaurant, retail store, or other non-contractor business, provide LOW confidence
-- CRITICAL: Only provide high confidence if the website content clearly describes contractor services that match the business name
+- CRITICAL: Only provide high confidence if the website content clearly describes contractor services and has some sort of business name that matches
 
 Respond with valid JSON only.
 """
@@ -1483,7 +1574,7 @@ Respond with valid JSON only.
                         }])
                         
                         # Only proceed with AI classification if website validation meets minimum threshold
-                        if website_confidence >= 0.25:  # Lowered threshold for website acceptance
+                        if website_confidence >= 0.4:  # Stricter threshold for website acceptance
                             # Step 3: AI Classification (only for validated websites)
                             try:
                                 classification_confidence = await self.enhanced_content_analysis(contractor, logger_ctx)
@@ -1509,7 +1600,7 @@ Respond with valid JSON only.
                         }])
                 
                 # Calculate overall confidence - use AI classification confidence directly
-                if website_confidence >= 0.25:  # Lowered website validation threshold
+                if website_confidence >= 0.4:  # Stricter website validation threshold
                     # Use AI classification confidence as the overall confidence
                     overall_confidence = classification_confidence
                 elif website_discovery_confidence > 0.0:
