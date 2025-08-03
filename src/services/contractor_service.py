@@ -322,6 +322,18 @@ class ContractorService:
         # Domain quality check
         if self._is_valid_website(url):
             confidence += 0.1
+            
+            # Bonus for domain name relevance
+            domain = url.lower().replace('https://', '').replace('http://', '').split('/')[0]
+            if business_name_lower.replace(' ', '') in domain or simple_name.replace(' ', '') in domain:
+                confidence += 0.3  # Significant bonus for domain name match
+            elif any(word in domain for word in business_name_lower.split()):
+                confidence += 0.2  # Partial domain match
+        
+        # Penalty for directory/association sites
+        directory_indicators = ['association', 'directory', 'listing', 'find', 'search', 'pros', 'contractors']
+        if any(indicator in title.lower() or indicator in snippet.lower() for indicator in directory_indicators):
+            confidence -= 0.2  # Penalty for directory sites
         
         # Contractor-related keywords
         contractor_keywords = ['contractor', 'construction', 'plumbing', 'electrical', 'hvac', 'roofing', 'insulation', 'mold', 'attic']

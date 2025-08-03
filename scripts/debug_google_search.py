@@ -268,13 +268,13 @@ async def main():
     """Main function to run the debug process"""
     debugger = GoogleSearchDebugger()
     
-    # Test with "guardian roofing auburn wa"
-    business_name = "guardian roofing"
-    city = "auburn"
+    # Test with "5 Star Guttering pasco wa"
+    business_name = "5 Star Guttering"
+    city = "pasco"
     state = "wa"
     
     print("🔍 GOOGLE SEARCH API DEBUG PROCESS")
-    print("Testing: guardian roofing auburn wa")
+    print("Testing: 5 Star Guttering pasco wa")
     
     await debugger.debug_search_process(business_name, city, state)
 
