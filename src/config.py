@@ -42,7 +42,7 @@ class Config:
     MANUAL_REVIEW_THRESHOLD: float = float(os.getenv('MANUAL_REVIEW_THRESHOLD', '0.6'))
     
     # Rate Limiting (seconds between requests)
-    SEARCH_DELAY: float = float(os.getenv('SEARCH_DELAY', '1.0'))
+    SEARCH_DELAY: float = float(os.getenv('SEARCH_DELAY', '3.0'))  # Increased from 1.0 to 3.0 for parallel processing
     LLM_DELAY: float = float(os.getenv('LLM_DELAY', '0.5'))
     
     # Search API Keys (optional)

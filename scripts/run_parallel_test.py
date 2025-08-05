@@ -3,27 +3,31 @@
 Parallel Contractor Processing Test Suite
 =======================================
 
-This script provides parallel processing for contractor testing with multiple processes.
+Process contractors in parallel with multiple processes for faster processing.
+Optimized for daily Puget Sound processing with Google API limits.
 
 USAGE:
-    python scripts/run_parallel_test.py --limit 100 --processes 3
+    python scripts/run_parallel_test.py --limit 5000 --processes 3
 
 OPTIONS:
-    --limit N        Number of contractors to process (default: 100)
+    --limit N        Number of contractors to process (default: 5000)
     --processes N    Number of parallel processes (default: 3)
     --all           Process all contractors (overrides default Puget Sound filter)
     --show-details   Show detailed results table (default: summary only)
     --help          Show this help message
 
 EXAMPLES:
-    # Run 100 Puget Sound contractors with 3 parallel processes (default)
-    python scripts/run_parallel_test.py --limit 100 --processes 3
+    # Run 5000 Puget Sound contractors with 3 parallel processes (default)
+    python scripts/run_parallel_test.py
     
-    # Run 50 Puget Sound contractors with 2 parallel processes
-    python scripts/run_parallel_test.py --limit 50 --processes 2
+    # Run 1000 Puget Sound contractors with 2 parallel processes
+    python scripts/run_parallel_test.py --limit 1000 --processes 2
     
-    # Run 100 all contractors with 3 parallel processes
-    python scripts/run_parallel_test.py --limit 100 --processes 3 --all
+    # Run 5000 all contractors with 3 parallel processes
+    python scripts/run_parallel_test.py --all
+    
+    # Run 100 contractors for testing
+    python scripts/run_parallel_test.py --limit 100 --processes 1
 """
 
 import asyncio
@@ -311,7 +315,7 @@ class ParallelTestSuite:
 async def main():
     """Main function"""
     parser = argparse.ArgumentParser(description="Parallel Contractor Processing Test Suite")
-    parser.add_argument("--limit", type=int, default=100, help="Number of contractors to process")
+    parser.add_argument("--limit", type=int, default=5000, help="Number of contractors to process")
     parser.add_argument("--processes", type=int, default=3, help="Number of parallel processes")
     parser.add_argument("--all", action="store_true", help="Process all contractors (overrides default Puget Sound filter)")
     parser.add_argument("--show-details", action="store_true", help="Show detailed results table")

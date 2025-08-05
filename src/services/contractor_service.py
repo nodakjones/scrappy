@@ -134,7 +134,7 @@ class ContractorService:
         return None
     
     async def search_google_api(self, business_name: str, city: str, state: str, logger_ctx=None) -> Optional[Dict[str, Any]]:
-        """Search using Google Custom Search API with multiple query strategies"""
+        """Search Google Custom Search API with multiple query strategies"""
         try:
             # Check if Google API key is configured
             google_api_key = getattr(config, 'GOOGLE_API_KEY', None)
@@ -145,98 +145,64 @@ class ContractorService:
             
             session = await self._get_session()
             
-            # Generate simplified search queries
-            query_strategies = self._generate_search_queries(business_name, city, state)
+            # Generate search queries
+            queries = self._generate_search_queries(business_name, city, state)
             
-            for query in query_strategies:
+            # Try each query strategy
+            for query in queries:
                 # Google Custom Search API endpoint
                 url = "https://www.googleapis.com/customsearch/v1"
                 params = {
                     'key': google_api_key,
                     'cx': google_cse_id,
                     'q': query,
-                    'num': 10  # Get 10 results
+                    'num': 10
                 }
                 
                 async with session.get(url, params=params) as response:
                     if response.status == 200:
                         data = await response.json()
                         
-                        if 'items' in data and len(data['items']) > 0:
-                            # Collect all results for logging
-                            all_search_results = []
+                        if 'items' in data and data['items']:
+                            # Process search results
+                            search_results = []
+                            for item in data['items']:
+                                confidence = self._calculate_search_confidence(item, business_name, city, state)
+                                if confidence > 0.1:  # Only include relevant results
+                                    search_results.append({
+                                        'title': item.get('title', ''),
+                                        'snippet': item.get('snippet', ''),
+                                        'url': item.get('link', ''),
+                                        'confidence': confidence
+                                    })
                             
-                            # Process all results to find the best match
-                            best_result = None
-                            best_confidence = 0.0
-                            
-                            for i, item in enumerate(data['items'], 1):
-                                website_url = item.get('link')
-                                title = item.get('title', '')
-                                snippet = item.get('snippet', '')
-                                
-                                # Calculate confidence and domain validity
-                                confidence = 0.0
-                                domain_valid = "NO"
-                                domain_reason = "No URL found"
-                                
-                                if website_url and self._is_valid_website(website_url):
-                                    # Calculate confidence based on match quality
-                                    confidence = self._calculate_search_confidence(
-                                        item, business_name, city, state
-                                    )
-                                    domain_valid = "YES"
-                                    confidence_str = f"{confidence:.3f}" if confidence is not None else "None"
-                                    domain_reason = f"Confidence: {confidence_str} | Threshold: 0.25"
-                                    
-                                    # Track best result but don't return early
-                                    if confidence >= 0.4 and confidence > best_confidence:
-                                        best_result = {
-                                            'url': website_url,
-                                            'source': 'google_api',
-                                            'confidence': confidence,
-                                            'title': item.get('title', ''),
-                                            'snippet': item.get('snippet', ''),
-                                            'query_used': query
-                                        }
-                                        best_confidence = confidence
-                                elif website_url:
-                                    domain_reason = "Excluded domain or invalid URL"
-                                
-                                # Add consolidated search result with analysis
-                                all_search_results.append({
-                                    'title': f'Result #{i}',
-                                    'url': website_url or 'N/A',
-                                    'snippet': f'Title: {title[:100]}... | Domain valid: {domain_valid} | {domain_reason}'
-                                })
-                            
-                            # Log all search results for this query
-                            if logger_ctx:
-                                logger_ctx.log_search_results(all_search_results)
-                            
-                            # Return best result if found
-                            if best_result:
-                                return best_result
+                            if search_results:
+                                # Return the best result
+                                best_result = max(search_results, key=lambda x: x['confidence'])
+                                return {
+                                    'title': best_result['title'],
+                                    'snippet': best_result['snippet'],
+                                    'url': best_result['url'],
+                                    'confidence': best_result['confidence']
+                                }
                         else:
-                            # No items in response
+                            # Log no results for debugging
                             if logger_ctx:
-                                logger_ctx.log_search_results([{
-                                    'title': f'Google Search: "{query}"',
-                                    'url': f'Status: {response.status} | Items: 0 | Response Keys: {list(data.keys())}',
-                                    'snippet': 'No search results found.'
-                                }])
+                                logger_ctx.info(f"No search results for query: {query}")
+                            else:
+                                logger.info(f"No search results for query: {query}")
                     
                     elif response.status == 429:
                         logger.warning(f"Google API rate limited (429) for query: {query}")
-                        # Add delay and continue to next query strategy
-                        await asyncio.sleep(2)
+                        # Add longer delay for rate limiting - account for parallel processes
+                        await asyncio.sleep(5)  # Increased from 2 to 5 seconds
                         continue
                     else:
                         logger.warning(f"Google API returned status {response.status} for query: {query}")
                         continue
                 
-                # Add delay between queries to avoid rate limiting
-                await asyncio.sleep(1)
+                # Add delay between queries to avoid rate limiting - account for parallel processes
+                await asyncio.sleep(config.SEARCH_DELAY)  # Use configurable delay
             
             return None
                     
@@ -270,10 +236,11 @@ class ContractorService:
         
         queries = [
             f'{business_name} {city} {state}',             # 1. Full business name with city/state
-            f'{simple_name} {city} {state}',               # 2. Simple business name with city/state
-            f'{simple_name} {state}',                      # 3. Simple business name with state only
-            f'{business_name} {city}',                     # 4. Full business name with city only
-            f'{simple_name} {city}'                        # 5. Simple business name with city only
+            f'{simple_name} {state}',                      # 2. Simple business name with state only
+            # Commented out additional queries to reduce API usage
+            # f'{simple_name} {city} {state}',               # 3. Simple business name with city/state
+            # f'{business_name} {city}',                     # 4. Full business name with city only
+            # f'{simple_name} {city}'                        # 5. Simple business name with city only
         ]
         
         # Remove duplicates while preserving order
@@ -850,71 +817,71 @@ class ContractorService:
                         'source': 'google_api'
                     }])
             
-            # 3. Try Google Knowledge Panel
-            if not best_result or best_confidence < 0.88:
-                logger_ctx.log_ai_call("google_knowledge_panel", {
-                    "business_name": business_name,
-                    "city": city,
-                    "state": state,
-                    "search_url": "Google Knowledge Panel"
-                })
-                
-                knowledge_panel_result = await self.search_google_knowledge_panel(business_name, city, state)
-                if knowledge_panel_result:
-                    crawled_content = await self.crawl_website(knowledge_panel_result['url'])
-                    if crawled_content:
-                        knowledge_panel_result['content'] = crawled_content
-                        if knowledge_panel_result['confidence'] > best_confidence:
-                            best_result = knowledge_panel_result
-                            best_confidence = knowledge_panel_result['confidence']
-                            logger_ctx.log_website_selection(knowledge_panel_result['url'], knowledge_panel_result['confidence'])
-                    else:
-                        logger_ctx.log_search_results([{
-                            'title': 'Google Knowledge Panel result found but crawl failed',
-                            'url': knowledge_panel_result['url'],
-                            'snippet': f'Google Knowledge Panel found website but crawl failed',
-                            'source': 'google_knowledge_panel'
-                        }])
-                else:
-                    logger_ctx.log_search_results([{
-                        'title': 'Google Knowledge Panel - No results',
-                        'url': 'N/A',
-                        'snippet': f'No website found in Google Knowledge Panel for {business_name}',
-                        'source': 'google_knowledge_panel'
-                    }])
+            # 3. Try Google Knowledge Panel (COMMENTED OUT TO REDUCE API USAGE)
+            # if not best_result or best_confidence < 0.88:
+            #     logger_ctx.log_ai_call("google_knowledge_panel", {
+            #         "business_name": business_name,
+            #         "city": city,
+            #         "state": state,
+            #         "search_url": "Google Knowledge Panel"
+            #     })
+            #     
+            #     knowledge_panel_result = await self.search_google_knowledge_panel(business_name, city, state)
+            #     if knowledge_panel_result:
+            #         crawled_content = await self.crawl_website(knowledge_panel_result['url'])
+            #         if crawled_content:
+            #             knowledge_panel_result['content'] = crawled_content
+            #             if knowledge_panel_result['confidence'] > best_confidence:
+            #                 best_result = knowledge_panel_result
+            #                 best_confidence = knowledge_panel_result['confidence']
+            #                 logger_ctx.log_website_selection(knowledge_panel_result['url'], knowledge_panel_result['confidence'])
+            #         else:
+            #             logger_ctx.log_search_results([{
+            #                 'title': 'Google Knowledge Panel result found but crawl failed',
+            #                 'url': knowledge_panel_result['url'],
+            #                 'snippet': f'Google Knowledge Panel found website but crawl failed',
+            #                 'source': 'google_knowledge_panel'
+            #             }])
+            #     else:
+            #         logger_ctx.log_search_results([{
+            #             'title': 'Google Knowledge Panel - No results',
+            #             'url': 'N/A',
+            #             'snippet': f'No website found in Google Knowledge Panel for {business_name}',
+            #             'source': 'google_knowledge_panel'
+            #         }])
             
-            # 4. Try Google Local Pack
-            if not best_result or best_confidence < 0.85:
-                logger_ctx.log_ai_call("google_local_pack", {
-                    "business_name": business_name,
-                    "city": city,
-                    "state": state,
-                    "search_url": "Google Local Pack"
-                })
-                
-                local_pack_result = await self.search_google_local_pack(business_name, city, state)
-                if local_pack_result:
-                    crawled_content = await self.crawl_website(local_pack_result['url'])
-                    if crawled_content:
-                        local_pack_result['content'] = crawled_content
-                        if local_pack_result['confidence'] > best_confidence:
-                            best_result = local_pack_result
-                            best_confidence = local_pack_result['confidence']
-                            logger_ctx.log_website_selection(local_pack_result['url'], local_pack_result['confidence'])
-                    else:
-                        logger_ctx.log_search_results([{
-                            'title': 'Google Local Pack result found but crawl failed',
-                            'url': local_pack_result['url'],
-                            'snippet': f'Google Local Pack found website but crawl failed',
-                            'source': 'google_local_pack'
-                        }])
-                else:
-                    logger_ctx.log_search_results([{
-                        'title': 'Google Local Pack - No results',
-                        'url': 'N/A',
-                        'snippet': f'No website found in Google Local Pack for {business_name}',
-                        'source': 'google_local_pack'
-                    }])
+            # 4. Try Google Local Pack (COMMENTED OUT TO REDUCE API USAGE)
+            # if not best_result or best_confidence < 0.85:
+            #     logger_ctx.log_ai_call("google_local_pack", {
+            #         "business_name": business_name,
+            #         "city": city,
+            #         "state": state,
+            #         "search_url": "Google Local Pack"
+            #     })
+            #     
+            #     local_pack_result = await self.search_google_local_pack(business_name, city, state)
+            #     if local_pack_result:
+            #         crawled_content = await self.crawl_website(local_pack_result['url'])
+            #         if crawled_content:
+            #             local_pack_result['content'] = crawled_content
+            #             if local_pack_result['confidence'] > best_confidence:
+            #                 best_result = local_pack_result
+            #                 best_confidence = local_pack_result['confidence']
+            #                 logger_ctx.log_website_selection(local_pack_result['url'], local_pack_result['confidence'])
+            #         else:
+            #             logger_ctx.log_search_results([{
+            #                 'title': 'Google Local Pack result found but crawl failed',
+            #                 'url': local_pack_result['url'],
+            #                 'snippet': f'Google Local Pack found website but crawl failed',
+            #                 'source': 'google_local_pack'
+            #             }])
+            #     else:
+            #         logger_ctx.log_search_results([{
+            #             'title': 'Google Local Pack - No results',
+            #             'url': 'N/A',
+            #             'snippet': f'No website found in Google Local Pack for {business_name}',
+            #             'source': 'google_local_pack'
+            #         }])
             
             # Update contractor with discovered website
             if best_result:
