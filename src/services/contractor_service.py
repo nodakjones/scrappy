@@ -333,6 +333,58 @@ class ContractorService:
             confidence += 0.15
             business_name_found = True
         
+        # Test fuzzy/partial matches if exact match not found
+        if not business_name_found:
+            # Create variations of the business name
+            business_variations = [
+                business_name_lower,
+                simple_name,
+                business_name_lower.replace('plus', '+'),
+                business_name_lower.replace('plus', 'plus'),
+                business_name_lower.replace(' ', ''),
+                simple_name.replace(' ', ''),
+                business_name_lower.replace('plus', 'plus'),
+                business_name_lower.replace('plus', 'plus'),
+            ]
+            
+            # Test each variation against title, snippet, and URL
+            for variation in business_variations:
+                if variation in title:
+                    confidence += 0.35
+                    business_name_found = True
+                    break
+                elif variation in snippet:
+                    confidence += 0.25
+                    business_name_found = True
+                    break
+                elif variation in url:
+                    confidence += 0.15
+                    business_name_found = True
+                    break
+            
+            # Test partial word matches (at least 2 words must match)
+            if not business_name_found:
+                business_words = business_name_lower.split()
+                title_words = title.split()
+                snippet_words = snippet.split()
+                url_words = url.split()
+                
+                # Count matching words
+                title_matches = sum(1 for word in business_words if word in title_words)
+                snippet_matches = sum(1 for word in business_words if word in snippet_words)
+                url_matches = sum(1 for word in business_words if word in url_words)
+                
+                # If at least 2 words match, consider it a match
+                if title_matches >= 2:
+                    confidence += 0.3
+                    business_name_found = True
+                elif snippet_matches >= 2:
+                    confidence += 0.2
+                    business_name_found = True
+                elif url_matches >= 2:
+                    confidence += 0.1
+                    business_name_found = True
+        
         # Test common abbreviation variations if exact match not found
         if not business_name_found:
             # Common abbreviation mappings
