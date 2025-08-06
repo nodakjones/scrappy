@@ -66,23 +66,23 @@ The Contractor Data Enrichment System processes contractor license data to ident
 
 The system uses a **two-stage validation process** to ensure discovered websites actually belong to the correct contractor and are legitimate residential service providers.
 
-### Stage 1: Website Validation (5-Factor System)
+### Stage 1: Website Validation (6-Factor System)
 
 **Purpose**: Determine if the discovered website belongs to the correct contractor business.
 
-**5-Factor Validation (0.25 points each, 1.0 maximum)**
+**6-Factor Validation (0.20 points each, 1.2 maximum)**
 
-**Factor 1: Business Name Match (0.25 points)**
+**Factor 1: Business Name Match (0.20 points)**
 - Exact business name found on website = 1.0 score
 - Partial matches: 80%+ words = 1.0, 60%+ = 0.6, 40%+ = 0.3
 - Removes common suffixes (LLC, INC, CORP) for better matching
 
-**Factor 2: License Number Match (0.25 points)**
+**Factor 2: License Number Match (0.20 points)**
 - Contractor license number found anywhere on website = 1.0 score
 - Strongest validation factor when present
 - Handles various formats (with/without asterisks)
 
-**Factor 3: Phone Number Match (0.25 points)**
+**Factor 3: Phone Number Match (0.20 points)**
 - **Normalized Matching**: Removes all non-digits (dashes, parentheses, periods, spaces) from both database and website content
 - **Full String Match**: Matches the entire normalized phone number string (e.g., "2065551234")
 - **Pattern Matching**: Looks for phone numbers with labels (Phone:, Tel:, Call:, Contact:)
@@ -90,17 +90,26 @@ The system uses a **two-stage validation process** to ensure discovered websites
 - **Minimum Length**: Requires at least 10 digits for valid phone number matching
 - **Case Insensitive**: Converts both database and website content to lowercase for matching
 
-**Factor 4: Principal Name Match (0.25 points)**
+**Factor 4: Principal Name Match (0.20 points)**
 - **Case Insensitive Matching**: Converts both database and website content to lowercase
 - **Word Boundary Matching**: Uses regex word boundaries to avoid partial matches
 - **Individual Word Matching**: Matches individual words from principal name (minimum 3 characters)
 - **Handles Variations**: Middle initials, suffixes, different formatting
 - **Context Aware**: Looks for names in "About Us", contact sections, owner information
 
-**Factor 5: Address Match (0.25 points)**
+**Factor 5: Address Match (0.20 points)**
 - Exact street number match = 1.0 score
 - Partial credit for street name components
 - Most effective for contractors with physical storefronts
+
+**Factor 6: Domain Name Business Word Match (0.20 points)**
+- **Business Word Extraction**: Extracts significant words from business name (filters out LLC, INC, CORP, etc.)
+- **Domain Matching**: Counts how many business name words appear in the website domain
+- **Scoring**: Each matched word = 0.10 points, maximum 0.20 points (2 words)
+- **Examples**: 
+  - "360 POWER LLC" → "powercore360.com" = 0.20 (matches "360", "power")
+  - "365 PLUMBING LLC" → "365plumbingseattle.com" = 0.20 (matches "365", "plumbing")
+  - "3 BRIDGES ELECTRIC" → "3bridgeselectric.com" = 0.20 (matches "3", "bridges", "electric")
 
 ### Geographic Validation (During Discovery)
 
@@ -118,9 +127,9 @@ The system uses a **two-stage validation process** to ensure discovered websites
 
 ### Website Validation Threshold
 
-**Minimum 0.25 confidence required** (at least 1 factor must match) for website acceptance:
-- **≥ 0.25**: Website accepted, proceed to AI analysis
-- **< 0.25**: Website rejected, continue searching other results
+**Minimum 0.4 confidence required** (at least 2 factors must match) for website acceptance:
+- **≥ 0.4**: Website accepted, proceed to AI analysis
+- **< 0.4**: Website rejected, continue searching other results
 
 ### Stage 2: AI Business Classification
 
@@ -216,8 +225,8 @@ Each contractor record has two key status fields that track processing progress:
 | Review Status | Final Confidence | Description | Action Required |
 |---------------|------------------|-------------|-----------------|
 | **`approved_download`** | ≥ 0.8 | **Auto-approved** ✅ | Ready for export |
-| **`pending_review`** | 0.6 - 0.79 | **Manual review needed** ⚠️ | Requires human validation |
-| **`rejected`** | < 0.6 | **Auto-rejected** ❌ | Low quality or no website found |
+| **`pending_review`** | 0.4 - 0.79 | **Manual review needed** ⚠️ | Requires human validation |
+| **`rejected`** | < 0.4 | **Auto-rejected** ❌ | Low quality or no website found |
 
 ### Status Workflow Examples
 
@@ -228,19 +237,19 @@ Each contractor record has two key status fields that track processing progress:
 - Status: `completed` → `approved_download` ✅
 
 **Medium Confidence Contractor (425 Construction):**
-- Website Confidence: 0.25 (1 factor matched)
+- Website Confidence: 0.4 (2 factors matched)
 - AI Confidence: 0.6 (medium confidence general contractor)
 - Final Confidence: **0.6** (AI confidence used directly)
 - Status: `completed` → `pending_review` ⚠️
 
 **Low Confidence Contractor:**
-- Website Confidence: 0.25 (1 factor matched)
+- Website Confidence: 0.4 (2 factors matched)
 - AI Confidence: 0.4 (low confidence)
 - Final Confidence: **0.4** (AI confidence used directly)
-- Status: `completed` → `rejected` ❌
+- Status: `completed` → `pending_review` ⚠️
 
 **No Website Found:**
-- Website Confidence: 0.0 (no websites passed 0.25 threshold)
+- Website Confidence: 0.0 (no websites passed 0.4 threshold)
 - AI Analysis: Skipped
 - Final Confidence: **0.0**
 - Status: `completed` → `rejected` ❌

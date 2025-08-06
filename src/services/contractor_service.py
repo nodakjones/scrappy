@@ -552,6 +552,11 @@ class ContractorService:
                         content = re.sub(r'<script[^>]*>.*?</script>', '', content, flags=re.DOTALL)
                         content = re.sub(r'<style[^>]*>.*?</style>', '', content, flags=re.DOTALL)
                         content = re.sub(r'<[^>]+>', '', content)
+                        
+                        # Decode HTML entities
+                        import html
+                        content = html.unescape(content)
+                        
                         content = re.sub(r'\s+', ' ', content).strip()
                         
                         return content if content else None
@@ -571,6 +576,11 @@ class ContractorService:
                             content = re.sub(r'<script[^>]*>.*?</script>', '', content, flags=re.DOTALL)
                             content = re.sub(r'<style[^>]*>.*?</style>', '', content, flags=re.DOTALL)
                             content = re.sub(r'<[^>]+>', '', content)
+                            
+                            # Decode HTML entities
+                            import html
+                            content = html.unescape(content)
+                            
                             content = re.sub(r'\s+', ' ', content).strip()
                             
                             return content if content else None
@@ -1074,15 +1084,15 @@ class ContractorService:
             if not contractor.website_url or contractor.website_status != 'found':
                 return 0.5  # Base confidence for no website
             
-            # Get website content from data sources
-            content = contractor.data_sources.get('crawled_content', '') if contractor.data_sources else ''
-            
-            if not content:
-                # Try to crawl the website again with comprehensive crawling
-                crawled_data = await self.crawl_website_comprehensive(contractor.website_url)
-                if crawled_data and crawled_data['combined_content'] and contractor.data_sources:
+            # Always re-crawl to ensure we have the latest content with improved parsing
+            crawled_data = await self.crawl_website_comprehensive(contractor.website_url)
+            if crawled_data and crawled_data['combined_content']:
+                content = crawled_data['combined_content']
+                if contractor.data_sources:
                     contractor.data_sources['crawled_content'] = crawled_data['combined_content']
-                    content = crawled_data['combined_content']
+            else:
+                # Fallback to cached content if crawling fails
+                content = contractor.data_sources.get('crawled_content', '') if contractor.data_sources else ''
             
             if not content:
                 return 0.5
@@ -1592,6 +1602,26 @@ Respond with valid JSON only.
             if re.search(pattern, content_upper):
                 return True
         
+        # Puget Sound region indicators (counties, cities, regions)
+        puget_sound_indicators = [
+            'KING COUNTY', 'PIERCE COUNTY', 'SNOHOMISH COUNTY', 'KITSAP COUNTY',
+            'SEATTLE', 'TACOMA', 'BELLEVUE', 'EVERETT', 'KENT', 'RENTON', 
+            'FEDERAL WAY', 'KIRKLAND', 'BELLINGHAM', 'KENNEWICK', 'AUBURN',
+            'MARYSVILLE', 'LAKEWOOD', 'REDMOND', 'SHORELINE', 'RICHLAND', 'OLYMPIA',
+            'LACEY', 'EDMONDS', 'BURIEN', 'BOTHELL', 'LYNNWOOD', 'LONGVIEW',
+            'WENATCHEE', 'MOUNT VERNON', 'CENTRALIA', 'ANACORTES', 'UNIVERSITY PLACE', 
+            'MUKILTEO', 'TUKWILA', 'BREMERTON', 'CHEHALIS', 'PORT ORCHARD',
+            'MAPLE VALLEY', 'OAK HARBOR', 'FERNDALE', 'MOUNTLAKE TERRACE',
+            'PUGET SOUND', 'GREATER SEATTLE', 'SEATTLE AREA', 'TACOMA AREA',
+            'SERVING SEATTLE', 'SERVING TACOMA', 'SERVING BELLEVUE',
+            'PACIFIC NORTHWEST', 'PNW', 'NORTHWESTERN', 'WA LICENSE'
+        ]
+        
+        # Check if any Puget Sound indicators are present in content
+        for indicator in puget_sound_indicators:
+            if indicator in content_upper:
+                return True
+        
         return False
     
     def _principal_name_matching(self, principal_name: str, content: str) -> bool:
@@ -1785,30 +1815,24 @@ Respond with valid JSON only.
                     # Use the search confidence as the primary website confidence
                     website_confidence = website_discovery_confidence
                     
-                    # Validate the discovered website using 5-factor system for additional validation
-                    crawled_content = contractor.data_sources.get('crawled_content', '')
-                    if crawled_content:  # Only validate if we have content to validate
-                        validation_results = await self._comprehensive_website_validation(contractor, crawled_content, logger_ctx)
-                        validation_confidence = self._calculate_validation_confidence(validation_results)
-                        
-                        # Log validation results using structured logging
-                        logger_ctx.log_validation_results(contractor.website_url, validation_results, validation_confidence)
-                        
-                        # Only proceed with AI classification if website validation meets minimum threshold
-                        if website_confidence >= 0.4:  # Stricter threshold for website acceptance
-                            # Step 3: AI Classification (only for validated websites)
-                            try:
-                                classification_confidence = await self.enhanced_content_analysis(contractor, logger_ctx)
-                            except Exception as e:
-                                logger.error(f"AI classification failed for {contractor.business_name}: {e}")
-                                classification_confidence = 0.0
-                        else:
-                            logger_ctx.log_validation_failed(contractor.website_url, website_confidence, "below minimum threshold of 0.4")
+                    # Only proceed with AI classification if website validation meets minimum threshold
+                    if website_confidence >= 0.4:  # Stricter threshold for website acceptance
+                        # Step 3: AI Classification (only for validated websites)
+                        try:
+                            classification_confidence = await self.enhanced_content_analysis(contractor, logger_ctx)
+                            
+                            # Log validation results AFTER AI analysis (when content has been re-crawled)
+                            if contractor.data_sources and 'crawled_content' in contractor.data_sources:
+                                validation_results = await self._comprehensive_website_validation(contractor, contractor.data_sources['crawled_content'], logger_ctx)
+                                validation_confidence = self._calculate_validation_confidence(validation_results)
+                                logger_ctx.log_validation_results(contractor.website_url, validation_results, validation_confidence)
+                            
+                        except Exception as e:
+                            logger.error(f"AI classification failed for {contractor.business_name}: {e}")
                             classification_confidence = 0.0
                     else:
-                        # No content to validate - set confidence to 0
-                        website_confidence = 0.0
-                        logger_ctx.log_validation_failed(contractor.website_url, 0.0, "no content available for validation")
+                        logger_ctx.log_validation_failed(contractor.website_url, website_confidence, "below minimum threshold of 0.4")
+                        classification_confidence = 0.0
                 
                 # Calculate overall confidence - use AI classification confidence as the primary metric
                 if website_discovery_confidence >= 0.4:  # Gatekeeper threshold for AI analysis
@@ -1834,7 +1858,7 @@ Respond with valid JSON only.
                 if overall_confidence >= 0.8:
                     contractor.processing_status = 'completed'
                     contractor.review_status = 'approved_download'
-                elif overall_confidence >= 0.6:
+                elif overall_confidence >= 0.4:
                     contractor.processing_status = 'completed'
                     contractor.review_status = 'pending_review'
                 else:
