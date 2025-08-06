@@ -53,7 +53,80 @@ class ProcessingOrchestrator:
         # Initialize database pool
         await db_pool.initialize()
         
+        # Log quota status
+        await self.log_quota_status()
+        
         logger.info("System initialization completed")
+    
+    async def log_quota_status(self):
+        """Log current quota status"""
+        try:
+            import subprocess
+            from datetime import datetime
+            
+            # Get actual usage from logs
+            result = subprocess.run([
+                'docker-compose', 'exec', '-T', 'app', 
+                'grep', '-c', 'Google API Query:', 'logs/processing.log'
+            ], capture_output=True, text=True, cwd=Path(__file__).parent.parent)
+            
+            if result.returncode == 0:
+                total_queries = int(result.stdout.strip())
+            else:
+                total_queries = 0
+                
+            # Count today's queries
+            today = datetime.now().strftime('%Y-%m-%d')
+            result = subprocess.run([
+                'docker-compose', 'exec', '-T', 'app',
+                'grep', f'{today}.*Google API Query:', 'logs/processing.log'
+            ], capture_output=True, text=True, cwd=Path(__file__).parent.parent)
+            
+            if result.returncode == 0:
+                today_queries = len(result.stdout.strip().split('\n')) if result.stdout.strip() else 0
+            else:
+                today_queries = 0
+            
+            # Get in-memory tracker status
+            tracker_status = quota_tracker.get_quota_status()
+            
+            logger.info("=" * 60)
+            logger.info("📊 GOOGLE API QUOTA STATUS")
+            logger.info("=" * 60)
+            logger.info(f"📈 Actual Usage (from logs):")
+            logger.info(f"   - Queries used today: {today_queries:,}")
+            logger.info(f"   - Total queries (all time): {total_queries:,}")
+            logger.info(f"   - Daily limit: 10,000")
+            logger.info(f"   - Remaining queries: {10000 - today_queries:,}")
+            logger.info(f"   - Usage percentage: {today_queries / 10000 * 100:.1f}%")
+            
+            logger.info(f"📊 In-Memory Tracker:")
+            logger.info(f"   - Queries used today: {tracker_status['queries_today']:,}")
+            logger.info(f"   - Consecutive 429 errors: {tracker_status['consecutive_429_errors']}")
+            logger.info(f"   - Quota exceeded: {'Yes' if tracker_status['quota_exceeded'] else 'No'}")
+            
+            # Calculate processing capacity
+            remaining_queries = 10000 - today_queries
+            queries_per_contractor = 2
+            max_contractors = remaining_queries // queries_per_contractor
+            
+            logger.info(f"🎯 Processing Capacity:")
+            logger.info(f"   - Queries per contractor: {queries_per_contractor}")
+            logger.info(f"   - Max contractors today: {max_contractors:,}")
+            
+            if today_queries >= 10000:
+                logger.warning("❌ Daily quota exceeded - cannot process more contractors today")
+            elif remaining_queries < 1000:
+                logger.warning(f"⚠️  Very low quota remaining - max safe batch: {max_contractors:,}")
+            elif remaining_queries < 5000:
+                logger.warning(f"⚠️  Moderate quota remaining - recommended batch: {max_contractors:,}")
+            else:
+                logger.info(f"✅ Plenty of quota remaining - safe to process: {max_contractors:,}")
+            
+            logger.info("=" * 60)
+            
+        except Exception as e:
+            logger.error(f"Error logging quota status: {e}")
     
     async def get_contractors(self, limit: int) -> List[Any]:
         """Get contractors to process with optional Puget Sound filtering"""

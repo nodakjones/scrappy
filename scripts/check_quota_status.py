@@ -9,7 +9,7 @@ USAGE:
     python scripts/check_quota_status.py
 
 This script provides:
-- Current quota usage statistics
+- Current quota usage statistics (from logs)
 - Recommendations for batch sizes
 - Quota reset timing
 - Processing capacity estimates
@@ -17,38 +17,102 @@ This script provides:
 
 import asyncio
 import sys
+import os
+import subprocess
 from datetime import datetime, timedelta
 
 # Add src to path for imports
 sys.path.append('src')
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.services.contractor_service import quota_tracker
+
+def get_actual_quota_usage():
+    """Get actual quota usage from processing logs"""
+    try:
+        # Check if we're running inside the container
+        log_file = 'logs/processing.log'
+        if not os.path.exists(log_file):
+            # Try to run docker-compose command
+            result = subprocess.run([
+                'docker-compose', 'exec', '-T', 'app', 
+                'grep', '-c', 'Google API Query:', 'logs/processing.log'
+            ], capture_output=True, text=True, cwd=os.getcwd())
+            
+            if result.returncode == 0:
+                total_queries = int(result.stdout.strip())
+            else:
+                total_queries = 0
+                
+            # Count today's queries
+            today = datetime.now().strftime('%Y-%m-%d')
+            result = subprocess.run([
+                'docker-compose', 'exec', '-T', 'app',
+                'grep', f'{today}.*Google API Query:', 'logs/processing.log'
+            ], capture_output=True, text=True, cwd=os.getcwd())
+            
+            if result.returncode == 0:
+                today_queries = len(result.stdout.strip().split('\n')) if result.stdout.strip() else 0
+            else:
+                today_queries = 0
+        else:
+            # Running inside container, use direct file access
+            import subprocess as sp
+            
+            # Count total queries
+            result = sp.run(['grep', '-c', 'Google API Query:', log_file], capture_output=True, text=True)
+            total_queries = int(result.stdout.strip()) if result.returncode == 0 else 0
+            
+            # Count today's queries
+            today = datetime.now().strftime('%Y-%m-%d')
+            result = sp.run(['grep', f'{today}.*Google API Query:', log_file], capture_output=True, text=True)
+            today_queries = len(result.stdout.strip().split('\n')) if result.stdout.strip() and result.returncode == 0 else 0
+            
+        return {
+            'total_queries': total_queries,
+            'today_queries': today_queries,
+            'daily_limit': 10000
+        }
+    except Exception as e:
+        print(f"Error getting quota usage: {e}")
+        return {
+            'total_queries': 0,
+            'today_queries': 0,
+            'daily_limit': 10000
+        }
 
 async def main():
     """Check and display quota status"""
     print("🔍 Google API Quota Status Checker")
     print("=" * 50)
     
-    # Get current quota status
-    status = quota_tracker.get_quota_status()
+    # Get actual usage from logs
+    actual_usage = get_actual_quota_usage()
     
-    # Display current status
-    print(f"📊 Current Status:")
-    print(f"   - Queries used today: {status['queries_today']:,}")
-    print(f"   - Daily limit: {status['daily_limit']:,}")
-    print(f"   - Remaining queries: {status['remaining_queries']:,}")
-    print(f"   - Usage percentage: {status['queries_today'] / status['daily_limit'] * 100:.1f}%")
-    print(f"   - Consecutive 429 errors: {status['consecutive_429_errors']}")
-    print(f"   - Quota exceeded: {'Yes' if status['quota_exceeded'] else 'No'}")
+    # Get in-memory tracker status
+    tracker_status = quota_tracker.get_quota_status()
     
-    if status['last_429_time']:
-        print(f"   - Last 429 error: {status['last_429_time']}")
+    print(f"📊 Current Status (from logs):")
+    print(f"   - Queries used today: {actual_usage['today_queries']:,}")
+    print(f"   - Total queries (all time): {actual_usage['total_queries']:,}")
+    print(f"   - Daily limit: {actual_usage['daily_limit']:,}")
+    print(f"   - Remaining queries: {actual_usage['daily_limit'] - actual_usage['today_queries']:,}")
+    print(f"   - Usage percentage: {actual_usage['today_queries'] / actual_usage['daily_limit'] * 100:.1f}%")
+    
+    print(f"\n📊 In-Memory Tracker Status:")
+    print(f"   - Queries used today: {tracker_status['queries_today']:,}")
+    print(f"   - Consecutive 429 errors: {tracker_status['consecutive_429_errors']}")
+    print(f"   - Quota exceeded: {'Yes' if tracker_status['quota_exceeded'] else 'No'}")
+    
+    if tracker_status['last_429_time']:
+        print(f"   - Last 429 error: {tracker_status['last_429_time']}")
     
     print()
     
     # Calculate processing capacity
     queries_per_contractor = 2  # Current configuration
-    max_contractors = status['remaining_queries'] // queries_per_contractor
+    remaining_queries = actual_usage['daily_limit'] - actual_usage['today_queries']
+    max_contractors = remaining_queries // queries_per_contractor
     
     print(f"🎯 Processing Capacity:")
     print(f"   - Queries per contractor: {queries_per_contractor}")
@@ -59,13 +123,13 @@ async def main():
     print()
     print(f"💡 Recommendations:")
     
-    if status['quota_exceeded']:
+    if actual_usage['today_queries'] >= actual_usage['daily_limit']:
         print("   ❌ Daily quota exceeded - cannot process more contractors today")
         print("   ⏰ Wait until tomorrow to continue processing")
-    elif status['remaining_queries'] < 1000:
+    elif remaining_queries < 1000:
         print("   ⚠️  Very low quota remaining - consider waiting until tomorrow")
         print(f"   📦 Maximum safe batch: {max_contractors:,} contractors")
-    elif status['remaining_queries'] < 5000:
+    elif remaining_queries < 5000:
         print("   ⚠️  Moderate quota remaining - use smaller batches")
         print(f"   📦 Recommended batch: {max_contractors:,} contractors")
     else:
@@ -84,7 +148,7 @@ async def main():
     print(f"   - Time until reset: {time_until_reset}")
     
     # Processing timeline
-    if not status['quota_exceeded'] and max_contractors > 0:
+    if remaining_queries > 0 and max_contractors > 0:
         print()
         print(f"📈 Processing Timeline:")
         print(f"   - Daily capacity: {max_contractors:,} contractors")
@@ -95,29 +159,15 @@ async def main():
     print()
     print(f"🚀 Suggested Commands:")
     
-    if status['quota_exceeded']:
+    if actual_usage['today_queries'] >= actual_usage['daily_limit']:
         print("   # Wait until tomorrow, then run:")
-        print("   docker-compose exec app python scripts/run_parallel_test.py")
-    elif max_contractors >= 5000:
-        print("   # Full daily batch:")
-        print("   docker-compose exec app python scripts/run_parallel_test.py")
-        print()
-        print("   # Smaller test batch:")
-        print("   docker-compose exec app python scripts/run_parallel_test.py --limit 1000")
+        print("   docker-compose exec app python scripts/run_processing.py")
+    elif remaining_queries < 1000:
+        print("   # Use small batch:")
+        print(f"   docker-compose exec app python scripts/run_processing.py --limit {max_contractors}")
     else:
-        print(f"   # Reduced batch size ({max_contractors:,} contractors):")
-        print(f"   docker-compose exec app python scripts/run_parallel_test.py --limit {max_contractors}")
-    
-    print()
-    print("📋 Other useful commands:")
-    print("   # Check processing status:")
-    print("   docker-compose exec app python scripts/check_results.py")
-    print()
-    print("   # View recent processed contractors:")
-    print("   docker-compose exec app python scripts/show_processed_puget_sound.py")
-    print()
-    print("   # Check for errors:")
-    print("   docker-compose exec app python scripts/check_logs.py")
+        print("   # Safe to run full processing:")
+        print("   docker-compose exec app python scripts/run_processing.py")
 
 if __name__ == "__main__":
     asyncio.run(main()) 

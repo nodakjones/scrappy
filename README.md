@@ -471,6 +471,20 @@ Includes comprehensive coverage of all business types from your CRM:
 
 ## Quick Start
 
+### Check Google API Quota Status
+
+Before processing, always check your current quota usage:
+
+```bash
+docker-compose exec app python scripts/check_quota_status.py
+```
+
+This will show:
+- Actual queries used today (from logs)
+- Remaining daily quota
+- Processing capacity recommendations
+- Suggested batch sizes
+
 ### Prerequisites
 - PostgreSQL 15+ database
 - Python 3.11+ with required packages
@@ -525,6 +539,23 @@ SELECT business_name, website_url, confidence_score, mailer_category
 FROM contractors 
 WHERE review_status = 'approved_download'
 ORDER BY confidence_score DESC;
+```
+
+### Monitor API Quota
+
+**Check current quota usage:**
+```bash
+docker-compose exec app python scripts/check_quota_status.py
+```
+
+**View quota usage in logs:**
+```bash
+docker-compose exec app grep "Google API Query:" logs/processing.log | wc -l
+```
+
+**Check today's usage:**
+```bash
+docker-compose exec app grep "$(date +%Y-%m-%d).*Google API Query:" logs/processing.log | wc -l
 ```
 
 ---

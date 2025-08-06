@@ -335,16 +335,13 @@ class ContractorService:
         
         # Test fuzzy/partial matches if exact match not found
         if not business_name_found:
-            # Create variations of the business name
+            # Create variations of the business name (more restrictive)
             business_variations = [
                 business_name_lower,
                 simple_name,
                 business_name_lower.replace('plus', '+'),
-                business_name_lower.replace('plus', 'plus'),
                 business_name_lower.replace(' ', ''),
                 simple_name.replace(' ', ''),
-                business_name_lower.replace('plus', 'plus'),
-                business_name_lower.replace('plus', 'plus'),
             ]
             
             # Test each variation against title, snippet, and URL
@@ -362,7 +359,7 @@ class ContractorService:
                     business_name_found = True
                     break
             
-            # Test partial word matches (at least 2 words must match)
+            # Test partial word matches (more restrictive)
             if not business_name_found:
                 business_words = business_name_lower.split()
                 title_words = title.split()
@@ -374,14 +371,36 @@ class ContractorService:
                 snippet_matches = sum(1 for word in business_words if word in snippet_words)
                 url_matches = sum(1 for word in business_words if word in url_words)
                 
-                # If at least 2 words match, consider it a match
-                if title_matches >= 2:
+                # More restrictive: require at least 3 words to match, OR 2+ words that are adjacent
+                def check_adjacent_words(business_words, text_words):
+                    """Check if business words appear adjacent in text"""
+                    if len(business_words) < 2:
+                        return False
+                    
+                    # Look for adjacent pairs of business words
+                    for i in range(len(business_words) - 1):
+                        word1 = business_words[i]
+                        word2 = business_words[i + 1]
+                        
+                        # Check if these two words appear adjacent in text
+                        for j in range(len(text_words) - 1):
+                            if text_words[j] == word1 and text_words[j + 1] == word2:
+                                return True
+                    return False
+                
+                # Check for adjacent word matches
+                title_adjacent = check_adjacent_words(business_words, title_words)
+                snippet_adjacent = check_adjacent_words(business_words, snippet_words)
+                url_adjacent = check_adjacent_words(business_words, url_words)
+                
+                # Require either 4+ words OR 2+ adjacent words (more restrictive)
+                if title_matches >= 4 or title_adjacent:
                     confidence += 0.3
                     business_name_found = True
-                elif snippet_matches >= 2:
+                elif snippet_matches >= 4 or snippet_adjacent:
                     confidence += 0.2
                     business_name_found = True
-                elif url_matches >= 2:
+                elif url_matches >= 4 or url_adjacent:
                     confidence += 0.1
                     business_name_found = True
         
@@ -426,6 +445,8 @@ class ContractorService:
         # If no business name match found, return very low confidence
         if not business_name_found:
             return 0.05  # Almost certainly wrong
+        
+
         
         # STRICT GEOGRAPHIC VALIDATION - Must have WA location indicators
         location_found = False
@@ -1237,6 +1258,8 @@ Please provide a JSON response with:
 5. "business_legitimacy" - true if appears to be a legitimate business
 6. "reasoning" - Brief explanation of categorization decision
 
+IMPORTANT: Before setting confidence, carefully examine the website content for business names. If you find a business name that is different from the searched business name, this indicates a mismatch and should result in very low confidence.
+
 CONFIDENCE SCORING RULES:
 - Start with base confidence of 0.5
 - ADD +0.1 for each validation factor that matches (business name, license, phone, address, principal)
@@ -1245,6 +1268,9 @@ CONFIDENCE SCORING RULES:
 - SUBTRACT -0.3 if business name doesn't match at all
 - SUBTRACT -0.2 if no contractor keywords found
 - SUBTRACT -0.2 if website appears to be wrong business type
+- CRITICAL: If the website clearly belongs to a DIFFERENT business than the one being searched for, SUBTRACT -0.8 (very low confidence)
+- CRITICAL: If the website mentions a different business name prominently (like "Runland Painting" when searching for "A TEAM PAINTING"), SUBTRACT -0.6
+- CRITICAL: If the website content describes services but doesn't match the business name being searched, SUBTRACT -0.4
 - FINAL confidence should be between 0.0 and 1.0
 
 CRITICAL CATEGORIZATION RULES:
@@ -1297,6 +1323,9 @@ CRITICAL CATEGORIZATION RULES:
 - CRITICAL: If the website appears to be a hotel, restaurant, retail store, or other non-contractor business, provide LOW confidence
 - CRITICAL: Only provide high confidence if the website content clearly describes contractor services and has some sort of business name that matches
 - CRITICAL: Consider the validation results when setting confidence - more validation factors matched = higher confidence
+- CRITICAL: DETECT BUSINESS NAME MISMATCHES - If the website prominently mentions a different business name (like "Runland Painting" when searching for "A TEAM PAINTING"), this is a MAJOR RED FLAG and should result in very low confidence (0.1 or less)
+- CRITICAL: Look for business names in the website content that are different from the searched business name
+- CRITICAL: If the website belongs to a different business entirely, confidence should be 0.0-0.2
 
 Respond with valid JSON only.
 """
