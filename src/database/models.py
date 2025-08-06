@@ -81,6 +81,9 @@ class Contractor:
     manual_review_needed: bool = False
     manual_review_reason: Optional[str] = None
     
+    # Geographic filtering
+    puget_sound: Optional[bool] = None
+    
     # Manual review workflow fields
     review_status: Optional[str] = None
     reviewed_by: Optional[str] = None
