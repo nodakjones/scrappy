@@ -352,6 +352,13 @@ class ContractorLogger:
             status = "✅ PASS" if factor_result else "❌ FAIL"
             task_storage['log_buffer'].append(f"    {factor_name}: {status}")
         
+        # Log domain match score
+        domain_match_score = validation_results.get('domain_match_score', 0.0)
+        if domain_match_score > 0.0:
+            task_storage['log_buffer'].append(f"    Domain Match Score: +{domain_match_score:.2f}")
+        else:
+            task_storage['log_buffer'].append(f"    Domain Match Score: ❌ FAIL")
+        
         # Log contractor keywords found
         contractor_keywords = validation_results.get('contractor_keywords', 0)
         task_storage['log_buffer'].append(f"    Contractor Keywords Found: {contractor_keywords}")

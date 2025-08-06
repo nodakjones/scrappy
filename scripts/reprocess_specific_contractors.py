@@ -78,72 +78,35 @@ class SpecificContractorReprocessor:
         try:
             from src.utils.logging_utils import contractor_logger
             
-            with contractor_logger.contractor_processing(contractor.id, contractor.business_name) as logger_ctx:
-                # Update status to processing
-                await self.service.update_contractor_status(contractor.id, 'processing')
+            # Use the full process_contractor method that includes 6-factor validation
+            try:
+                processed_contractor = await self.service.process_contractor(contractor)
                 
-                # Step 1: Website Discovery
-                try:
-                    website_discovery_confidence = await self.service.enhanced_website_discovery(contractor, logger_ctx)
-                    
-                    print(f"   - Website discovery confidence: {website_discovery_confidence:.3f}")
-                    print(f"   - Website found: {contractor.website_url or 'None'}")
-                    
-                    if contractor.website_url:
-                        print(f"   - Website status: {contractor.website_status}")
-                        
-                        # Step 2: AI Classification (if website found)
-                        if website_discovery_confidence >= 0.4:
-                            try:
-                                classification_confidence = await self.service.enhanced_content_analysis(contractor, logger_ctx)
-                                print(f"   - AI classification confidence: {classification_confidence:.3f}")
-                                
-                                # Calculate overall confidence
-                                overall_confidence = classification_confidence
-                                
-                                # Status assignment
-                                if overall_confidence >= 0.8:
-                                    contractor.processing_status = 'completed'
-                                    contractor.review_status = 'approved_download'
-                                elif overall_confidence >= 0.6:
-                                    contractor.processing_status = 'completed'
-                                    contractor.review_status = 'pending_review'
-                                else:
-                                    contractor.processing_status = 'completed'
-                                    contractor.review_status = 'rejected'
-                                
-                                contractor.confidence_score = overall_confidence
-                                contractor.classification_confidence = classification_confidence
-                                
-                            except Exception as e:
-                                print(f"   ❌ AI classification failed: {e}")
-                                contractor.processing_status = 'completed'
-                                contractor.review_status = 'rejected'
-                                contractor.confidence_score = 0.0
-                        else:
-                            print(f"   ⚠️  Website confidence too low ({website_discovery_confidence:.3f}) - skipping AI analysis")
-                            contractor.processing_status = 'completed'
-                            contractor.review_status = 'rejected'
-                            contractor.confidence_score = 0.0
-                    
-                    else:
-                        print(f"   ❌ No website found")
-                        contractor.processing_status = 'completed'
-                        contractor.review_status = 'rejected'
-                        contractor.confidence_score = 0.0
-                        
-                except QuotaExceededError:
-                    print(f"   🛑 Quota exceeded - stopping processing")
-                    contractor.processing_status = 'failed'
-                    contractor.error_message = 'Daily Google API quota exceeded'
-                    raise QuotaExceededError("Daily Google API quota exceeded")
-                    
-                except Exception as e:
-                    print(f"   ❌ Processing failed: {e}")
-                    contractor.processing_status = 'failed'
-                    contractor.error_message = str(e)
+                print(f"   - Website found: {processed_contractor.website_url or 'None'}")
+                print(f"   - Website confidence: {processed_contractor.website_confidence or 0.0:.3f}")
+                print(f"   - Classification confidence: {processed_contractor.classification_confidence or 0.0:.3f}")
+                print(f"   - Overall confidence: {processed_contractor.confidence_score or 0.0:.3f}")
+                print(f"   - Review status: {processed_contractor.review_status}")
                 
-                # Update contractor in database
+                return {
+                    'business_name': processed_contractor.business_name,
+                    'website_url': processed_contractor.website_url,
+                    'confidence_score': processed_contractor.confidence_score,
+                    'review_status': processed_contractor.review_status,
+                    'processing_status': processed_contractor.processing_status
+                }
+                
+            except QuotaExceededError:
+                print(f"   🛑 Quota exceeded - stopping processing")
+                contractor.processing_status = 'failed'
+                contractor.error_message = 'Daily Google API quota exceeded'
+                await self.service.update_contractor(contractor)
+                raise QuotaExceededError("Daily Google API quota exceeded")
+                
+            except Exception as e:
+                print(f"   ❌ Processing failed: {e}")
+                contractor.processing_status = 'failed'
+                contractor.error_message = str(e)
                 await self.service.update_contractor(contractor)
                 
                 return {
@@ -241,24 +204,7 @@ async def main():
     """Main function"""
     # List of contractors to reprocess
     business_names = [
-        "5 STAR GARAGE INTERIORS",
-        "ADM MASTER CONSTRUCTION LLC",
-        "1ST CHOICE HOME SOLUTIONS LLC",
-        "5 CORNERS PLUMBING LLC",
-        "A-1 Flooring",
-        "A-Z Landscaping",
-        "AK Contruction",
-        "Al's Roofing Inc",
-        "All Climate",
-        "ALL NEW AGAIN",
-        "All Seasons Painting",
-        "ALL SOUND PLUMBING",
-        "ALL TECH SYSTEMS INC",
-        "Allen Plumbing",
-        "ALPHA AND OMEGA ELECTRIC LLC",
-        "alpine ductless LLC",
-        "Barker Plumbing LLC",
-        "Barbo's Plumbing LLC"
+        "3 BRIDGES ELECTRIC"
     ]
     
     reprocessor = SpecificContractorReprocessor()

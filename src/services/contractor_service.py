@@ -949,8 +949,8 @@ class ContractorService:
                         
                         # No need for separate evaluation summary - the final selection will show the result
                         
-                        if best_result:
-                            break  # Found a good result, stop trying more queries
+                        # Continue processing all results to find the best one
+                        # Don't break early - let all candidates be evaluated
                 
                 # No need for separate logging - the final result will show if no website was found
             
@@ -1370,6 +1370,12 @@ Respond with valid JSON only.
         validation_results['details']['principal_name'] = contractor.primary_principal_name
         validation_results['details']['principal_name_found'] = validation_results['principal_name_match']
         
+        # 6. Domain Name Business Word Match (Factor 6)
+        domain_match_score = self._domain_business_name_matching(contractor.business_name, contractor.website_url)
+        validation_results['domain_match_score'] = domain_match_score
+        validation_results['details']['domain_match'] = domain_match_score > 0.0
+        validation_results['details']['domain_match_score'] = domain_match_score
+        
         # 7. Contractor Keywords Analysis
         contractor_keywords = [
             'plumbing', 'electrical', 'hvac', 'heating', 'cooling', 'air conditioning',
@@ -1592,35 +1598,91 @@ Respond with valid JSON only.
         
         return False
     
+    def _domain_business_name_matching(self, business_name: str, website_url: str) -> float:
+        """Calculate domain name matching score for business name words"""
+        if not website_url:
+            return 0.0
+        
+        # Extract domain from URL
+        try:
+            from urllib.parse import urlparse
+            parsed_url = urlparse(website_url)
+            domain = parsed_url.netloc.lower()
+        except:
+            return 0.0
+        
+        # Clean business name and extract words
+        import re
+        clean_name = re.sub(r'[^\w\s]', '', business_name).strip()
+        business_words = clean_name.split()
+        
+        # Filter out common business suffixes and short words
+        significant_words = []
+        for word in business_words:
+            if len(word) > 2 and word.upper() not in ['LLC', 'INC', 'CORP', 'CO', 'COMPANY', 'SERVICES', 'SERVICE']:
+                significant_words.append(word.lower())
+        
+        if not significant_words:
+            return 0.0
+        
+        # Count how many business name words appear in the domain
+        matched_words = 0
+        matched_word_list = []
+        for word in significant_words:
+            if word in domain:
+                matched_words += 1
+                matched_word_list.append(word)
+        
+        # Calculate score: each matched word = 0.10 points
+        score = matched_words * 0.10
+        
+        # Cap at 0.20 (2 words max for domain bonus)
+        final_score = min(score, 0.20)
+        
+        # Debug logging
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"Domain matching for {business_name} -> {website_url}")
+        logger.info(f"  Domain: {domain}")
+        logger.info(f"  Business words: {significant_words}")
+        logger.info(f"  Matched words: {matched_word_list}")
+        logger.info(f"  Score: {final_score}")
+        
+        return final_score
+    
     def _calculate_validation_confidence(self, validation_results: Dict[str, Any]) -> float:
-        """Calculate confidence score based on 5-factor validation system with stricter business name requirements"""
+        """Calculate confidence score based on 6-factor validation system with domain name matching"""
         confidence = 0.0
         
-        # Factor 1: Business Name Match (0.25 points) - REQUIRED for high confidence
+        # Factor 1: Business Name Match (0.20 points)
         if validation_results['business_name_match']:
-            confidence += 0.25
+            confidence += 0.20
         elif validation_results['keyword_business_name_match']:
             confidence += 0.10  # Reduced partial credit for keyword match
         
-        # Factor 2: License Number Match (0.25 points)
+        # Factor 2: License Number Match (0.20 points)
         if validation_results['license_match']:
-            confidence += 0.25
+            confidence += 0.20
         
-        # Factor 3: Phone Number Match (0.25 points)
+        # Factor 3: Phone Number Match (0.20 points)
         if validation_results['phone_match']:
-            confidence += 0.25
+            confidence += 0.20
         
-        # Factor 4: Principal Name Match (0.25 points)
+        # Factor 4: Principal Name Match (0.20 points)
         if validation_results['principal_name_match']:
-            confidence += 0.25
+            confidence += 0.20
         
-        # Factor 5: Address Match (0.25 points)
+        # Factor 5: Address Match (0.20 points)
         if validation_results['address_match']:
-            confidence += 0.25
+            confidence += 0.20
         
-        # Additional validation: If no business name match, cap confidence at 0.5
+        # Factor 6: Domain Name Business Word Match (0.20 points + bonus)
+        domain_match_score = validation_results.get('domain_match_score', 0.0)
+        confidence += domain_match_score
+        
+        # Additional validation: If no business name match, cap confidence at 0.6
         if not validation_results['business_name_match'] and not validation_results['keyword_business_name_match']:
-            confidence = min(confidence, 0.5)
+            confidence = min(confidence, 0.6)
         
         return max(confidence, 0.0)  # Ensure non-negative
     
