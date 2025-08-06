@@ -815,12 +815,7 @@ class ContractorService:
             clearbit_domain = await self.try_clearbit_enrichment(business_name)
             if clearbit_domain:
                 clearbit_url = f"https://{clearbit_domain}"
-                logger_ctx.log_search_results([{
-                    'title': f'Clearbit domain found: {clearbit_domain}',
-                    'url': clearbit_url,
-                    'snippet': f'Clearbit API returned domain {clearbit_domain} for {business_name}',
-                    'source': 'clearbit_api'
-                }])
+                # No need for separate logging - will show in final result
                 
                 crawled_data = await self.crawl_website_comprehensive(clearbit_url)
                 
@@ -828,9 +823,6 @@ class ContractorService:
                     # Perform comprehensive 5-factor validation
                     validation_results = await self._comprehensive_website_validation(contractor, crawled_data['combined_content'], logger_ctx)
                     validation_confidence = self._calculate_validation_confidence(validation_results)
-                    
-                    # Log validation results
-                    logger_ctx.log_validation_results(clearbit_url, validation_results, validation_confidence)
                     
                     # Only accept if validation confidence is high enough
                     if validation_confidence >= 0.4:
@@ -848,37 +840,16 @@ class ContractorService:
                         best_confidence = validation_confidence
                         logger_ctx.log_website_selection(clearbit_url, validation_confidence)
                         
-                        # Log comprehensive crawl results
-                        logger_ctx.log_search_results([{
-                            'title': f'Comprehensive Crawl Results - {clearbit_domain} (Validated)',
-                            'url': clearbit_url,
-                            'snippet': f'Crawled {crawled_data["pages_crawled"]} pages, found {crawled_data["nav_links_found"]} nav links, content length: {len(crawled_data["combined_content"])} chars, validation confidence: {validation_confidence:.3f}',
-                            'source': 'clearbit_api'
-                        }])
+                        # No need for separate logging - will show in final result
                     else:
                          # Clearbit result failed validation - will try Google API
                          logger_ctx.log_website_evaluation(clearbit_url, 'clearbit_api', validation_confidence, f"Failed validation (threshold: 0.4)")
-                         logger_ctx.log_search_results([{
-                             'title': f'Clearbit domain found but failed validation',
-                             'url': clearbit_url,
-                             'snippet': f'Domain {clearbit_domain} found but failed business name/location validation (confidence: {validation_confidence:.3f})',
-                             'source': 'clearbit_api'
-                         }])
+                         # No need for separate logging - will show in final result
                 else:
                     logger_ctx.log_website_evaluation(clearbit_url, 'clearbit_api', 0.0, "Crawl failed")
-                    logger_ctx.log_search_results([{
-                        'title': 'Clearbit domain found but crawl failed',
-                        'url': clearbit_url,
-                        'snippet': f'Domain {clearbit_domain} found but website crawl failed',
-                        'source': 'clearbit_api'
-                    }])
+                    # No need for separate logging - will show in final result
             else:
-                logger_ctx.log_search_results([{
-                    'title': 'Clearbit API - No results',
-                    'url': 'N/A',
-                    'snippet': f'Clearbit API returned no results for {business_name}',
-                    'source': 'clearbit_api'
-                }])
+                pass  # No need for separate logging - will show in final result
             
             # 2. Try Google Custom Search API (10 results, multiple query strategies)
             if not best_result or best_confidence < 0.90:
@@ -891,16 +862,13 @@ class ContractorService:
                 
                 # Try each search query
                 for query in queries:
-                    logger_ctx.log_search_query(f"Google API Query: {query}")
                     google_api_result = await self.search_google_api(query)
                     if google_api_result and 'items' in google_api_result:
-                        # Log all search results found
-                        logger_ctx.log_search_results([{
-                            'title': f'Google API Results for: {query}',
-                            'url': f'Query: {query}',
-                            'snippet': f'Found {len(google_api_result["items"])} results from Google API',
-                            'source': 'google_api'
-                        }])
+                        logger_ctx.log_search_query(f"Google API Query: {query} ({len(google_api_result['items'])} results)")
+                    else:
+                        logger_ctx.log_search_query(f"Google API Query: {query} (0 results)")
+                    if google_api_result and 'items' in google_api_result:
+                        # No need to log search results separately - the count will be shown in the query line
                         
                         # First, evaluate all results and log them
                         evaluated_results = []
@@ -913,7 +881,7 @@ class ContractorService:
                             confidence = self._calculate_search_confidence(item, business_name, city, state)
                             
                             # Log each result evaluation with consistent numbering
-                            logger_ctx.log_website_evaluation(url, 'google_api', confidence, f"Result #{i}: {title[:50]}...")
+                            logger_ctx.log_website_evaluation(url, 'google_api', confidence, f"Search Result #{i}: {title[:50]}...")
                             
                             # Store evaluation for potential processing
                             evaluated_results.append({
@@ -940,15 +908,12 @@ class ContractorService:
                                 if self._is_valid_website(url):
                                     # Check geographic validation
                                     if self._has_wa_location_indicators(url, title, result_info['snippet']):
-                                        logger_ctx.log_website_evaluation(url, 'google_api', confidence, f"Result #{result_info['index']}: Passed geographic validation, crawling...")
+                                        logger_ctx.log_website_evaluation(url, 'google_api', confidence, f"Search Result #{result_info['index']}: Passed geographic validation, crawling...")
                                         crawled_data = await self.crawl_website_comprehensive(url)
                                         if crawled_data and crawled_data['combined_content']:
                                             # Perform comprehensive 5-factor validation
                                             validation_results = await self._comprehensive_website_validation(contractor, crawled_data['combined_content'], logger_ctx)
                                             validation_confidence = self._calculate_validation_confidence(validation_results)
-                                            
-                                            # Log validation results
-                                            logger_ctx.log_validation_results(url, validation_results, validation_confidence)
                                             
                                             result = {
                                                 'url': url,
@@ -966,13 +931,7 @@ class ContractorService:
                                                 best_confidence = validation_confidence
                                                 logger_ctx.log_website_selection(url, validation_confidence)
                                             
-                                            # Log comprehensive crawl results
-                                            logger_ctx.log_search_results([{
-                                                'title': f'Comprehensive Crawl Results - Google API',
-                                                'url': url,
-                                                'snippet': f'Crawled {crawled_data["pages_crawled"]} pages, found {crawled_data["nav_links_found"]} nav links, content length: {len(crawled_data["combined_content"])} chars, validation confidence: {validation_confidence:.3f}',
-                                                'source': 'google_api'
-                                            }])
+                                            # No need for separate logging - will show in final result
                                             
                                             processed_count += 1
                                             
@@ -980,33 +939,20 @@ class ContractorService:
                                             if validation_confidence >= 0.6:  # High confidence threshold
                                                 break
                                         else:
-                                            logger_ctx.log_website_evaluation(url, 'google_api', confidence, f"Result #{result_info['index']}: Crawl failed")
+                                            logger_ctx.log_website_evaluation(url, 'google_api', confidence, f"Search Result #{result_info['index']}: Crawl failed")
                                     else:
-                                        logger_ctx.log_website_evaluation(url, 'google_api', confidence, f"Result #{result_info['index']}: Failed geographic validation")
+                                        logger_ctx.log_website_evaluation(url, 'google_api', confidence, f"Search Result #{result_info['index']}: Failed geographic validation")
                                 else:
-                                    logger_ctx.log_website_evaluation(url, 'google_api', confidence, f"Result #{result_info['index']}: Not a valid website")
+                                    logger_ctx.log_website_evaluation(url, 'google_api', confidence, f"Search Result #{result_info['index']}: Not a valid website")
                             else:
-                                logger_ctx.log_website_evaluation(url, 'google_api', confidence, f"Result #{result_info['index']}: Confidence too low (< 0.1)")
+                                logger_ctx.log_website_evaluation(url, 'google_api', confidence, f"Search Result #{result_info['index']}: Confidence too low (< 0.1)")
                         
-                        # Log summary of evaluation
-                        logger_ctx.log_search_results([{
-                            'title': f'Google API Evaluation Summary',
-                            'url': f'Query: {query}',
-                            'snippet': f'Evaluated {len(evaluated_results)} results, processed {processed_count} candidates, best confidence: {best_confidence:.3f}',
-                            'source': 'google_api'
-                        }])
+                        # No need for separate evaluation summary - the final selection will show the result
                         
                         if best_result:
                             break  # Found a good result, stop trying more queries
                 
-                # Log if no results found
-                if not best_result:
-                    logger_ctx.log_search_results([{
-                        'title': 'Google API - No results',
-                        'url': 'N/A',
-                        'snippet': f'Google API returned no results for {business_name}',
-                        'source': 'google_api'
-                    }])
+                # No need for separate logging - the final result will show if no website was found
             
             # 3. Try Google Knowledge Panel (COMMENTED OUT TO REDUCE API USAGE)
             # if not best_result or best_confidence < 0.88:
@@ -1087,13 +1033,10 @@ class ContractorService:
                 logger_ctx.log_website_selection(best_result['url'], best_confidence)
                 logger.info(f"Discovery found website: {best_result['url']} via {best_result['source']} (confidence: {best_confidence:.2f})")
                 
-                # Log final selection summary
-                logger_ctx.log_search_results([{
-                    'title': f'FINAL WEBSITE SELECTED: {best_result["url"]}',
-                    'url': best_result['url'],
-                    'snippet': f'Selected via {best_result["source"]} with confidence {best_confidence:.3f}',
-                    'source': 'final_selection'
-                }])
+                # Log final result with URL and validation details
+                logger.info(f"🌐 WEBSITE FOUND: {best_result['url']}")
+                logger.info(f"   Source: {best_result['source']}")
+                logger.info(f"   Confidence: {best_confidence:.3f}")
             else:
                 contractor.website_status = 'not_found'
                 contractor.data_sources = {
@@ -1101,13 +1044,8 @@ class ContractorService:
                     'search_confidence': 0.0,
                     'discovery': True
                 }
-                # Log the discovery process summary
-                logger_ctx.log_search_results([{
-                    'title': 'No website found',
-                    'url': 'N/A',
-                    'snippet': f'All discovery methods attempted for {business_name}',
-                    'source': 'discovery_summary'
-                }])
+                # Log final result when no website is found
+                logger.info(f"❌ NO WEBSITE FOUND for {business_name}")
             
             return best_confidence
             
@@ -1739,13 +1677,8 @@ Respond with valid JSON only.
                         validation_results = await self._comprehensive_website_validation(contractor, crawled_content, logger_ctx)
                         validation_confidence = self._calculate_validation_confidence(validation_results)
                         
-                        # Log validation results
-                        logger_ctx.log_search_results([{
-                            'title': '5-Factor Validation Results',
-                            'url': contractor.website_url,
-                            'snippet': f'Search Confidence: {f"{website_confidence:.3f}"} | Business Name Match: {validation_results["business_name_match"]} | License Match: {validation_results["license_match"]} | Phone Match: {validation_results["phone_match"]} | Address Match: {validation_results["address_match"]} | Principal Match: {validation_results["principal_name_match"]} | Validation Confidence: {f"{validation_confidence:.3f}" if validation_confidence is not None else "None"}',
-                            'source': 'validation_system'
-                        }])
+                        # Log validation results using structured logging
+                        logger_ctx.log_validation_results(contractor.website_url, validation_results, validation_confidence)
                         
                         # Only proceed with AI classification if website validation meets minimum threshold
                         if website_confidence >= 0.4:  # Stricter threshold for website acceptance
@@ -1756,22 +1689,12 @@ Respond with valid JSON only.
                                 logger.error(f"AI classification failed for {contractor.business_name}: {e}")
                                 classification_confidence = 0.0
                         else:
-                            logger_ctx.log_search_results([{
-                                'title': 'Website Validation Failed',
-                                'url': contractor.website_url,
-                                'snippet': f'Website confidence {website_confidence:.3f} below minimum threshold of 0.4 - skipping AI analysis',
-                                'source': 'validation_system'
-                            }])
+                            logger_ctx.log_validation_failed(contractor.website_url, website_confidence, "below minimum threshold of 0.4")
                             classification_confidence = 0.0
                     else:
                         # No content to validate - set confidence to 0
                         website_confidence = 0.0
-                        logger_ctx.log_search_results([{
-                            'title': '5-Factor Validation Results',
-                            'url': contractor.website_url,
-                            'snippet': 'No content available for validation - website crawl failed',
-                            'source': 'validation_system'
-                        }])
+                        logger_ctx.log_validation_failed(contractor.website_url, 0.0, "no content available for validation")
                 
                 # Calculate overall confidence - use AI classification confidence as the primary metric
                 if website_discovery_confidence >= 0.4:  # Gatekeeper threshold for AI analysis

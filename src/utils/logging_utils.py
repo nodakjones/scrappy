@@ -368,6 +368,29 @@ class ContractorLogger:
         }
         task_storage['log_buffer'].append(f"JSON_LOG: {json.dumps(json_log_entry)}")
     
+    def log_validation_failed(self, url: str, confidence: float, reason: str):
+        """Log validation failure for a website"""
+        task_storage = self._get_task_storage()
+        if not task_storage or not task_storage['contractor_log']:
+            return
+        
+        # Buffer human-readable output
+        task_storage['log_buffer'].append(f"  ❌ VALIDATION FAILED: {url}")
+        task_storage['log_buffer'].append(f"    Confidence: {confidence:.3f}")
+        task_storage['log_buffer'].append(f"    Reason: {reason}")
+        
+        # JSON output (buffered like human-readable logs)
+        json_log_entry = {
+            'event': 'validation_failed',
+            'contractor_id': task_storage['contractor_log'].contractor_id,
+            'business_name': task_storage['contractor_log'].business_name,
+            'url': url,
+            'confidence': confidence,
+            'reason': reason,
+            'timestamp': datetime.utcnow().isoformat()
+        }
+        task_storage['log_buffer'].append(f"JSON_LOG: {json.dumps(json_log_entry)}")
+    
     def log_website_evaluation(self, url: str, source: str, confidence: float, reason: str = ""):
         """Log website evaluation during selection process"""
         task_storage = self._get_task_storage()
