@@ -4,8 +4,8 @@ Contractor processing service with improved website discovery
 import asyncio
 import logging
 import aiohttp
-from typing import List, Optional, Dict, Any
-from datetime import datetime
+from typing import List, Optional, Dict, Any, Tuple
+from datetime import datetime, timedelta
 import json
 import re
 
@@ -13,9 +13,72 @@ from ..database.connection import db_pool
 from ..database.models import Contractor
 from ..config import config, is_valid_website_domain, is_local_business_validation
 from ..utils.logging_utils import contractor_logger
+from openai import AsyncOpenAI
 
 logger = logging.getLogger(__name__)
 
+# Global quota tracking
+class QuotaTracker:
+    def __init__(self):
+        self.consecutive_429_errors = 0
+        self.last_429_time = None
+        self.quota_exceeded = False
+        self.daily_quota_limit = 10000  # Google API daily limit
+        self.queries_today = 0
+        self.last_reset_date = datetime.now().date()
+    
+    def reset_if_new_day(self):
+        """Reset daily counters if it's a new day"""
+        today = datetime.now().date()
+        if today != self.last_reset_date:
+            self.queries_today = 0
+            self.consecutive_429_errors = 0
+            self.quota_exceeded = False
+            self.last_reset_date = today
+            logger.info(f"Daily quota reset - new day: {today}")
+    
+    def record_query(self):
+        """Record a successful API query"""
+        self.reset_if_new_day()
+        self.queries_today += 1
+        self.consecutive_429_errors = 0  # Reset on successful query
+    
+    def record_429_error(self):
+        """Record a 429 error and check if quota exceeded"""
+        self.reset_if_new_day()
+        self.consecutive_429_errors += 1
+        self.last_429_time = datetime.now()
+        
+        # If we get 3+ consecutive 429 errors, likely quota exceeded
+        if self.consecutive_429_errors >= 3:
+            self.quota_exceeded = True
+            logger.warning(f"Daily quota likely exceeded: {self.consecutive_429_errors} consecutive 429 errors")
+            return True
+        return False
+    
+    def is_quota_exceeded(self) -> bool:
+        """Check if daily quota has been exceeded"""
+        self.reset_if_new_day()
+        return self.quota_exceeded
+    
+    def get_quota_status(self) -> Dict[str, Any]:
+        """Get current quota status"""
+        self.reset_if_new_day()
+        return {
+            'queries_today': self.queries_today,
+            'daily_limit': self.daily_quota_limit,
+            'remaining_queries': self.daily_quota_limit - self.queries_today,
+            'consecutive_429_errors': self.consecutive_429_errors,
+            'quota_exceeded': self.quota_exceeded,
+            'last_429_time': self.last_429_time.isoformat() if self.last_429_time else None
+        }
+
+# Global quota tracker instance
+quota_tracker = QuotaTracker()
+
+class QuotaExceededError(Exception):
+    """Raised when daily Google API quota is exceeded"""
+    pass
 
 class ContractorService:
     """Service with real website discovery using Clearbit API and Google Search API"""
@@ -23,6 +86,7 @@ class ContractorService:
     def __init__(self):
         self.batch_size = config.BATCH_SIZE
         self.session = None
+        self.openai_client = AsyncOpenAI(api_key=config.OPENAI_API_KEY)
         
     async def _get_session(self) -> aiohttp.ClientSession:
         """Get or create aiohttp session"""
@@ -133,82 +197,62 @@ class ContractorService:
             
         return None
     
-    async def search_google_api(self, business_name: str, city: str, state: str, logger_ctx=None) -> Optional[Dict[str, Any]]:
-        """Search Google Custom Search API with multiple query strategies"""
-        try:
-            # Check if Google API key is configured
-            google_api_key = getattr(config, 'GOOGLE_API_KEY', None)
-            google_cse_id = getattr(config, 'GOOGLE_CSE_ID', None)
-            
-            if not google_api_key or not google_cse_id:
-                return None
-            
-            session = await self._get_session()
-            
-            # Generate search queries
-            queries = self._generate_search_queries(business_name, city, state)
-            
-            # Try each query strategy
-            for query in queries:
-                # Google Custom Search API endpoint
-                url = "https://www.googleapis.com/customsearch/v1"
-                params = {
-                    'key': google_api_key,
-                    'cx': google_cse_id,
-                    'q': query,
-                    'num': 10
-                }
-                
-                async with session.get(url, params=params) as response:
-                    if response.status == 200:
-                        data = await response.json()
-                        
-                        if 'items' in data and data['items']:
-                            # Process search results
-                            search_results = []
-                            for item in data['items']:
-                                confidence = self._calculate_search_confidence(item, business_name, city, state)
-                                if confidence > 0.1:  # Only include relevant results
-                                    search_results.append({
-                                        'title': item.get('title', ''),
-                                        'snippet': item.get('snippet', ''),
-                                        'url': item.get('link', ''),
-                                        'confidence': confidence
-                                    })
+    async def search_google_api(self, query: str, search_type: str = "web") -> Optional[Dict[str, Any]]:
+        """
+        Search Google Custom Search API with quota tracking and graceful shutdown
+        """
+        # Check if quota exceeded before making request
+        if quota_tracker.is_quota_exceeded():
+            logger.error("Daily Google API quota exceeded - stopping processing")
+            raise QuotaExceededError("Daily Google API quota exceeded")
+        
+        url = "https://www.googleapis.com/customsearch/v1"
+        params = {
+            'key': config.GOOGLE_API_KEY,
+            'cx': config.GOOGLE_CSE_ID,
+            'q': query,
+            'num': 10
+        }
+        
+        if search_type == "knowledge":
+            params['searchType'] = 'image'
+        
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(url, params=params) as response:
+                        if response.status == 200:
+                            data = await response.json()
+                            quota_tracker.record_query()  # Record successful query
                             
-                            if search_results:
-                                # Return the best result
-                                best_result = max(search_results, key=lambda x: x['confidence'])
-                                return {
-                                    'title': best_result['title'],
-                                    'snippet': best_result['snippet'],
-                                    'url': best_result['url'],
-                                    'confidence': best_result['confidence']
-                                }
+                            # Log quota status periodically
+                            if quota_tracker.queries_today % 100 == 0:
+                                status = quota_tracker.get_quota_status()
+                                logger.info(f"Google API quota status: {status['queries_today']}/{status['daily_limit']} queries used")
+                            
+                            return data
+                        
+                        elif response.status == 429:
+                            # Check if this is likely quota exceeded
+                            if quota_tracker.record_429_error():
+                                logger.error("Daily Google API quota exceeded - stopping processing")
+                                raise QuotaExceededError("Daily Google API quota exceeded")
+                            
+                            logger.warning(f"Google API rate limited (429) for query: {query}")
+                            await asyncio.sleep(5)  # Increased delay for 429 errors
+                            continue
+                        
                         else:
-                            # Log no results for debugging
-                            if logger_ctx:
-                                logger_ctx.info(f"No search results for query: {query}")
-                            else:
-                                logger.info(f"No search results for query: {query}")
-                    
-                    elif response.status == 429:
-                        logger.warning(f"Google API rate limited (429) for query: {query}")
-                        # Add longer delay for rate limiting - account for parallel processes
-                        await asyncio.sleep(5)  # Increased from 2 to 5 seconds
-                        continue
-                    else:
-                        logger.warning(f"Google API returned status {response.status} for query: {query}")
-                        continue
-                
-                # Add delay between queries to avoid rate limiting - account for parallel processes
-                await asyncio.sleep(config.SEARCH_DELAY)  # Use configurable delay
-            
-            return None
-                    
-        except Exception as e:
-            logger.error(f"Google API search error for {business_name}: {e}")
-            return None
+                            logger.error(f"Google API error {response.status} for query: {query}")
+                            return None
+                            
+            except Exception as e:
+                logger.error(f"Error searching Google API: {e}")
+                return None
+        
+        logger.error(f"Failed to search Google API after {max_retries} attempts for query: {query}")
+        return None
     
     def _generate_simple_business_name(self, business_name: str) -> str:
         """Generate simple business name by removing INC, LLC, etc."""
@@ -268,6 +312,8 @@ class ContractorService:
         
         # STRICT BUSINESS NAME VALIDATION - Must have strong business name match
         business_name_found = False
+        
+        # Test exact matches first
         if business_name_lower in title:
             confidence += 0.4
             business_name_found = True
@@ -286,6 +332,44 @@ class ContractorService:
         elif simple_name in url:
             confidence += 0.15
             business_name_found = True
+        
+        # Test common abbreviation variations if exact match not found
+        if not business_name_found:
+            # Common abbreviation mappings
+            abbreviation_variations = [
+                ('& a/c', '& air conditioning'),
+                ('& ac', '& air conditioning'),
+                ('a/c', 'air conditioning'),
+                ('ac', 'air conditioning'),
+                ('heating & a/c', 'heating & air conditioning'),
+                ('heating & ac', 'heating & air conditioning'),
+                ('heating and a/c', 'heating and air conditioning'),
+                ('heating and ac', 'heating and air conditioning')
+            ]
+            
+            # Test each variation
+            for abbrev, full in abbreviation_variations:
+                # Create variation of business name
+                variation = business_name_lower.replace(abbrev, full)
+                simple_variation = simple_name.replace(abbrev, full)
+                
+                # Test against title and snippet
+                if variation in title:
+                    confidence += 0.4
+                    business_name_found = True
+                    break
+                elif simple_variation in title:
+                    confidence += 0.35
+                    business_name_found = True
+                    break
+                elif variation in snippet:
+                    confidence += 0.3
+                    business_name_found = True
+                    break
+                elif simple_variation in snippet:
+                    confidence += 0.25
+                    business_name_found = True
+                    break
         
         # If no business name match found, return very low confidence
         if not business_name_found:
@@ -734,28 +818,66 @@ class ContractorService:
                 crawled_data = await self.crawl_website_comprehensive(clearbit_url)
                 
                 if crawled_data and crawled_data['combined_content']:
-                    # Store the website for validation, but don't assign high confidence yet
-                    validated_website = {
-                        'url': clearbit_url,
-                        'content': crawled_data['combined_content'],
-                        'main_content': crawled_data['main_content'],
-                        'additional_content': crawled_data['additional_content'],
-                        'pages_crawled': crawled_data['pages_crawled'],
-                        'nav_links_found': crawled_data['nav_links_found'],
-                        'source': 'clearbit_api',
-                        'confidence': 0.0  # Will be calculated after validation
-                    }
-                    best_result = validated_website
-                    best_confidence = 0.0  # Start with 0, will be updated after validation
-                    logger_ctx.log_website_selection(clearbit_url, 0.0)
+                    # Validate Clearbit result with business name and location checks
+                    validation_confidence = 0.0
                     
-                    # Log comprehensive crawl results
-                    logger_ctx.log_search_results([{
-                        'title': f'Comprehensive Crawl Results - {clearbit_domain}',
-                        'url': clearbit_url,
-                        'snippet': f'Crawled {crawled_data["pages_crawled"]} pages, found {crawled_data["nav_links_found"]} nav links, content length: {len(crawled_data["combined_content"])} chars',
-                        'source': 'clearbit_api'
-                    }])
+                    # Check if business name appears in content
+                    content_lower = crawled_data['combined_content'].lower()
+                    business_name_lower = business_name.lower()
+                    simple_name_lower = self._generate_simple_business_name(business_name).lower()
+                    
+                    # Business name validation
+                    if business_name_lower in content_lower:
+                        validation_confidence += 0.4
+                    elif simple_name_lower in content_lower:
+                        validation_confidence += 0.3
+                    
+                    # Location validation
+                    city_lower = city.lower()
+                    state_lower = state.lower()
+                    if city_lower in content_lower:
+                        validation_confidence += 0.2
+                    if state_lower in content_lower:
+                        validation_confidence += 0.1
+                    
+                    # Domain validation
+                    domain = clearbit_domain.lower()
+                    if business_name_lower.replace(' ', '') in domain or simple_name_lower.replace(' ', '') in domain:
+                        validation_confidence += 0.3
+                    elif any(word in domain for word in business_name_lower.split()):
+                        validation_confidence += 0.1
+                    
+                    # Only accept if validation confidence is high enough
+                    if validation_confidence >= 0.4:
+                        validated_website = {
+                            'url': clearbit_url,
+                            'content': crawled_data['combined_content'],
+                            'main_content': crawled_data['main_content'],
+                            'additional_content': crawled_data['additional_content'],
+                            'pages_crawled': crawled_data['pages_crawled'],
+                            'nav_links_found': crawled_data['nav_links_found'],
+                            'source': 'clearbit_api',
+                            'confidence': validation_confidence
+                        }
+                        best_result = validated_website
+                        best_confidence = validation_confidence
+                        logger_ctx.log_website_selection(clearbit_url, validation_confidence)
+                        
+                        # Log comprehensive crawl results
+                        logger_ctx.log_search_results([{
+                            'title': f'Comprehensive Crawl Results - {clearbit_domain} (Validated)',
+                            'url': clearbit_url,
+                            'snippet': f'Crawled {crawled_data["pages_crawled"]} pages, found {crawled_data["nav_links_found"]} nav links, content length: {len(crawled_data["combined_content"])} chars, validation confidence: {validation_confidence:.3f}',
+                            'source': 'clearbit_api'
+                        }])
+                    else:
+                         # Clearbit result failed validation - will try Google API
+                         logger_ctx.log_search_results([{
+                             'title': f'Clearbit domain found but failed validation',
+                             'url': clearbit_url,
+                             'snippet': f'Domain {clearbit_domain} found but failed business name/location validation (confidence: {validation_confidence:.3f})',
+                             'source': 'clearbit_api'
+                         }])
                 else:
                     logger_ctx.log_search_results([{
                         'title': 'Clearbit domain found but crawl failed',
@@ -780,36 +902,56 @@ class ContractorService:
                     "api_endpoint": "Google Custom Search API"
                 })
                 
-                google_api_result = await self.search_google_api(business_name, city, state, logger_ctx)
-                if google_api_result:
-                    crawled_data = await self.crawl_website_comprehensive(google_api_result['url'])
-                    if crawled_data and crawled_data['combined_content']:
-                        google_api_result['content'] = crawled_data['combined_content']
-                        google_api_result['main_content'] = crawled_data['main_content']
-                        google_api_result['additional_content'] = crawled_data['additional_content']
-                        google_api_result['pages_crawled'] = crawled_data['pages_crawled']
-                        google_api_result['nav_links_found'] = crawled_data['nav_links_found']
+                # Try each search query
+                for query in queries:
+                    google_api_result = await self.search_google_api(query)
+                    if google_api_result and 'items' in google_api_result:
+                        # Process the search results
+                        for item in google_api_result['items']:
+                            url = item.get('link', '')
+                            title = item.get('title', '')
+                            snippet = item.get('snippet', '')
+                            
+                            # Calculate confidence for this result
+                            confidence = self._calculate_search_confidence(item, business_name, city, state)
+                            
+                            if confidence > 0.1:  # Only process relevant results
+                                # Check if this is a valid website
+                                if self._is_valid_website(url):
+                                    # Check geographic validation
+                                    if self._has_wa_location_indicators(url, title, snippet):
+                                        crawled_data = await self.crawl_website_comprehensive(url)
+                                        if crawled_data and crawled_data['combined_content']:
+                                            result = {
+                                                'url': url,
+                                                'content': crawled_data['combined_content'],
+                                                'main_content': crawled_data['main_content'],
+                                                'additional_content': crawled_data['additional_content'],
+                                                'pages_crawled': crawled_data['pages_crawled'],
+                                                'nav_links_found': crawled_data['nav_links_found'],
+                                                'source': 'google_api',
+                                                'confidence': confidence
+                                            }
+                                            
+                                            if confidence > best_confidence:
+                                                best_result = result
+                                                best_confidence = confidence
+                                                logger_ctx.log_website_selection(url, confidence)
+                                            
+                                            # Log comprehensive crawl results
+                                            logger_ctx.log_search_results([{
+                                                'title': f'Comprehensive Crawl Results - Google API',
+                                                'url': url,
+                                                'snippet': f'Crawled {crawled_data["pages_crawled"]} pages, found {crawled_data["nav_links_found"]} nav links, content length: {len(crawled_data["combined_content"])} chars',
+                                                'source': 'google_api'
+                                            }])
+                                            break  # Found a good result, stop searching
                         
-                        if google_api_result['confidence'] > best_confidence:
-                            best_result = google_api_result
-                            best_confidence = google_api_result['confidence']
-                            logger_ctx.log_website_selection(google_api_result['url'], google_api_result['confidence'])
-                        
-                        # Log comprehensive crawl results
-                        logger_ctx.log_search_results([{
-                            'title': f'Comprehensive Crawl Results - Google API',
-                            'url': google_api_result['url'],
-                            'snippet': f'Crawled {crawled_data["pages_crawled"]} pages, found {crawled_data["nav_links_found"]} nav links, content length: {len(crawled_data["combined_content"])} chars',
-                            'source': 'google_api'
-                        }])
-                    else:
-                        logger_ctx.log_search_results([{
-                            'title': 'Google API result found but crawl failed',
-                            'url': google_api_result['url'],
-                            'snippet': f'Google API found website but crawl failed',
-                            'source': 'google_api'
-                        }])
-                else:
+                        if best_result:
+                            break  # Found a good result, stop trying more queries
+                
+                # Log if no results found
+                if not best_result:
                     logger_ctx.log_search_results([{
                         'title': 'Google API - No results',
                         'url': 'N/A',
@@ -1516,7 +1658,15 @@ Respond with valid JSON only.
                 await self.update_contractor_status(contractor.id, 'processing')
                 
                 # Step 1: Website Discovery (returns confidence score)
-                website_discovery_confidence = await self.enhanced_website_discovery(contractor, logger_ctx)
+                try:
+                    website_discovery_confidence = await self.enhanced_website_discovery(contractor, logger_ctx)
+                except QuotaExceededError:
+                    # Quota exceeded - mark contractor as failed and re-raise
+                    contractor.processing_status = 'failed'
+                    contractor.error_message = 'Daily Google API quota exceeded'
+                    await self.update_contractor(contractor)
+                    logger_ctx.error("Daily Google API quota exceeded - stopping processing")
+                    raise QuotaExceededError("Daily Google API quota exceeded")
                 
                 # Step 2: Website Validation (5-factor system) - only if website was found
                 website_confidence = 0.0

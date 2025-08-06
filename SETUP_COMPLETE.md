@@ -7,9 +7,10 @@ The Contractor Enrichment System is fully configured and ready for daily process
 ### Daily Processing Setup
 - **Default batch size**: 5,000 contractors per day
 - **Parallel processes**: 3 (optimized for API limits)
+- **Status focus**: ACTIVE contractors only
 - **Region focus**: Puget Sound contractors only
 - **Processing time**: ~5-6 hours per day
-- **Timeline**: ~17 days to complete all Puget Sound contractors
+- **Timeline**: ~7 days to complete all ACTIVE Puget Sound contractors
 
 ### API Configuration
 - **Google Custom Search API**: 10,000 queries per day (paid tier)
@@ -18,16 +19,17 @@ The Contractor Enrichment System is fully configured and ready for daily process
 - **Rate limiting**: 3.0 seconds between queries
 
 ### Database Status
-- **Total contractors**: 157,996
-- **Puget Sound contractors**: 83,879 (53.1%)
-- **Pending contractors**: 157,996 (ready for processing)
-- **Completed contractors**: 0 (reset for fresh processing)
+- **Total contractors**: 158,169
+- **ACTIVE contractors**: 73,913 (46.7%)
+- **ACTIVE Puget Sound contractors**: 34,748 (22.0%)
+- **Pending ACTIVE contractors**: 69,095 (ready for processing)
+- **Completed contractors**: 10,199 (already processed)
 
 ## 🚀 Daily Processing Commands
 
 ### Standard Daily Batch
 ```bash
-# Process 5000 Puget Sound contractors (default)
+# Process 5000 ACTIVE Puget Sound contractors (default)
 docker-compose exec app python scripts/run_parallel_test.py
 ```
 
@@ -36,7 +38,7 @@ docker-compose exec app python scripts/run_parallel_test.py
 # Smaller batch for testing
 docker-compose exec app python scripts/run_parallel_test.py --limit 1000 --processes 2
 
-# All contractors (not recommended for daily use)
+# All ACTIVE contractors (not recommended for daily use)
 docker-compose exec app python scripts/run_parallel_test.py --all
 
 # Test with small batch
@@ -72,9 +74,9 @@ docker-compose exec app python scripts/test_google_api.py
 - **Error rate**: <1%
 
 ### Daily Progress
-- **Day 1-16**: Process 5,000 contractors each day
-- **Day 17**: Process remaining ~3,879 contractors
-- **Total timeline**: ~17 days for Puget Sound completion
+- **Day 1-6**: Process 5,000 contractors each day
+- **Day 7**: Process remaining ~4,748 contractors
+- **Total timeline**: ~7 days for ACTIVE Puget Sound completion
 
 ## 🔧 System Architecture
 
@@ -120,16 +122,18 @@ contractors (
 ## 🏔️ Puget Sound Regional Coverage ✅
 
 ### Geographic Coverage
-- **Total contractors**: 83,879 (53.1% of total)
+- **ACTIVE contractors**: 73,913 (46.7% of total)
+- **ACTIVE Puget Sound contractors**: 34,748 (22.0% of total)
 - **Coverage areas**: Seattle, Tacoma, Bellevue, Everett, Kent, Renton, Federal Way, Kirkland, Olympia, and surrounding cities
 - **Zip codes**: 247 Puget Sound zip codes identified
 - **Area codes**: 206, 253, 360, 425
 
 ### Regional Focus Benefits
 - **Higher quality results**: Regional focus improves accuracy
-- **Faster processing**: Smaller dataset (83k vs 158k)
-- **Manageable timeline**: 17 days vs 32 days for full dataset
+- **Faster processing**: Smaller dataset (35k vs 158k)
+- **Manageable timeline**: 7 days vs 32 days for full dataset
 - **Cost efficiency**: Optimized API usage
+- **Active licenses only**: Focus on currently active contractors
 
 ## 🎯 Quality Improvements
 

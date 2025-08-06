@@ -582,4 +582,63 @@ Tracks each export operation:
 
 ---
 
+## 🚨 Troubleshooting
+
+### Common Issues
+1. **429 Rate Limit Errors**: Daily quota exceeded, wait until tomorrow
+2. **API Key Issues**: Check Google API and OpenAI configuration
+3. **Database Connection**: Verify PostgreSQL is running
+4. **Processing Errors**: Check logs with `check_logs.py`
+
+### Quota Management
+The system automatically detects when the daily Google API quota (10,000 queries) is exceeded and gracefully stops processing.
+
+**Quota Detection Strategy:**
+- **Consecutive 429 errors**: 3+ consecutive 429 errors trigger quota exceeded detection
+- **Automatic shutdown**: Processing stops immediately when quota exceeded
+- **Daily reset**: Quota resets at midnight each day
+- **Progress preservation**: Partially processed batches are saved
+
+**Check Quota Status:**
+```bash
+# Check current quota usage and recommendations
+docker-compose exec app python scripts/check_quota_status.py
+```
+
+**Quota Management Commands:**
+```bash
+# Check if quota exceeded before processing
+docker-compose exec app python scripts/check_quota_status.py
+
+# Process with quota monitoring (automatically stops if exceeded)
+docker-compose exec app python scripts/run_parallel_test.py
+
+# Check processing status after quota exceeded
+docker-compose exec app python scripts/check_results.py
+```
+
+### Monitoring
+```bash
+# Check for errors
+docker-compose exec app python scripts/check_logs.py
+
+# Test API status
+docker-compose exec app python scripts/test_google_api.py
+
+# View recent processing
+docker-compose exec app python scripts/show_processed_puget_sound.py
+```
+
+### Daily Processing (Recommended)
+```bash
+# Process 5000 ACTIVE Puget Sound contractors (daily batch)
+docker-compose exec app python scripts/run_parallel_test.py
+
+# Process with custom limits
+docker-compose exec app python scripts/run_parallel_test.py --limit 1000 --processes 2
+
+# Test with small batch
+docker-compose exec app python scripts/run_parallel_test.py --limit 100 --processes 1
+```
+
 *This system helps identify legitimate residential contractors in the Puget Sound region through intelligent website validation and AI-powered categorization, ensuring high-quality lead generation for home service marketing.*
