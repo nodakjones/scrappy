@@ -860,6 +860,9 @@ class ContractorService:
                     "api_endpoint": "Google Custom Search API"
                 })
                 
+                # Track processed URLs to avoid duplicates across queries
+                processed_urls = set()
+                
                 # Try each search query
                 for query in queries:
                     google_api_result = await self.search_google_api(query)
@@ -903,6 +906,11 @@ class ContractorService:
                             confidence = result_info['confidence']
                             title = result_info['title']
                             
+                            # Skip if we've already processed this URL
+                            if url in processed_urls:
+                                logger_ctx.log_website_evaluation(url, 'google_api', confidence, f"Search Result #{result_info['index']}: Already processed, skipping...")
+                                continue
+                            
                             if confidence > 0.1:  # Only process relevant results
                                 # Check if this is a valid website
                                 if self._is_valid_website(url):
@@ -931,6 +939,9 @@ class ContractorService:
                                                 best_confidence = validation_confidence
                                                 logger_ctx.log_website_selection(url, validation_confidence)
                                             
+                                            # Mark URL as processed
+                                            processed_urls.add(url)
+                                            
                                             # No need for separate logging - will show in final result
                                             
                                             processed_count += 1
@@ -940,12 +951,16 @@ class ContractorService:
                                                 break
                                         else:
                                             logger_ctx.log_website_evaluation(url, 'google_api', confidence, f"Search Result #{result_info['index']}: Crawl failed")
+                                            processed_urls.add(url)  # Mark as processed even if crawl failed
                                     else:
                                         logger_ctx.log_website_evaluation(url, 'google_api', confidence, f"Search Result #{result_info['index']}: Failed geographic validation")
+                                        processed_urls.add(url)  # Mark as processed even if validation failed
                                 else:
                                     logger_ctx.log_website_evaluation(url, 'google_api', confidence, f"Search Result #{result_info['index']}: Not a valid website")
+                                    processed_urls.add(url)  # Mark as processed even if not valid
                             else:
                                 logger_ctx.log_website_evaluation(url, 'google_api', confidence, f"Search Result #{result_info['index']}: Confidence too low (< 0.1)")
+                                processed_urls.add(url)  # Mark as processed even if confidence too low
                         
                         # No need for separate evaluation summary - the final selection will show the result
                         
@@ -1081,6 +1096,9 @@ class ContractorService:
             # Prepare content for AI analysis (limit to 10K chars for cost efficiency)
             analysis_content = content[:10000]  # Limit to 10K chars for cost-effective analysis
             
+            # Perform 6-factor validation to get validation results for the prompt
+            validation_results = await self._comprehensive_website_validation(contractor, content, logger_ctx)
+            
             # Log the content being sent to OpenAI
             logger_ctx.log_ai_call("openai_gpt4_mini", {
                 "business_name": contractor.business_name,
@@ -1112,12 +1130,35 @@ class ContractorService:
                     "Heating and Cooling", "Plumbing", "Electrical", "HVAC"
                 ]
             
+            # Prepare validation summary for the prompt
+            validation_summary = {
+                'business_name_match': validation_results.get('business_name_match', False),
+                'keyword_business_name_match': validation_results.get('keyword_business_name_match', False),
+                'license_match': validation_results.get('license_match', False),
+                'phone_match': validation_results.get('phone_match', False),
+                'address_match': validation_results.get('address_match', False),
+                'principal_name_match': validation_results.get('principal_name_match', False),
+                'domain_match_score': validation_results.get('domain_match_score', 0.0),
+                'contractor_keywords_found': validation_results.get('contractor_keywords', 0)
+            }
+            
             prompt = f"""
 Analyze this contractor business website and provide categorization:
 
 Business: {contractor.business_name}
 Location: {contractor.city}, {contractor.state}
 License: {contractor.contractor_license_number}
+Website URL: {contractor.website_url}
+
+VALIDATION RESULTS (6-Factor System):
+- Business Name Match: {validation_summary['business_name_match']}
+- Keyword Business Name Match: {validation_summary['keyword_business_name_match']}
+- License Number Match: {validation_summary['license_match']}
+- Phone Number Match: {validation_summary['phone_match']}
+- Address Match: {validation_summary['address_match']}
+- Principal Name Match: {validation_summary['principal_name_match']}
+- Domain Match Score: {validation_summary['domain_match_score']:.2f} (each business name word in domain = +0.10)
+- Contractor Keywords Found: {validation_summary['contractor_keywords_found']}
 
 Available Categories: {', '.join(categories_list)}
 
@@ -1128,11 +1169,21 @@ Website Content:
 
 Please provide a JSON response with:
 1. "category" - Specific contractor category from the available categories list above
-2. "confidence" - Confidence score 0-1 based on content analysis
+2. "confidence" - Confidence score 0-1 based on content analysis AND validation results
 3. "residential_focus" - true if primarily serves homeowners, false if commercial, null if unclear
 4. "services_offered" - Array of main services mentioned
 5. "business_legitimacy" - true if appears to be a legitimate business
 6. "reasoning" - Brief explanation of categorization decision
+
+CONFIDENCE SCORING RULES:
+- Start with base confidence of 0.5
+- ADD +0.1 for each validation factor that matches (business name, license, phone, address, principal)
+- ADD +0.05 for domain match score (each business name word in domain)
+- ADD +0.1 for strong contractor keywords in content
+- SUBTRACT -0.3 if business name doesn't match at all
+- SUBTRACT -0.2 if no contractor keywords found
+- SUBTRACT -0.2 if website appears to be wrong business type
+- FINAL confidence should be between 0.0 and 1.0
 
 CRITICAL CATEGORIZATION RULES:
 - ALWAYS choose the MOST SPECIFIC category that matches the actual services
@@ -1183,6 +1234,7 @@ CRITICAL CATEGORIZATION RULES:
 - CRITICAL: If the website content does not match the business name or services, provide LOW confidence (under 0.2)
 - CRITICAL: If the website appears to be a hotel, restaurant, retail store, or other non-contractor business, provide LOW confidence
 - CRITICAL: Only provide high confidence if the website content clearly describes contractor services and has some sort of business name that matches
+- CRITICAL: Consider the validation results when setting confidence - more validation factors matched = higher confidence
 
 Respond with valid JSON only.
 """
