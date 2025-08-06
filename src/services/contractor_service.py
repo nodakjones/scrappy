@@ -120,7 +120,7 @@ class ContractorService:
                 url = f"https://autocomplete.clearbit.com/v1/companies/suggest?query={encoded_query}"
                 
                 async with session.get(url) as response:
-                    if response.status == 200:
+                    if response.status in [200, 201, 202]:  # Accept 200 OK, 201 Created, 202 Accepted
                         data = await response.json()
                         
                         if data and len(data) > 0:
@@ -165,7 +165,7 @@ class ContractorService:
             }
             
             async with session.get(url, params=params) as response:
-                if response.status == 200:
+                if response.status in [200, 201, 202]:  # Accept 200 OK, 201 Created, 202 Accepted
                     data = await response.json()
                     
                     if 'items' in data and len(data['items']) > 0:
@@ -222,7 +222,7 @@ class ContractorService:
             try:
                 async with aiohttp.ClientSession() as session:
                     async with session.get(url, params=params) as response:
-                        if response.status == 200:
+                        if response.status in [200, 201, 202]:  # Accept 200 OK, 201 Created, 202 Accepted
                             data = await response.json()
                             quota_tracker.record_query()  # Record successful query
                             
@@ -457,7 +457,7 @@ class ContractorService:
             }
             
             async with session.get(url, params=params) as response:
-                if response.status == 200:
+                if response.status in [200, 201, 202]:  # Accept 200 OK, 201 Created, 202 Accepted
                     data = await response.json()
                     
                     if 'items' in data and len(data['items']) > 0:
@@ -507,7 +507,7 @@ class ContractorService:
             # Try with SSL context first
             try:
                 async with session.get(url, timeout=10, ssl=ssl_context) as response:
-                    if response.status == 200:
+                    if response.status in [200, 201, 202]:  # Accept 200 OK, 201 Created, 202 Accepted
                         return await response.text()
                     else:
                         logger.warning(f"Raw HTML fetch failed for {url}: status {response.status}")
@@ -518,7 +518,7 @@ class ContractorService:
                 # Try without SSL context
                 try:
                     async with session.get(url, timeout=10, ssl=False) as response:
-                        if response.status == 200:
+                        if response.status in [200, 201, 202]:  # Accept 200 OK, 201 Created, 202 Accepted
                             return await response.text()
                         else:
                             logger.warning(f"Raw HTML fetch failed for {url}: status {response.status}")
@@ -545,7 +545,7 @@ class ContractorService:
             # Try with SSL context first
             try:
                 async with session.get(url, timeout=10, ssl=ssl_context) as response:
-                    if response.status == 200:
+                    if response.status in [200, 201, 202]:  # Accept 200 OK, 201 Created, 202 Accepted
                         content = await response.text()
                         
                         # Extract meaningful content
@@ -564,7 +564,7 @@ class ContractorService:
                 # Try without SSL context
                 try:
                     async with session.get(url, timeout=10, ssl=False) as response:
-                        if response.status == 200:
+                        if response.status in [200, 201, 202]:  # Accept 200 OK, 201 Created, 202 Accepted
                             content = await response.text()
                             
                             # Extract meaningful content
@@ -815,37 +815,22 @@ class ContractorService:
             clearbit_domain = await self.try_clearbit_enrichment(business_name)
             if clearbit_domain:
                 clearbit_url = f"https://{clearbit_domain}"
+                logger_ctx.log_search_results([{
+                    'title': f'Clearbit domain found: {clearbit_domain}',
+                    'url': clearbit_url,
+                    'snippet': f'Clearbit API returned domain {clearbit_domain} for {business_name}',
+                    'source': 'clearbit_api'
+                }])
+                
                 crawled_data = await self.crawl_website_comprehensive(clearbit_url)
                 
                 if crawled_data and crawled_data['combined_content']:
-                    # Validate Clearbit result with business name and location checks
-                    validation_confidence = 0.0
+                    # Perform comprehensive 5-factor validation
+                    validation_results = await self._comprehensive_website_validation(contractor, crawled_data['combined_content'], logger_ctx)
+                    validation_confidence = self._calculate_validation_confidence(validation_results)
                     
-                    # Check if business name appears in content
-                    content_lower = crawled_data['combined_content'].lower()
-                    business_name_lower = business_name.lower()
-                    simple_name_lower = self._generate_simple_business_name(business_name).lower()
-                    
-                    # Business name validation
-                    if business_name_lower in content_lower:
-                        validation_confidence += 0.4
-                    elif simple_name_lower in content_lower:
-                        validation_confidence += 0.3
-                    
-                    # Location validation
-                    city_lower = city.lower()
-                    state_lower = state.lower()
-                    if city_lower in content_lower:
-                        validation_confidence += 0.2
-                    if state_lower in content_lower:
-                        validation_confidence += 0.1
-                    
-                    # Domain validation
-                    domain = clearbit_domain.lower()
-                    if business_name_lower.replace(' ', '') in domain or simple_name_lower.replace(' ', '') in domain:
-                        validation_confidence += 0.3
-                    elif any(word in domain for word in business_name_lower.split()):
-                        validation_confidence += 0.1
+                    # Log validation results
+                    logger_ctx.log_validation_results(clearbit_url, validation_results, validation_confidence)
                     
                     # Only accept if validation confidence is high enough
                     if validation_confidence >= 0.4:
@@ -872,6 +857,7 @@ class ContractorService:
                         }])
                     else:
                          # Clearbit result failed validation - will try Google API
+                         logger_ctx.log_website_evaluation(clearbit_url, 'clearbit_api', validation_confidence, f"Failed validation (threshold: 0.4)")
                          logger_ctx.log_search_results([{
                              'title': f'Clearbit domain found but failed validation',
                              'url': clearbit_url,
@@ -879,6 +865,7 @@ class ContractorService:
                              'source': 'clearbit_api'
                          }])
                 else:
+                    logger_ctx.log_website_evaluation(clearbit_url, 'clearbit_api', 0.0, "Crawl failed")
                     logger_ctx.log_search_results([{
                         'title': 'Clearbit domain found but crawl failed',
                         'url': clearbit_url,
@@ -904,10 +891,20 @@ class ContractorService:
                 
                 # Try each search query
                 for query in queries:
+                    logger_ctx.log_search_query(f"Google API Query: {query}")
                     google_api_result = await self.search_google_api(query)
                     if google_api_result and 'items' in google_api_result:
-                        # Process the search results
-                        for item in google_api_result['items']:
+                        # Log all search results found
+                        logger_ctx.log_search_results([{
+                            'title': f'Google API Results for: {query}',
+                            'url': f'Query: {query}',
+                            'snippet': f'Found {len(google_api_result["items"])} results from Google API',
+                            'source': 'google_api'
+                        }])
+                        
+                        # First, evaluate all results and log them
+                        evaluated_results = []
+                        for i, item in enumerate(google_api_result['items'], 1):
                             url = item.get('link', '')
                             title = item.get('title', '')
                             snippet = item.get('snippet', '')
@@ -915,13 +912,44 @@ class ContractorService:
                             # Calculate confidence for this result
                             confidence = self._calculate_search_confidence(item, business_name, city, state)
                             
+                            # Log each result evaluation with consistent numbering
+                            logger_ctx.log_website_evaluation(url, 'google_api', confidence, f"Result #{i}: {title[:50]}...")
+                            
+                            # Store evaluation for potential processing
+                            evaluated_results.append({
+                                'index': i,
+                                'url': url,
+                                'title': title,
+                                'snippet': snippet,
+                                'confidence': confidence,
+                                'item': item
+                            })
+                        
+                        # Now process the best candidates in order of confidence
+                        processed_count = 0
+                        for result_info in sorted(evaluated_results, key=lambda x: x['confidence'], reverse=True):
+                            if processed_count >= 3:  # Limit to top 3 candidates to avoid excessive processing
+                                break
+                                
+                            url = result_info['url']
+                            confidence = result_info['confidence']
+                            title = result_info['title']
+                            
                             if confidence > 0.1:  # Only process relevant results
                                 # Check if this is a valid website
                                 if self._is_valid_website(url):
                                     # Check geographic validation
-                                    if self._has_wa_location_indicators(url, title, snippet):
+                                    if self._has_wa_location_indicators(url, title, result_info['snippet']):
+                                        logger_ctx.log_website_evaluation(url, 'google_api', confidence, f"Result #{result_info['index']}: Passed geographic validation, crawling...")
                                         crawled_data = await self.crawl_website_comprehensive(url)
                                         if crawled_data and crawled_data['combined_content']:
+                                            # Perform comprehensive 5-factor validation
+                                            validation_results = await self._comprehensive_website_validation(contractor, crawled_data['combined_content'], logger_ctx)
+                                            validation_confidence = self._calculate_validation_confidence(validation_results)
+                                            
+                                            # Log validation results
+                                            logger_ctx.log_validation_results(url, validation_results, validation_confidence)
+                                            
                                             result = {
                                                 'url': url,
                                                 'content': crawled_data['combined_content'],
@@ -930,22 +958,43 @@ class ContractorService:
                                                 'pages_crawled': crawled_data['pages_crawled'],
                                                 'nav_links_found': crawled_data['nav_links_found'],
                                                 'source': 'google_api',
-                                                'confidence': confidence
+                                                'confidence': validation_confidence  # Use validation confidence instead of search confidence
                                             }
                                             
-                                            if confidence > best_confidence:
+                                            if validation_confidence > best_confidence:
                                                 best_result = result
-                                                best_confidence = confidence
-                                                logger_ctx.log_website_selection(url, confidence)
+                                                best_confidence = validation_confidence
+                                                logger_ctx.log_website_selection(url, validation_confidence)
                                             
                                             # Log comprehensive crawl results
                                             logger_ctx.log_search_results([{
                                                 'title': f'Comprehensive Crawl Results - Google API',
                                                 'url': url,
-                                                'snippet': f'Crawled {crawled_data["pages_crawled"]} pages, found {crawled_data["nav_links_found"]} nav links, content length: {len(crawled_data["combined_content"])} chars',
+                                                'snippet': f'Crawled {crawled_data["pages_crawled"]} pages, found {crawled_data["nav_links_found"]} nav links, content length: {len(crawled_data["combined_content"])} chars, validation confidence: {validation_confidence:.3f}',
                                                 'source': 'google_api'
                                             }])
-                                            break  # Found a good result, stop searching
+                                            
+                                            processed_count += 1
+                                            
+                                            # If we found a good result, we can stop
+                                            if validation_confidence >= 0.6:  # High confidence threshold
+                                                break
+                                        else:
+                                            logger_ctx.log_website_evaluation(url, 'google_api', confidence, f"Result #{result_info['index']}: Crawl failed")
+                                    else:
+                                        logger_ctx.log_website_evaluation(url, 'google_api', confidence, f"Result #{result_info['index']}: Failed geographic validation")
+                                else:
+                                    logger_ctx.log_website_evaluation(url, 'google_api', confidence, f"Result #{result_info['index']}: Not a valid website")
+                            else:
+                                logger_ctx.log_website_evaluation(url, 'google_api', confidence, f"Result #{result_info['index']}: Confidence too low (< 0.1)")
+                        
+                        # Log summary of evaluation
+                        logger_ctx.log_search_results([{
+                            'title': f'Google API Evaluation Summary',
+                            'url': f'Query: {query}',
+                            'snippet': f'Evaluated {len(evaluated_results)} results, processed {processed_count} candidates, best confidence: {best_confidence:.3f}',
+                            'source': 'google_api'
+                        }])
                         
                         if best_result:
                             break  # Found a good result, stop trying more queries
@@ -1037,6 +1086,14 @@ class ContractorService:
                 }
                 logger_ctx.log_website_selection(best_result['url'], best_confidence)
                 logger.info(f"Discovery found website: {best_result['url']} via {best_result['source']} (confidence: {best_confidence:.2f})")
+                
+                # Log final selection summary
+                logger_ctx.log_search_results([{
+                    'title': f'FINAL WEBSITE SELECTED: {best_result["url"]}',
+                    'url': best_result['url'],
+                    'snippet': f'Selected via {best_result["source"]} with confidence {best_confidence:.3f}',
+                    'source': 'final_selection'
+                }])
             else:
                 contractor.website_status = 'not_found'
                 contractor.data_sources = {

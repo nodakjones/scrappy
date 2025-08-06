@@ -294,16 +294,7 @@ WHERE id = [contractor_id];
 **Complete Taxonomy**: 194 total categories (30 priority + 164 standard) from CRM data
 
 **Priority Categories** (30 High-Value Residential Services):
-1. **Heating and Cooling** - AC repair, furnace installation, duct cleaning, heat pump service, HVAC maintenance
-2. **Plumbing** - Drain cleaning, water heater repair, pipe repair, leak detection, bathroom fixtures
-3. **Sprinklers** - Sprinkler installation, irrigation repair, watering system design, sprinkler maintenance
-4. **Blinds** - Blind installation, custom window treatments, shade repair, shutter installation
-5. **Window/Door** - Window replacement, door installation, glass repair, entry door replacement
-6. **Awning/Patio/Carport** - Awning installation, patio covers, carport construction, outdoor shade structures
-7. **Bathroom/Kitchen Remodel** - Bathroom renovation, kitchen remodel, countertop installation, cabinet upgrade
-8. **Storage & Closets** - Closet organization, storage solutions, custom shelving, pantry systems
-9. **Decks & Patios** - Deck construction, patio installation, outdoor living spaces, deck repair
-10. **Electrician** - Electrical repairs, panel upgrades, outlet installation, lighting installation
+*See complete list in [Service Categories](#service-categories) section above*
 
 ---
 
@@ -410,6 +401,25 @@ docker-compose exec app python scripts/docker_setup.py
 | **Data Management** | `import_data.py`, `export_contractors.py`, `deduplicate_exports.py` | Data import/export operations |
 | **Setup** | `setup_database.py`, `docker_setup.py` | System initialization |
 | **Enhanced Discovery** | `enhanced_discovery.py`, `re_export_processed.py` | Advanced discovery features |
+
+---
+
+## Service Categories
+
+The system categorizes contractors into 194 different service categories, with 30 priority categories for high-value residential services.
+
+### Priority Categories (30 High-Value Residential Services)
+
+1. **Heating and Cooling** - AC repair, furnace installation, duct cleaning, heat pump service, HVAC maintenance
+2. **Plumbing** - Drain cleaning, water heater repair, pipe repair, leak detection, bathroom fixtures
+3. **Sprinklers** - Sprinkler installation, irrigation repair, watering system design, sprinkler maintenance
+4. **Blinds** - Blind installation, custom window treatments, shade repair, shutter installation
+5. **Window/Door** - Window replacement, door installation, glass repair, entry door replacement
+6. **Awning/Patio/Carport** - Awning installation, patio covers, carport construction, outdoor shade structures
+7. **Bathroom/Kitchen Remodel** - Bathroom renovation, kitchen remodel, countertop installation, cabinet upgrade
+8. **Storage & Closets** - Closet organization, storage solutions, custom shelving, pantry systems
+9. **Decks & Patios** - Deck construction, patio installation, outdoor living spaces, deck repair
+10. **Electrician** - Electrical repairs, panel upgrades, outlet installation, lighting installation
 11. **Fence** - Fence installation, gate installation, privacy fencing, fence repair
 12. **Fireplace** - Fireplace installation, chimney cleaning, gas fireplace repair, hearth construction
 13. **Garage Floors** - Epoxy garage floors, garage floor coating, concrete floor finishing, floor resurfacing

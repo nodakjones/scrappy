@@ -328,6 +328,72 @@ class ContractorLogger:
         }
         task_storage['log_buffer'].append(f"JSON_LOG: {json.dumps(json_log_entry)}")
     
+    def log_validation_results(self, url: str, validation_results: Dict[str, Any], confidence: float):
+        """Log 5-factor validation results for a website"""
+        task_storage = self._get_task_storage()
+        if not task_storage or not task_storage['contractor_log']:
+            return
+        
+        # Buffer human-readable output
+        task_storage['log_buffer'].append(f"  🔍 VALIDATION RESULTS: {url}")
+        task_storage['log_buffer'].append(f"    Overall Confidence: {confidence:.3f}")
+        
+        # Log each validation factor
+        factors = [
+            ('Business Name Match', validation_results.get('business_name_match', False)),
+            ('Keyword Business Name Match', validation_results.get('keyword_business_name_match', False)),
+            ('License Match', validation_results.get('license_match', False)),
+            ('Phone Match', validation_results.get('phone_match', False)),
+            ('Address Match', validation_results.get('address_match', False)),
+            ('Principal Name Match', validation_results.get('principal_name_match', False))
+        ]
+        
+        for factor_name, factor_result in factors:
+            status = "✅ PASS" if factor_result else "❌ FAIL"
+            task_storage['log_buffer'].append(f"    {factor_name}: {status}")
+        
+        # Log contractor keywords found
+        contractor_keywords = validation_results.get('contractor_keywords', 0)
+        task_storage['log_buffer'].append(f"    Contractor Keywords Found: {contractor_keywords}")
+        
+        # JSON output (buffered like human-readable logs)
+        json_log_entry = {
+            'event': 'validation_results',
+            'contractor_id': task_storage['contractor_log'].contractor_id,
+            'business_name': task_storage['contractor_log'].business_name,
+            'url': url,
+            'validation_results': validation_results,
+            'confidence': confidence,
+            'timestamp': datetime.utcnow().isoformat()
+        }
+        task_storage['log_buffer'].append(f"JSON_LOG: {json.dumps(json_log_entry)}")
+    
+    def log_website_evaluation(self, url: str, source: str, confidence: float, reason: str = ""):
+        """Log website evaluation during selection process"""
+        task_storage = self._get_task_storage()
+        if not task_storage or not task_storage['contractor_log']:
+            return
+        
+        # Buffer human-readable output
+        task_storage['log_buffer'].append(f"  🌐 WEBSITE EVALUATION: {url}")
+        task_storage['log_buffer'].append(f"    Source: {source}")
+        task_storage['log_buffer'].append(f"    Confidence: {confidence:.3f}")
+        if reason:
+            task_storage['log_buffer'].append(f"    Reason: {reason}")
+        
+        # JSON output (buffered like human-readable logs)
+        json_log_entry = {
+            'event': 'website_evaluation',
+            'contractor_id': task_storage['contractor_log'].contractor_id,
+            'business_name': task_storage['contractor_log'].business_name,
+            'url': url,
+            'source': source,
+            'confidence': confidence,
+            'reason': reason,
+            'timestamp': datetime.utcnow().isoformat()
+        }
+        task_storage['log_buffer'].append(f"JSON_LOG: {json.dumps(json_log_entry)}")
+    
     def log_ai_call(self, tool_name: str, input_data: Dict[str, Any], output_data: Dict[str, Any] = None):
         """Log AI tool call"""
         task_storage = self._get_task_storage()
