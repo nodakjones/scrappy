@@ -138,7 +138,11 @@ EXCLUDED_DOMAINS = {
     'acllc.com', 'aandcconcrete.com', 'ac1construction.co.uk',
     'a-celectric.com', 'aandcglass.com', 'ac-heatingandcooling.com.au',
     'acmechanical.ca', 'abelectricalonline.co.uk', 'drillerdb.com',
-    'wausaudailyherald.com', 'fayranches.com', 'gutter-cleaning-services.cmac.ws'
+    'wausaudailyherald.com', 'fayranches.com', 'gutter-cleaning-services.cmac.ws',
+    # New excluded domains
+    'bizapedia.com', 'kitsapbuilds.com', 'procore.com', 'bizprofile.net', 
+    'ibew48.com', 'rocketreach.co', 'thebluebook.com', 'washingtonbids.com', 
+    'gigharborchamber.net'
 }
 
 # Domain patterns to exclude (wildcards)
@@ -166,6 +170,10 @@ def is_valid_website_domain(url: str) -> bool:
     
     # Check for excluded domain patterns
     if domain.endswith('.codes') or domain.endswith('.org') or domain.endswith('.gov'):
+        return False
+    
+    # Check for member, chamber, or directory in domain name
+    if 'member' in domain or 'chamber' in domain or 'directory' in domain:
         return False
     
     # Check for news article patterns in URL path

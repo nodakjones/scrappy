@@ -1950,8 +1950,13 @@ Respond with valid JSON only.
                 
                 # Use AI category if available, otherwise fall back to keyword-based method
                 ai_category = None
+                ai_residential_focus = None
+                ai_reasoning = None
                 if contractor.data_sources and 'ai_analysis' in contractor.data_sources:
-                    ai_category = contractor.data_sources['ai_analysis'].get('category')
+                    ai_analysis = contractor.data_sources['ai_analysis']
+                    ai_category = ai_analysis.get('category')
+                    ai_residential_focus = ai_analysis.get('residential_focus')
+                    ai_reasoning = ai_analysis.get('reasoning')
                 
                 if ai_category:
                     contractor.mailer_category = ai_category
@@ -1960,6 +1965,14 @@ Respond with valid JSON only.
                         contractor.data_sources.get('crawled_content', '').lower() if contractor.data_sources else '',
                         contractor.business_name.lower()
                     )
+                
+                # Set residential focus from AI analysis
+                if ai_residential_focus is not None:
+                    contractor.residential_focus = ai_residential_focus
+                
+                # Set business description from AI analysis reasoning
+                if ai_reasoning:
+                    contractor.business_description = ai_reasoning
                 
                 contractor.last_processed = datetime.utcnow()
                 
@@ -2008,8 +2021,10 @@ Respond with valid JSON only.
             last_processed = $10,
             error_message = $11,
             review_status = $12,
+            residential_focus = $13,
+            business_description = $14,
             updated_at = NOW()
-        WHERE id = $13
+        WHERE id = $15
         """
         
         await db_pool.execute(
@@ -2026,6 +2041,8 @@ Respond with valid JSON only.
             contractor.last_processed,
             contractor.error_message,
             contractor.review_status,
+            contractor.residential_focus,
+            contractor.business_description,
             contractor.id
         )
     
