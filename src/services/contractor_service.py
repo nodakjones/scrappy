@@ -1379,6 +1379,17 @@ Respond with valid JSON only.
                         'reasoning': reasoning
                     }
                 
+                # Also store in the dedicated gpt4mini_analysis field for easier querying
+                contractor.gpt4mini_analysis = {
+                    'category': category,
+                    'confidence': confidence,
+                    'residential_focus': residential_focus,
+                    'services_offered': services_offered,
+                    'business_legitimacy': business_legitimacy,
+                    'reasoning': reasoning,
+                    'analysis_timestamp': datetime.utcnow().isoformat()
+                }
+                
                 logger_ctx.log_classification(category, confidence)
                 
                 return confidence
@@ -1447,6 +1458,17 @@ Respond with valid JSON only.
         
         # Determine category based on content analysis
         category = self._determine_category_from_content(content.lower(), business_name.lower())
+        
+        # Store fallback analysis results
+        fallback_analysis = {
+            'category': category,
+            'confidence': confidence,
+            'residential_focus': residential_score > 0.5,  # Simple threshold
+            'services_offered': [],
+            'business_legitimacy': legitimacy_score > 0.3,
+            'reasoning': f'Fallback analysis: residential_score={residential_score:.2f}, service_score={service_score:.2f}, legitimacy_score={legitimacy_score:.2f}',
+            'analysis_method': 'fallback_keyword_analysis'
+        }
         
         logger_ctx.log_classification(category, confidence)
         
@@ -1874,6 +1896,9 @@ Respond with valid JSON only.
         """Process a single contractor with discovery"""
         with contractor_logger.contractor_processing(contractor.id, contractor.business_name) as logger_ctx:
             try:
+                # Increment processing attempts
+                contractor.processing_attempts = (contractor.processing_attempts or 0) + 1
+                
                 # Update status to processing
                 await self.update_contractor_status(contractor.id, 'processing')
                 
@@ -2022,9 +2047,28 @@ Respond with valid JSON only.
             review_status = $11,
             residential_focus = $12,
             business_description = $13,
+            gpt4mini_analysis = $14,
+            gpt4_verification = $15,
+            website_content_hash = $16,
+            processing_attempts = $17,
             updated_at = NOW()
-        WHERE id = $14
+        WHERE id = $18
         """
+        
+        # Generate content hash if we have crawled content
+        content_hash = None
+        if contractor.data_sources and 'crawled_content' in contractor.data_sources:
+            import hashlib
+            content = contractor.data_sources['crawled_content']
+            content_hash = hashlib.sha256(content.encode('utf-8')).hexdigest()
+        
+        # Extract AI analysis from data_sources if available
+        gpt4mini_analysis = None
+        if contractor.data_sources and 'ai_analysis' in contractor.data_sources:
+            gpt4mini_analysis = contractor.data_sources['ai_analysis']
+        
+        # For now, gpt4_verification is not implemented, but we'll save the structure
+        gpt4_verification = None
         
         await db_pool.execute(
             query,
@@ -2041,6 +2085,10 @@ Respond with valid JSON only.
             contractor.review_status,
             contractor.residential_focus,
             contractor.business_description,
+            json.dumps(gpt4mini_analysis) if gpt4mini_analysis else None,
+            json.dumps(gpt4_verification) if gpt4_verification else None,
+            content_hash,
+            contractor.processing_attempts,
             contractor.id
         )
     
