@@ -34,11 +34,11 @@ CREATE INDEX idx_contractors_residential_focus ON contractors (residential_focus
 CREATE INDEX idx_contractors_website_status ON contractors (website_status);
 CREATE INDEX idx_contractors_website_confidence ON contractors (website_confidence) WHERE website_confidence IS NOT NULL;
 
--- Mailer categories indexes
-CREATE INDEX idx_mailer_categories_name ON mailer_categories (category_name);
-CREATE INDEX idx_mailer_categories_priority ON mailer_categories (priority) WHERE priority = TRUE;
-CREATE INDEX idx_mailer_categories_active ON mailer_categories (active, sort_order) WHERE active = TRUE;
-CREATE INDEX idx_mailer_categories_keywords ON mailer_categories USING gin (keywords);
+-- Categories indexes
+CREATE INDEX idx_categories_name ON categories (name);
+CREATE INDEX idx_categories_priority ON categories (priority) WHERE priority = TRUE;
+CREATE INDEX idx_categories_active ON categories (active, sort_order) WHERE active = TRUE;
+CREATE INDEX idx_categories_keywords ON categories USING gin (keywords);
 
 -- Website searches indexes
 CREATE INDEX idx_website_searches_contractor ON website_searches (contractor_id, attempted_at);

@@ -95,10 +95,11 @@ CREATE TABLE contractors (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 2. Mailer categories table (service categories)
-CREATE TABLE mailer_categories (
-    record_id SERIAL PRIMARY KEY,
-    category_name VARCHAR(100) NOT NULL UNIQUE,
+-- 2. Categories table (service categories) - consolidated from mailer_categories
+CREATE TABLE categories (
+    id SERIAL PRIMARY KEY,
+    record_id VARCHAR(100),
+    name VARCHAR(100) NOT NULL UNIQUE,
     priority BOOLEAN DEFAULT FALSE,
     afb_name VARCHAR(100),
     category VARCHAR(100),
@@ -106,7 +107,9 @@ CREATE TABLE mailer_categories (
     typical_services TEXT[],
     active BOOLEAN DEFAULT TRUE,
     sort_order INTEGER,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    modified_time TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- 3. Website searches table (search attempt logging)

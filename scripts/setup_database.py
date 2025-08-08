@@ -121,7 +121,7 @@ async def setup_database():
         logger.info(f"Created tables: {', '.join(table_names)}")
         
         # Check categories count
-        categories_count = await conn.fetchval("SELECT COUNT(*) FROM mailer_categories")
+        categories_count = await conn.fetchval("SELECT COUNT(*) FROM categories")
         logger.info(f"Inserted {categories_count} mailer categories")
         
         await conn.close()

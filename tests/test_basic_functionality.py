@@ -86,7 +86,7 @@ async def test_schema_exists():
         # Check main tables exist
         expected_tables = [
             'contractors',
-            'mailer_categories',
+            'categories',
             'website_searches',
             'website_crawls',
             'manual_review_queue',
@@ -104,10 +104,10 @@ async def test_schema_exists():
                 await conn.close()
                 return False
         
-        # Check mailer_categories has data
-        categories_count = await conn.fetchval("SELECT COUNT(*) FROM mailer_categories")
+        # Check categories has data
+        categories_count = await conn.fetchval("SELECT COUNT(*) FROM categories")
         if categories_count == 0:
-            logger.error("❌ mailer_categories table is empty")
+            logger.error("❌ categories table is empty")
             await conn.close()
             return False
         

@@ -1195,13 +1195,35 @@ class ContractorService:
             import openai
             client = openai.OpenAI(api_key=openai_api_key)
             
-            # Get categories from config
+            # Get categories from database
             try:
-                from src.categories_config import ALL_CATEGORIES, PRIORITY_CATEGORIES
-                categories_list = ALL_CATEGORIES
-                priority_categories = PRIORITY_CATEGORIES
-            except ImportError:
-                # Fallback if categories config doesn't exist
+                async with db_pool.pool.acquire() as conn:
+                    # Get all active categories
+                    categories_result = await conn.fetch('''
+                        SELECT name, priority 
+                        FROM categories 
+                        WHERE active = true 
+                        ORDER BY priority DESC, name
+                    ''')
+                    
+                    categories_list = [row['name'] for row in categories_result]
+                    priority_categories = [row['name'] for row in categories_result if row['priority']]
+                    
+                    # Fallback if database query fails
+                    if not categories_list:
+                        categories_list = [
+                            "Plumbing", "Electrical", "HVAC", "Roofing", "General Contractor",
+                            "Heating and Cooling", "Flooring", "Pools and Spas", "Security Systems",
+                            "Window/Door", "Bathroom/Kitchen Remodel", "Storage & Closets",
+                            "Decks & Patios", "Fence", "Fireplace", "Sprinklers", "Blinds",
+                            "Awning/Patio/Carport", "Media Systems", "Exterior Solutions"
+                        ]
+                        priority_categories = [
+                            "Heating and Cooling", "Plumbing", "Electrical", "HVAC"
+                        ]
+            except Exception as e:
+                logger.warning(f"Failed to get categories from database: {e}, using fallback")
+                # Fallback if database query fails
                 categories_list = [
                     "Plumbing", "Electrical", "HVAC", "Roofing", "General Contractor",
                     "Heating and Cooling", "Flooring", "Pools and Spas", "Security Systems",
