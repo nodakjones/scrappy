@@ -62,8 +62,10 @@ class ContractorExporter:
         contractors = await self.db_pool.fetch("""
             SELECT 
                 id,
+                uuid,
                 business_name,
                 contractor_license_number,
+                contractor_license_type_code,
                 contractor_license_type_code_desc,
                 address1,
                 address2,
@@ -71,23 +73,67 @@ class ContractorExporter:
                 state,
                 zip,
                 phone_number,
+                license_effective_date,
+                license_expiration_date,
+                business_type_code,
+                business_type_code_desc,
+                specialty_code1,
+                specialty_code1_desc,
+                specialty_code2,
+                specialty_code2_desc,
+                ubi,
                 primary_principal_name,
-                website_url,
+                status_code,
+                contractor_license_status,
+                contractor_license_suspend_date,
                 mailer_category,
+                priority_category,
+                website_url,
+                website_status,
                 business_description,
+                tagline,
+                established_year,
+                years_in_business,
                 services_offered,
-                confidence_score,
-                website_confidence,
-                classification_confidence,
+                service_categories,
+                specializations,
+                additional_licenses,
+                certifications,
+                insurance_types,
+                website_email,
+                website_phone,
+                physical_address,
+                social_media_urls,
                 residential_focus,
+                commercial_focus,
+                emergency_services,
+                free_estimates,
+                warranty_offered,
+                confidence_score,
+                classification_confidence,
+                website_confidence,
                 processing_status,
-                review_status,
                 last_processed,
+                error_message,
+                manual_review_needed,
+                manual_review_reason,
+                review_status,
+                reviewed_by,
                 reviewed_at,
-                gpt4mini_analysis,
-                created_at,
+                review_notes,
+                manual_review_outcome,
+                marked_for_download,
+                marked_for_download_at,
                 exported_at,
-                export_batch_id
+                export_batch_id,
+                gpt4mini_analysis,
+                gpt4_verification,
+                data_sources,
+                website_content_hash,
+                processing_attempts,
+                created_at,
+                updated_at,
+                puget_sound
             FROM contractors 
             WHERE review_status IN ('approved_download', 'pending_review')
             ORDER BY review_status, business_name
@@ -100,8 +146,10 @@ class ContractorExporter:
         contractors = await self.db_pool.fetch("""
             SELECT 
                 id,
+                uuid,
                 business_name,
                 contractor_license_number,
+                contractor_license_type_code,
                 contractor_license_type_code_desc,
                 address1,
                 address2,
@@ -109,21 +157,67 @@ class ContractorExporter:
                 state,
                 zip,
                 phone_number,
+                license_effective_date,
+                license_expiration_date,
+                business_type_code,
+                business_type_code_desc,
+                specialty_code1,
+                specialty_code1_desc,
+                specialty_code2,
+                specialty_code2_desc,
+                ubi,
                 primary_principal_name,
-                website_url,
+                status_code,
+                contractor_license_status,
+                contractor_license_suspend_date,
                 mailer_category,
+                priority_category,
+                website_url,
+                website_status,
                 business_description,
+                tagline,
+                established_year,
+                years_in_business,
                 services_offered,
-                confidence_score,
-                website_confidence,
-                classification_confidence,
+                service_categories,
+                specializations,
+                additional_licenses,
+                certifications,
+                insurance_types,
+                website_email,
+                website_phone,
+                physical_address,
+                social_media_urls,
                 residential_focus,
+                commercial_focus,
+                emergency_services,
+                free_estimates,
+                warranty_offered,
+                confidence_score,
+                classification_confidence,
+                website_confidence,
                 processing_status,
-                review_status,
                 last_processed,
+                error_message,
+                manual_review_needed,
+                manual_review_reason,
+                review_status,
+                reviewed_by,
                 reviewed_at,
+                review_notes,
+                manual_review_outcome,
+                marked_for_download,
+                marked_for_download_at,
+                exported_at,
+                export_batch_id,
                 gpt4mini_analysis,
-                created_at
+                gpt4_verification,
+                data_sources,
+                website_content_hash,
+                processing_attempts,
+                created_at,
+                updated_at,
+                puget_sound
             FROM contractors 
             WHERE review_status IN ('approved_download', 'pending_review') AND exported_at IS NULL
             ORDER BY review_status, business_name
@@ -136,23 +230,27 @@ class ContractorExporter:
         csv_data = []
         
         for contractor in contractors:
-            # Format services as comma-separated string
-            services = contractor.get('services_offered', [])
-            if isinstance(services, list):
-                services_str = ', '.join(services)
-            else:
-                services_str = str(services) if services else ''
+            # Format array fields as comma-separated strings
+            array_fields = ['services_offered', 'service_categories', 'specializations', 
+                          'additional_licenses', 'certifications', 'insurance_types']
             
-            # Clean up None values
+            # Clean up None values and format data
             row = {}
             for key, value in contractor.items():
                 if key == 'id':  # Skip internal ID
                     continue
-                elif key == 'services_offered':
-                    row[key] = services_str
-                elif key == 'gpt4mini_analysis':
-                    # Skip complex JSON fields for CSV
-                    continue
+                elif key in array_fields:
+                    if isinstance(value, list):
+                        row[key] = ', '.join(str(item) for item in value)
+                    else:
+                        row[key] = str(value) if value else ''
+                elif key in ['gpt4mini_analysis', 'gpt4_verification', 'data_sources', 'social_media_urls']:
+                    # Convert JSONB fields to JSON strings
+                    if value is not None:
+                        import json
+                        row[key] = json.dumps(value)
+                    else:
+                        row[key] = ''
                 elif value is None:
                     row[key] = ''
                 else:
