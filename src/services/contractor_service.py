@@ -1946,7 +1946,7 @@ Respond with valid JSON only.
                     contractor.processing_status = 'completed'
                     contractor.review_status = 'rejected'
                 
-                contractor.is_home_contractor = overall_confidence > 0.5
+                # Use residential_focus from AI analysis instead of is_home_contractor
                 
                 # Use AI category if available, otherwise fall back to keyword-based method
                 ai_category = None
@@ -2013,18 +2013,17 @@ Respond with valid JSON only.
             confidence_score = $2,
             website_confidence = $3,
             classification_confidence = $4,
-            is_home_contractor = $5,
-            mailer_category = $6,
-            website_url = $7,
-            website_status = $8,
-            data_sources = $9,
-            last_processed = $10,
-            error_message = $11,
-            review_status = $12,
-            residential_focus = $13,
-            business_description = $14,
+            mailer_category = $5,
+            website_url = $6,
+            website_status = $7,
+            data_sources = $8,
+            last_processed = $9,
+            error_message = $10,
+            review_status = $11,
+            residential_focus = $12,
+            business_description = $13,
             updated_at = NOW()
-        WHERE id = $15
+        WHERE id = $14
         """
         
         await db_pool.execute(
@@ -2033,7 +2032,6 @@ Respond with valid JSON only.
             contractor.confidence_score,
             contractor.website_confidence,
             contractor.classification_confidence,
-            contractor.is_home_contractor,
             contractor.mailer_category,
             contractor.website_url,
             contractor.website_status,

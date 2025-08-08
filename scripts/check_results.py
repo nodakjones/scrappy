@@ -79,9 +79,9 @@ async def check_processing_results():
         # Get home contractor stats
         home_stats = await db_pool.fetchrow('''
             SELECT 
-                COUNT(CASE WHEN is_home_contractor = true THEN 1 END) as home_contractors,
-                COUNT(CASE WHEN is_home_contractor = false THEN 1 END) as commercial_contractors,
-                COUNT(CASE WHEN is_home_contractor IS NULL THEN 1 END) as unknown
+                        COUNT(CASE WHEN residential_focus = true THEN 1 END) as residential_contractors,
+        COUNT(CASE WHEN residential_focus = false THEN 1 END) as commercial_contractors,
+        COUNT(CASE WHEN residential_focus IS NULL THEN 1 END) as unknown
             FROM contractors 
             WHERE processing_status = 'completed'
                 ''')
@@ -125,9 +125,9 @@ async def check_processing_results():
             print(f"  📊 Discovery Rate: {website_stats['websites_found']/website_stats['total_processed']*100:.1f}%")
             print()
             
-            # Home contractor stats
-            print("🏠 HOME CONTRACTOR IDENTIFICATION:")
-            print(f"  ✅ Home Contractors: {home_stats['home_contractors']:,}")
+            # Residential contractor stats
+            print("🏠 RESIDENTIAL CONTRACTOR IDENTIFICATION:")
+            print(f"  ✅ Residential Contractors: {home_stats['residential_contractors']:,}")
             print(f"  🏢 Commercial Contractors: {home_stats['commercial_contractors']:,}")
             print(f"  ❓ Unknown: {home_stats['unknown']:,}")
             print()

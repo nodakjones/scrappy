@@ -48,7 +48,7 @@ async def test_batch_with_city(limit=10):
             confidence = processed_contractor.confidence_score or 0.0
             status = processed_contractor.processing_status or "unknown"
             category = processed_contractor.mailer_category or "None"
-            is_home = "Yes" if processed_contractor.is_home_contractor else "No"
+            is_home = "Yes" if processed_contractor.residential_focus else "No"
             
             results.append([
                 processed_contractor.business_name,
@@ -57,7 +57,7 @@ async def test_batch_with_city(limit=10):
                 f"{confidence:.2f}",
                 f"{processed_contractor.city}, {processed_contractor.state}",
                 processed_contractor.review_status or "unknown",
-                "Yes" if processed_contractor.is_home_contractor else "No"
+                "Yes" if processed_contractor.residential_focus else "No"
             ])
             
             print(f"   ✅ Completed: {category} | Confidence: {confidence:.2f} | Website: {website_url}")

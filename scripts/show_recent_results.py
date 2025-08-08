@@ -29,7 +29,7 @@ async def show_recent_results():
         async with db_pool.pool.acquire() as conn:
             result = await conn.fetch('''
                 SELECT business_name, website_url, mailer_category, confidence_score, 
-                       city, state, review_status, is_home_contractor, last_processed
+                       city, state, review_status, residential_focus, last_processed
                 FROM contractors 
                 WHERE processing_status = 'completed' 
                 AND last_processed >= $1
@@ -44,7 +44,7 @@ async def show_recent_results():
             # Fallback to all completed contractors
             result = await conn.fetch('''
                 SELECT business_name, website_url, mailer_category, confidence_score, 
-                       city, state, review_status, is_home_contractor, last_processed
+                       city, state, review_status, residential_focus, last_processed
                 FROM contractors 
                 WHERE processing_status = 'completed' 
                 ORDER BY last_processed DESC
@@ -94,7 +94,7 @@ async def show_recent_results():
             ])
         
         # Display table
-        headers = ["Business Name", "Website", "Category", "Confidence", "Location", "Review Status", "Home Contractor", "Processed"]
+        headers = ["Business Name", "Website", "Category", "Confidence", "Location", "Review Status", "Residential Focus", "Processed"]
         table = tabulate(table_data, headers=headers, tablefmt="grid", maxcolwidths=[30, 35, 20, 10, 20, 12, 8, 8])
         print(table)
         

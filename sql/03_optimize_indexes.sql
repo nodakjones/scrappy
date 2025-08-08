@@ -92,10 +92,10 @@ ON website_crawls (contractor_id, crawl_status, attempted_at);
 
 -- 6. PARTIAL INDEXES FOR COMMON FILTERS
 
--- Home contractors only
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_contractors_home_only 
+-- Residential contractors only
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_contractors_residential_only 
 ON contractors (confidence_score, mailer_category, city, state) 
-WHERE is_home_contractor = TRUE;
+WHERE residential_focus = TRUE;
 
 -- Priority categories
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_contractors_priority_only 
@@ -104,7 +104,7 @@ WHERE priority_category = TRUE;
 
 -- Completed processing only
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_contractors_completed_only 
-ON contractors (confidence_score, mailer_category, is_home_contractor) 
+ON contractors (confidence_score, mailer_category, residential_focus) 
 WHERE processing_status = 'completed';
 
 -- 7. STATISTICS AND MAINTENANCE
@@ -142,7 +142,7 @@ WHERE manual_review_needed = TRUE;
 
 -- Multi-column filtering for reporting
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_contractors_reporting 
-ON contractors (processing_status, is_home_contractor, mailer_category, confidence_score, created_at);
+ON contractors (processing_status, residential_focus, mailer_category, confidence_score, created_at);
 
 -- Search and filtering combination
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_contractors_search_filter 
@@ -152,7 +152,7 @@ ON contractors (business_name, city, state, processing_status, confidence_score)
 
 -- Group by city/state with filtering
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_contractors_aggregation 
-ON contractors (city, state, processing_status, is_home_contractor, confidence_score);
+ON contractors (city, state, processing_status, residential_focus, confidence_score);
 
 -- 12. CLEANUP AND MAINTENANCE COMMANDS
 

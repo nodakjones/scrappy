@@ -99,7 +99,7 @@ class QueryPerformanceTester:
                     FROM contractors 
                     WHERE confidence_score >= 0.8 
                         AND processing_status = 'completed'
-                        AND is_home_contractor = TRUE
+                        AND residential_focus = TRUE
                     ORDER BY confidence_score DESC
                     LIMIT 100
                 ''',
@@ -109,7 +109,7 @@ class QueryPerformanceTester:
                 'description': 'Contractors by city and state with filtering',
                 'query': '''
                     SELECT city, state, COUNT(*) as contractor_count,
-                           COUNT(*) FILTER (WHERE is_home_contractor = TRUE) as home_contractors,
+                           COUNT(*) FILTER (WHERE residential_focus = TRUE) as residential_contractors,
                            AVG(confidence_score) as avg_confidence
                     FROM contractors 
                     WHERE processing_status IN ('completed', 'manual_review')
@@ -149,7 +149,7 @@ class QueryPerformanceTester:
                     SELECT 
                         processing_status,
                         COUNT(*) as total_count,
-                        COUNT(*) FILTER (WHERE is_home_contractor = TRUE) as home_contractors,
+                        COUNT(*) FILTER (WHERE residential_focus = TRUE) as residential_contractors,
                         AVG(confidence_score) as avg_confidence,
                         MIN(confidence_score) as min_confidence,
                         MAX(confidence_score) as max_confidence
@@ -206,7 +206,7 @@ class QueryPerformanceTester:
                     SELECT 
                         id,
                         business_name,
-                        gpt4mini_analysis->>'is_home_contractor' as llm_classification,
+                        gpt4mini_analysis->>'residential_focus' as llm_classification,
                         gpt4mini_analysis->>'confidence' as llm_confidence,
                         gpt4_verification->>'verification_result' as verification_result,
                         confidence_score

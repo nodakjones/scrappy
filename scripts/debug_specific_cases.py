@@ -58,7 +58,7 @@ async def debug_specific_cases():
             async with db_pool.pool.acquire() as conn:
                 result = await conn.fetchrow('''
                     SELECT business_name, website_url, mailer_category, confidence_score, 
-                           city, state, review_status, is_home_contractor, last_processed
+                           city, state, review_status, residential_focus, last_processed
                     FROM contractors 
                     WHERE business_name ILIKE $1
                     AND processing_status = 'completed'

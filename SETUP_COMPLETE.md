@@ -103,7 +103,7 @@ contractors (
     id, business_name, city, state, zip_code,
     website_url, website_status, confidence_score,
     website_confidence, classification_confidence,
-    mailer_category, is_home_contractor,
+    mailer_category, residential_focus,
     processing_status, review_status,
     puget_sound, created_at, updated_at
 )

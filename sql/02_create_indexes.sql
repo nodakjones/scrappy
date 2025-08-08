@@ -26,7 +26,7 @@ CREATE INDEX idx_contractors_service_categories ON contractors USING gin (servic
 CREATE INDEX idx_contractors_specializations ON contractors USING gin (specializations);
 
 -- Boolean indexes for contractor characteristics
-CREATE INDEX idx_contractors_home_contractor ON contractors (is_home_contractor) WHERE is_home_contractor IS NOT NULL;
+
 CREATE INDEX idx_contractors_priority_category ON contractors (priority_category) WHERE priority_category = TRUE;
 CREATE INDEX idx_contractors_residential_focus ON contractors (residential_focus) WHERE residential_focus = TRUE;
 

@@ -71,7 +71,7 @@ async def reset_zero_confidence_contractors(confirm: bool = False):
                 website_url = NULL,
                 website_status = NULL,
                 mailer_category = NULL,
-                is_home_contractor = NULL,
+    
                 data_sources = NULL,
                 review_status = NULL,
                 last_processed = NULL,

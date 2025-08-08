@@ -142,7 +142,11 @@ EXCLUDED_DOMAINS = {
     # New excluded domains
     'bizapedia.com', 'kitsapbuilds.com', 'procore.com', 'bizprofile.net', 
     'ibew48.com', 'rocketreach.co', 'thebluebook.com', 'washingtonbids.com', 
-    'gigharborchamber.net'
+    'gigharborchamber.net',
+    # Additional excluded domains
+    'lennox.com', 'tacomawebsite.net', 'asaonline.com', 'cmac.ws', 'alignable.com',
+    # More excluded domains
+    'homeremodelingbluecollar.com', 'residentialplumbingwa.com', 'connectpainters.com'
 }
 
 # Domain patterns to exclude (wildcards)

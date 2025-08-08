@@ -26,7 +26,7 @@
   - ubi, primary_principal_name, status_code, contractor_license_status, contractor_license_suspend_date
 
 - **Enriched data fields**:
-  - is_home_contractor (boolean)
+  - residential_focus (boolean)
   - mailer_category (varchar) - from your 106 categories
   - priority_category (boolean) - if matches priority category
   - website_url, website_status
@@ -469,7 +469,7 @@ CIRCUIT_BREAKER_THRESHOLD = 5   # Stop processing after 5 consecutive errors
 SELECT 
     id, business_name, city, state, website_url, mailer_category,
     confidence_score, website_confidence, classification_confidence,
-    is_home_contractor, manual_review_reason,
+    residential_focus, manual_review_reason,
     CASE 
         WHEN confidence_score >= 0.8 THEN 'High Confidence'
         WHEN confidence_score >= 0.6 THEN 'Medium Confidence' 

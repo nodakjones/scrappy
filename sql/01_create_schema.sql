@@ -36,7 +36,6 @@ CREATE TABLE contractors (
     contractor_license_suspend_date DATE,
     
     -- Enriched data fields
-    is_home_contractor BOOLEAN,
     mailer_category VARCHAR(100),
     priority_category BOOLEAN DEFAULT FALSE,
     website_url VARCHAR(500),

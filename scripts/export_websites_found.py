@@ -38,7 +38,7 @@ async def export_websites_found():
             website_confidence,
             classification_confidence,
             mailer_category,
-            is_home_contractor,
+                            residential_focus,
             processing_status,
             review_status,
             puget_sound,
@@ -72,7 +72,7 @@ async def export_websites_found():
             'id', 'business_name', 'city', 'state', 'zip',
             'website_url', 'website_status', 'confidence_score',
             'website_confidence', 'classification_confidence',
-            'mailer_category', 'is_home_contractor', 'processing_status',
+            'mailer_category', 'residential_focus', 'processing_status',
             'review_status', 'puget_sound', 'created_at', 'updated_at'
         ]
         

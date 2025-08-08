@@ -27,7 +27,7 @@ async def display_clean_results():
         async with db_pool.pool.acquire() as conn:
             result = await conn.fetch('''
                 SELECT business_name, website_url, mailer_category, confidence_score, 
-                       city, state, review_status, is_home_contractor
+                       city, state, review_status, residential_focus
                 FROM contractors 
                 WHERE processing_status = 'completed' 
                 ORDER BY confidence_score DESC, business_name

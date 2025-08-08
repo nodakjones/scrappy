@@ -29,7 +29,7 @@ async def extract_all_results():
         async with db_pool.pool.acquire() as conn:
             result = await conn.fetch('''
                 SELECT business_name, website_url, mailer_category, confidence_score, 
-                       city, state, review_status, is_home_contractor, processing_status
+                       city, state, review_status, residential_focus, processing_status
                 FROM contractors 
                 WHERE processing_status = 'completed' 
                 ORDER BY last_processed DESC 
@@ -47,7 +47,7 @@ async def extract_all_results():
                     'city': row[4],
                     'state': row[5],
                     'review_status': row[6],
-                    'is_home_contractor': row[7],
+                    'residential_focus': row[7],
                     'processing_status': row[8]
                 })()
                 contractors.append(contractor)
@@ -67,7 +67,7 @@ async def extract_all_results():
             confidence = contractor.confidence_score or 0.0
             status = contractor.processing_status or "unknown"
             category = contractor.mailer_category or "None"
-            is_home = "Yes" if contractor.is_home_contractor else "No"
+            is_home = "Yes" if contractor.residential_focus else "No"
             review_status = contractor.review_status or "unknown"
             
             results.append([
@@ -84,7 +84,7 @@ async def extract_all_results():
         print(f"\n📊 ALL {len(results)} RESULTS")
         print("=" * 60)
         
-        headers = ["Business Name", "Website", "Category", "Confidence", "Location", "Review Status", "Home Contractor"]
+        headers = ["Business Name", "Website", "Category", "Confidence", "Location", "Review Status", "Residential Focus"]
         table = tabulate(results, headers=headers, tablefmt="grid", maxcolwidths=[25, 30, 15, 10, 20, 12, 8])
         print(table)
         

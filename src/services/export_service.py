@@ -107,7 +107,7 @@ class ExportService:
         # Define columns for full export
         columns = [
             'id', 'business_name', 'phone_number', 'address1', 'address2', 'city', 'state', 'zip',
-            'website_url', 'confidence_score', 'is_home_contractor', 'mailer_category',
+            'website_url', 'confidence_score', 'residential_focus', 'mailer_category',
             'contractor_license_type_code_desc', 'processing_status', 'last_processed'
         ]
         
@@ -146,7 +146,7 @@ class ExportService:
         # Define columns for summary export
         columns = [
             'business_name', 'phone_number', 'address1', 'address2', 'city', 'state', 'website_url', 
-            'confidence_score', 'is_home_contractor', 'mailer_category'
+            'confidence_score', 'residential_focus', 'mailer_category'
         ]
         
         logger.info(f"Creating summary export with {len(contractors)} contractors to {filename}")

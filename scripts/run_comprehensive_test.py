@@ -185,7 +185,7 @@ class ComprehensiveTestSuite:
                         'confidence': processed_contractor.confidence_score or 0.0,
                         'location': f"{processed_contractor.city}, {processed_contractor.state}",
                         'review_status': processed_contractor.review_status or "unknown",
-                        'is_home_contractor': "Yes" if processed_contractor.is_home_contractor else "No",
+                        'residential_focus': "Yes" if processed_contractor.residential_focus else "No",
                         'processing_status': processed_contractor.processing_status
                     }
                     
@@ -205,7 +205,7 @@ class ComprehensiveTestSuite:
                         'confidence': 0.0,
                         'location': f"{contractor.city}, {contractor.state}",
                         'review_status': "error",
-                        'is_home_contractor': "No",
+                        'residential_focus': "No",
                         'processing_status': "error"
                     })
             
@@ -242,8 +242,8 @@ class ComprehensiveTestSuite:
             if category != "ERROR":
                 categories[category] = categories.get(category, 0) + 1
         
-        # Home contractor rate
-        home_contractors = sum(1 for r in self.results if r['is_home_contractor'] == "Yes")
+        # Residential contractor rate
+        residential_contractors = sum(1 for r in self.results if r['residential_focus'] == "Yes")
         
         # Display summary statistics
         print(f"📈 SUMMARY STATISTICS:")
@@ -288,10 +288,10 @@ class ComprehensiveTestSuite:
                     f"{r['confidence']:.2f}",
                     r['location'],
                     r['review_status'],
-                    r['is_home_contractor']
+                    r['residential_focus']
                 ])
             
-            headers = ["Business Name", "Website", "Category", "Confidence", "Location", "Review Status", "Home Contractor"]
+            headers = ["Business Name", "Website", "Category", "Confidence", "Location", "Review Status", "Residential Focus"]
             table = tabulate(table_data, headers=headers, tablefmt="grid", maxcolwidths=[30, 35, 20, 10, 20, 12, 8])
             print(table)
         

@@ -46,7 +46,6 @@ class Contractor:
     contractor_license_suspend_date: Optional[datetime] = None
     
     # Enriched data fields
-    is_home_contractor: Optional[bool] = None
     mailer_category: Optional[str] = None
     priority_category: bool = False
     website_url: Optional[str] = None

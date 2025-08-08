@@ -59,7 +59,7 @@ async def test_specific_contractor(contractor_name=None):
             print(f"Processing Status: {processed_contractor.processing_status}")
             print(f"Review Status: {processed_contractor.review_status}")
             print(f"Category: {processed_contractor.mailer_category}")
-            print(f"Is Home Contractor: {processed_contractor.is_home_contractor}")
+            print(f"Residential Focus: {processed_contractor.residential_focus}")
             
             # Show AI analysis results if available
             if processed_contractor.data_sources and 'ai_analysis' in processed_contractor.data_sources:
